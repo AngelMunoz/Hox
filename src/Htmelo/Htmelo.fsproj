@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Node.fs" />
+    <Compile Include="SelectorParser.fs" />
+    <Compile Include="Rendering.fs" />
+    <Compile Include="DSL.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="FParsec" Version="1.1.1" />
+    <PackageReference Include="FSharp.Control.TaskSeq" Version="0.3.0" />
+    <PackageReference Include="IcedTasks" Version="0.10.0" />
+  </ItemGroup>
+
+</Project>
