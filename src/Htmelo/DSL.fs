@@ -396,6 +396,44 @@ type NodeExtensions =
     )
 
   [<Extension>]
+  static member inline custom(node: Node, name: string, value: string) =
+    addAttribute(node, AttributeNode.Attribute { name = name; value = value })
+
+  [<Extension>]
+  static member inline custom
+    (
+      node: Node,
+      name: string,
+      value: string ValueTask
+    ) =
+    let attr = cancellableValueTask {
+      let! value = value
+      return { name = name; value = value }
+    }
+
+    addAttribute(node, AttributeNode.AsyncAttribute attr)
+
+  [<Extension>]
+  static member inline custom(node: Node, name: string, value: string Task) =
+    node.custom(
+      name,
+      valueTask {
+        let! value = value
+        return value
+      }
+    )
+
+  [<Extension>]
+  static member inline custom(node: Node, name: string, value: string Async) =
+    node.custom(
+      name,
+      valueTask {
+        let! value = value
+        return value
+      }
+    )
+
+  [<Extension>]
   static member inline class'(node: Node, className: string) =
     addAttribute(
       node,
