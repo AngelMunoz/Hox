@@ -58,17 +58,20 @@ type Layout =
         el "meta[charset=utf-8]",
         el "meta[name=viewport][content=width=device-width, initial-scale=1.0]",
         el("title", text "Htmelo"),
-        el(
-          "link[rel=stylesheet][href=https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/themes/light.css]"
-        )
+        el("link[rel=stylesheet]")
+          .href(
+            "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/themes/light.css"
+          )
           .media("(prefers-color-scheme:light)"),
-        el(
-          "link[rel=stylesheet][onload=document.documentElement.classList.add('sl-theme-dark');]"
-        )
+        el("link[rel=stylesheet]")
           .href(
             "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/themes/dark.css"
           )
-          .media("(prefers-color-scheme:dark)"),
+          .media("(prefers-color-scheme:dark)")
+          .custom(
+            "onload",
+            "document.documentElement.classList.add('sl-theme-dark');"
+          ),
         Styles.Lists,
         head
       ),
@@ -128,14 +131,27 @@ let inline index (ctx: HttpContext) (factory: IHttpClientFactory) = task {
 
 let inline streamed (ctx: HttpContext) (factory: IHttpClientFactory) = taskUnit {
   let http = factory.CreateClient()
-  let todos = renderTodos http
+  // let todos = renderTodos http
 
   return!
     ctx.streamView(
       Layout.Default(
-        el("main")
+        el(
+          "main",
+          el("h1", text "Hello World!"),
+          // el("ul.todo-list", todos),
+          Scoped.card(
+            Scoped.cardHeader(el("h2", text "Card Header")),
+            Scoped.cardContent(el("p", text "Card Content")),
+            Scoped.cardFooter(el("p", text "Card Footer"))
+          ),
+          el(
+            "p",
+            text
+              "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna\naliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+          )
+        )
           .style(css "padding: 1em; display: flex; flex-direction: column")
-          .children(el("h1", text "Hello World!"), el("ul.todo-list", todos))
       )
     )
 }
