@@ -18,6 +18,107 @@ I'm experimenting also with a different DSL to generate these nodes, while the "
 
 Example:
 
+Current Iteration:
+
+```fsharp
+
+type Layout =
+  static member inline Default(content: Node, ?head: Node, ?scripts: Node) =
+    let head = defaultArg head (Fragment [])
+    let scripts = defaultArg scripts (Fragment [])
+
+    el(
+      "html[lang=en].sl-theme-light",
+      el(
+        "head",
+        Styles.App,
+        el "meta[charset=utf-8]",
+        el "meta[name=viewport][content=width=device-width, initial-scale=1.0]",
+        el("title", text "Htmelo"),
+        el("link[rel=stylesheet]")
+          .href(
+            "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/themes/light.css"
+          )
+          .media("(prefers-color-scheme:light)"),
+        el("link[rel=stylesheet]")
+          .href(
+            "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/themes/dark.css"
+          )
+          .media("(prefers-color-scheme:dark)")
+          .custom(
+            "onload",
+            "document.documentElement.classList.add('sl-theme-dark');"
+          ),
+        Styles.Lists,
+        head
+      ),
+      el(
+        "body",
+        content,
+        el("script[type=module]")
+          .src(
+            "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/shoelace-autoloader.js"
+          ),
+        scripts
+      )
+    )
+
+let renderTodos(http: HttpClient) = taskSeq {
+  use! todos = http.GetStreamAsync("https://jsonplaceholder.typicode.com/todos")
+
+  let! todos =
+    JsonSerializer.DeserializeAsync<{|
+      userId: int
+      id: int
+      title: string
+      completed: bool
+    |} list>(
+      todos
+    )
+
+  for todo in todos do
+    el("li")
+      .child(
+        el(
+          $"sl-details[summary={todo.title}]",
+          el("p", text $"Todo Id: %i{todo.id}"),
+          el(
+            "p",
+            text
+              $"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna\naliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+          )
+        )
+      )
+}
+
+
+let inline streamed (ctx: HttpContext) (factory: IHttpClientFactory) = taskUnit {
+  let http = factory.CreateClient()
+  let todos = renderTodos http
+
+  return!
+    ctx.streamView(
+      Layout.Default(
+        el(
+          "main",
+          el("h1", text "Hello World!"),
+          el("ul.todo-list", todos),
+          el(
+            "p",
+            text
+              "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna\naliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+          )
+        )
+          .style(css "padding: 1em; display: flex; flex-direction: column")
+      )
+    )
+}
+
+
+```
+
+Previous Iteration:
+
 ```fsharp
 type Layout =
   static member inline Default(content: Node, ?head: Node, ?scripts: Node) =
