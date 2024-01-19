@@ -158,18 +158,18 @@ module Chunked =
       let classes, attributes, asyncAttributes =
         getAttributes element.attributes
 
-      yield $"<{element.tag}"
+      $"<{element.tag}"
 
       if classes.Length > 0 then
-        yield " class=\""
+        " class=\""
         yield! classes
-        yield "\""
+        "\""
 
       for attribute in attributes do
         let! attr =
           renderAttr (AttributeNode.Attribute attribute) cancellationToken
 
-        yield attr
+        attr
 
       for asyncAttribute in asyncAttributes do
         let! attr =
@@ -177,9 +177,9 @@ module Chunked =
             (AttributeNode.AsyncAttribute asyncAttribute)
             cancellationToken
 
-        yield attr
+        attr
 
-      yield ">"
+      ">"
 
       match element.tag.ToLowerInvariant() with
       | "area"
@@ -201,10 +201,9 @@ module Chunked =
       | tag ->
 
         for child in element.children do
-          let child = renderNode (child, cancellationToken)
-          yield! child
+          yield! renderNode (child, cancellationToken)
 
-        yield $"</{tag}>"
+        $"</{tag}>"
     }
 
   and private renderNode
@@ -214,25 +213,20 @@ module Chunked =
     ) : IAsyncEnumerable<string> =
     taskSeq {
       match node with
-      | Element element ->
-        let elements = renderElement (element, cancellationToken)
-        yield! elements
-      | Text text -> yield (HttpUtility.HtmlEncode text)
-      | Raw raw -> yield raw
-      | Comment comment -> yield ($"<!--{comment}-->")
+      | Element element -> yield! renderElement (element, cancellationToken)
+      | Text text -> HttpUtility.HtmlEncode text
+      | Raw raw -> raw
+      | Comment comment -> $"<!--{comment}-->"
       | Fragment nodes ->
         for node in nodes do
-          let result = renderNode (node, cancellationToken)
-          yield! result
+          yield! renderNode (node, cancellationToken)
       | AsyncNode node ->
         let! node = node cancellationToken
 
-        let result = renderNode (node, cancellationToken)
-        yield! result
+        yield! renderNode (node, cancellationToken)
       | AsyncSeqNode nodes ->
         for node in nodes do
-          let result = renderNode (node, cancellationToken)
-          yield! result
+          yield! renderNode (node, cancellationToken)
     }
 
   let render (node: Node) = fun token -> renderNode (node, token)
