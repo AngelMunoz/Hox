@@ -8,7 +8,7 @@ open System.Web
 open FSharp.Control
 open IcedTasks
 
-let private getAttributes (attributes: AttributeNode list) =
+let private getAttributes(attributes: AttributeNode list) =
   attributes
   |> List.fold
     (fun (classes, attributes, asyncAttributes) attribute ->
@@ -21,7 +21,7 @@ let private getAttributes (attributes: AttributeNode list) =
         (classes, attributes, asyncAttribute :: asyncAttributes))
     ([], [], [])
 
-let private renderAttr (node: AttributeNode) = cancellableValueTask {
+let private renderAttr(node: AttributeNode) = cancellableValueTask {
   match node with
   | AttributeNode.Attribute { name = name; value = value } ->
     return
@@ -36,14 +36,14 @@ let private renderAttr (node: AttributeNode) = cancellableValueTask {
 module Builder =
   open System.Text
 
-  let rec private renderNode (node: Node) = cancellableValueTask {
+  let rec private renderNode(node: Node) = cancellableValueTask {
     match node with
     | Element element -> return! renderElement element
     | Text text -> return HttpUtility.HtmlEncode text
     | Raw raw -> return raw
     | Comment comment -> return $"<!--%s{comment}-->"
     | Fragment nodes ->
-      let! token = CancellableValueTask.getCancellationToken ()
+      let! token = CancellableValueTask.getCancellationToken()
       let sb = StringBuilder()
 
       for node in nodes do
@@ -55,12 +55,12 @@ module Builder =
       let! node = node
       return! renderNode node
     | AsyncSeqNode nodes ->
-      let! token = CancellableValueTask.getCancellationToken ()
+      let! token = CancellableValueTask.getCancellationToken()
       let sb = StringBuilder()
 
       do!
         nodes
-        |> TaskSeq.iterAsync (fun node -> task {
+        |> TaskSeq.iterAsync(fun node -> task {
           let! node = renderNode node token
           sb.Append(node) |> ignore
         })
@@ -68,8 +68,8 @@ module Builder =
       return sb.ToString()
   }
 
-  and private renderElement (element: Element) = cancellableValueTask {
-    let! token = CancellableValueTask.getCancellationToken ()
+  and private renderElement(element: Element) = cancellableValueTask {
+    let! token = CancellableValueTask.getCancellationToken()
     let classes, attributes, asyncAttributes = getAttributes element.attributes
     let sb = StringBuilder()
     sb.Append("<").Append(element.tag) |> ignore
@@ -84,11 +84,11 @@ module Builder =
       let sb = StringBuilder()
 
       for attribute in attributes do
-        let! attribute = renderAttr (AttributeNode.Attribute attribute)
+        let! attribute = renderAttr(AttributeNode.Attribute attribute)
         sb.Append(attribute) |> ignore
 
       for attribute in asyncAttributes do
-        let! attribute = renderAttr (AttributeNode.AsyncAttribute attribute)
+        let! attribute = renderAttr(AttributeNode.AsyncAttribute attribute)
         sb.Append(attribute) |> ignore
 
       return sb.ToString()
@@ -135,17 +135,17 @@ module Builder =
   }
 
   module ValueTask =
-    let render (node: Node) = cancellableValueTask {
+    let render(node: Node) = cancellableValueTask {
       let! result = renderNode node
       return result
     }
 
   module Async =
-    let inline render (node: Node) =
+    let inline render(node: Node) =
       ValueTask.render node |> Async.AwaitCancellableValueTask
 
   module Task =
-    let inline render (node: Node) : CancellableTask<string> =
+    let inline render(node: Node) : CancellableTask<string> =
       fun token -> (ValueTask.render node token).AsTask()
 
 module Chunked =
@@ -201,7 +201,7 @@ module Chunked =
       | tag ->
 
         for child in element.children do
-          yield! renderNode (child, cancellationToken)
+          yield! renderNode(child, cancellationToken)
 
         $"</{tag}>"
     }
@@ -213,20 +213,20 @@ module Chunked =
     ) : IAsyncEnumerable<string> =
     taskSeq {
       match node with
-      | Element element -> yield! renderElement (element, cancellationToken)
+      | Element element -> yield! renderElement(element, cancellationToken)
       | Text text -> HttpUtility.HtmlEncode text
       | Raw raw -> raw
       | Comment comment -> $"<!--{comment}-->"
       | Fragment nodes ->
         for node in nodes do
-          yield! renderNode (node, cancellationToken)
+          yield! renderNode(node, cancellationToken)
       | AsyncNode node ->
         let! node = node cancellationToken
 
-        yield! renderNode (node, cancellationToken)
+        yield! renderNode(node, cancellationToken)
       | AsyncSeqNode nodes ->
         for node in nodes do
-          yield! renderNode (node, cancellationToken)
+          yield! renderNode(node, cancellationToken)
     }
 
-  let render (node: Node) = fun token -> renderNode (node, token)
+  let render(node: Node) = fun token -> renderNode(node, token)

@@ -18,27 +18,27 @@ module Parsers =
         isAsciiIdContinue = fun ch -> isAsciiLetter ch || isDigit ch || ch = '-'
       )
 
-    identifier (options)
+    identifier(options)
 
   let pId: Parser<SelectorValue, unit> =
-    let value = satisfy (fun ch -> ch <> '#' && ch <> '.' && ch <> '[')
-    pchar '#' >>. manyChars value >>= (fun id -> preturn (Id id))
+    let value = satisfy(fun ch -> ch <> '#' && ch <> '.' && ch <> '[')
+    pchar '#' >>. manyChars value >>= (fun id -> preturn(Id id))
 
   let pClass: Parser<SelectorValue, unit> =
-    pchar '.' >>. manyChars (letter <|> digit <|> pchar '-')
-    >>= fun cls -> preturn (Class cls)
+    pchar '.' >>. manyChars(letter <|> digit <|> pchar '-')
+    >>= fun cls -> preturn(Class cls)
 
   let pAttribute: Parser<SelectorValue, unit> =
-    let name = manyChars (letter <|> digit <|> pchar '-')
+    let name = manyChars(letter <|> digit <|> pchar '-')
     let eq = pchar '='
 
-    let value = manyChars (satisfy (fun ch -> ch <> ']'))
+    let value = manyChars(satisfy(fun ch -> ch <> ']'))
 
     pchar '[' >>. name .>> eq .>>. value .>> unicodeSpaces .>> pchar ']'
-    >>= fun (name, value) -> preturn (Attribute { name = name; value = value })
+    >>= fun (name, value) -> preturn(Attribute { name = name; value = value })
 
   let pSelector: Parser<Element, unit> =
-    tagName .>>. many (attempt pClass <|> attempt pAttribute <|> attempt pId)
+    tagName .>>. many(attempt pClass <|> attempt pAttribute <|> attempt pId)
     >>= fun (tag, values) ->
       let dcBuilder = ImmutableDictionary.CreateBuilder<string, AttributeNode>()
 
@@ -89,23 +89,23 @@ module Parsers =
         tag = tag
         attributes =
           dcBuilder.ToImmutableList()
-          |> Seq.map (fun pair -> pair.Value)
+          |> Seq.map(fun pair -> pair.Value)
           |> Seq.toList
         children = []
       }
 
-  let selector (selector: string) =
+  let selector(selector: string) =
     match run pSelector selector with
     | Success(result, _, _) -> result
     | Failure(origin, err, _) -> failwith $"Failed to parse '{origin}': {err}"
 
-  let selectorResult (selector: string) =
+  let selectorResult(selector: string) =
     match run pSelector selector with
     | Success(result, _, _) -> Result.Ok result
     | Failure(origin, err, _) ->
       Result.Error($"Failed to parse '{origin}': {err}")
 
-  let trySelector (selector: string) =
+  let trySelector(selector: string) =
     match run pSelector selector with
     | Success(result, _, _) -> Some result
     | Failure(_, _, _) -> None

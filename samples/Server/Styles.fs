@@ -4,11 +4,11 @@ open Htmelo.DSL
 
 [<AutoOpen>]
 module Extensions =
-  let inline css (content: string) = content
+  let inline css(content: string) = content
 
 module Styles =
 
-  let inline toStyle (content: string) = el ("style", raw content)
+  let inline toStyle(content: string) = el("style", raw content)
 
   let App =
     css

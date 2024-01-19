@@ -10,7 +10,7 @@ open System.Collections.Generic
 open FSharp.Control
 
 
-let rec addToNode (target: Node, value: Node) =
+let rec addToNode(target: Node, value: Node) =
   match target, value with
   | Element target, Element value ->
     Element {
@@ -30,7 +30,7 @@ let rec addToNode (target: Node, value: Node) =
   | Element target, AsyncNode value ->
     let tsk = cancellableValueTask {
       let! value = value
-      return addToNode (Element target, value)
+      return addToNode(Element target, value)
     }
 
     AsyncNode tsk
@@ -47,14 +47,14 @@ let rec addToNode (target: Node, value: Node) =
   | AsyncNode target, Element value ->
     let tsk = cancellableValueTask {
       let! target = target
-      return addToNode (target, Element value)
+      return addToNode(target, Element value)
     }
 
     AsyncNode tsk
   | AsyncNode target, Text value ->
     let tsk = cancellableValueTask {
       let! target = target
-      return addToNode (target, Text value)
+      return addToNode(target, Text value)
     }
 
     AsyncNode tsk
@@ -62,7 +62,7 @@ let rec addToNode (target: Node, value: Node) =
   | AsyncNode target, Raw value ->
     let tsk = cancellableValueTask {
       let! target = target
-      return addToNode (target, Raw value)
+      return addToNode(target, Raw value)
     }
 
     AsyncNode tsk
@@ -70,41 +70,41 @@ let rec addToNode (target: Node, value: Node) =
     let tsk = cancellableValueTask {
       let! target = target
       let! value = value
-      return addToNode (target, value)
+      return addToNode(target, value)
     }
 
     AsyncNode tsk
   | AsyncNode target, AsyncSeqNode value ->
     let tsk = cancellableValueTask {
       let! target = target
-      return addToNode (target, AsyncSeqNode value)
+      return addToNode(target, AsyncSeqNode value)
     }
 
     AsyncNode tsk
   | AsyncNode target, Fragment value ->
     let tsk = cancellableValueTask {
       let! target = target
-      return addToNode (target, Fragment value)
+      return addToNode(target, Fragment value)
     }
 
     AsyncNode tsk
   | AsyncSeqNode target, Element value ->
-    AsyncSeqNode(target |> TaskSeq.append (taskSeq { Element value }))
+    AsyncSeqNode(target |> TaskSeq.append(taskSeq { Element value }))
   | AsyncSeqNode target, Text value ->
-    AsyncSeqNode(target |> TaskSeq.append (taskSeq { Text value }))
+    AsyncSeqNode(target |> TaskSeq.append(taskSeq { Text value }))
   | AsyncSeqNode target, Raw value ->
-    AsyncSeqNode(target |> TaskSeq.append (taskSeq { Raw value }))
+    AsyncSeqNode(target |> TaskSeq.append(taskSeq { Raw value }))
   | AsyncSeqNode target, AsyncNode value ->
     let tsk = cancellableValueTask {
       let! value = value
-      return AsyncSeqNode(target |> TaskSeq.append (taskSeq { value }))
+      return AsyncSeqNode(target |> TaskSeq.append(taskSeq { value }))
     }
 
     AsyncNode tsk
   | AsyncSeqNode target, AsyncSeqNode value ->
     AsyncSeqNode(target |> TaskSeq.append value)
   | AsyncSeqNode target, Fragment value ->
-    AsyncSeqNode(target |> TaskSeq.append (taskSeq { Fragment value }))
+    AsyncSeqNode(target |> TaskSeq.append(taskSeq { Fragment value }))
   | Fragment target, Element value -> Fragment(target @ [ Element value ])
   | Fragment target, Text value -> Fragment(target @ [ Text value ])
   | Fragment target, Raw value -> Fragment(target @ [ Raw value ])
@@ -128,13 +128,13 @@ let rec addToNode (target: Node, value: Node) =
   | Text target, AsyncNode value ->
     let tsk = cancellableValueTask {
       let! value = value
-      return addToNode (Text target, value)
+      return addToNode(Text target, value)
     }
 
     AsyncNode tsk
   | _, _ -> target
 
-let rec addAttribute (target: Node, attribute: AttributeNode) =
+let rec addAttribute(target: Node, attribute: AttributeNode) =
   match target with
   | Element target ->
     Element {
@@ -144,7 +144,7 @@ let rec addAttribute (target: Node, attribute: AttributeNode) =
   | AsyncNode target ->
     let tsk = cancellableValueTask {
       let! target = target
-      return addAttribute (target, attribute)
+      return addAttribute(target, attribute)
     }
 
     AsyncNode tsk
@@ -158,10 +158,10 @@ type Htmelo =
     Element(Parsers.selector cssSelector)
 
   static member inline el(cssSelector: string, child: Node) =
-    addToNode (Element(Parsers.selector cssSelector), child)
+    addToNode(Element(Parsers.selector cssSelector), child)
 
   static member inline el(cssSelector: string, children: Node seq) =
-    addToNode (
+    addToNode(
       Element(Parsers.selector cssSelector),
       Fragment(children |> Seq.toList)
     )
@@ -171,7 +171,7 @@ type Htmelo =
       cssSelector: string,
       [<ParamArray>] children: Node array
     ) =
-    addToNode (
+    addToNode(
       Element(Parsers.selector cssSelector),
       Fragment(children |> Seq.toList)
     )
@@ -181,7 +181,7 @@ type Htmelo =
       cssSelector: string,
       children: IAsyncEnumerable<Node>
     ) =
-    addToNode (Element(Parsers.selector cssSelector), AsyncSeqNode children)
+    addToNode(Element(Parsers.selector cssSelector), AsyncSeqNode children)
 
   static member inline el(cssSelector: string, child: Node ValueTask) =
     let child =
@@ -192,7 +192,7 @@ type Htmelo =
         }
       )
 
-    addToNode (Element(Parsers.selector cssSelector), child)
+    addToNode(Element(Parsers.selector cssSelector), child)
 
 
   static member inline el(element: Node ValueTask) =
@@ -212,7 +212,7 @@ type Htmelo =
         }
       )
 
-    addToNode (element, child)
+    addToNode(element, child)
 
   static member inline el(element: Node ValueTask, children: Node seq) =
     let element =
@@ -223,10 +223,10 @@ type Htmelo =
         }
       )
 
-    addToNode (element, Fragment(children |> Seq.toList))
+    addToNode(element, Fragment(children |> Seq.toList))
 
   static member inline el(element: Node Task) =
-    Htmelo.el (
+    Htmelo.el(
       valueTask {
         let! element = element
         return element
@@ -242,7 +242,7 @@ type Htmelo =
         }
       )
 
-    addToNode (element, child)
+    addToNode(element, child)
 
   static member inline el(element: Node Task, children: Node seq) =
     let element =
@@ -253,10 +253,10 @@ type Htmelo =
         }
       )
 
-    addToNode (element, Fragment(children |> Seq.toList))
+    addToNode(element, Fragment(children |> Seq.toList))
 
   static member inline el(element: Node Async) =
-    Htmelo.el (
+    Htmelo.el(
       valueTask {
         let! element = element
         return element
@@ -272,7 +272,7 @@ type Htmelo =
         }
       )
 
-    addToNode (element, child)
+    addToNode(element, child)
 
   static member inline el(element: Node Async, children: Node seq) =
     let element =
@@ -283,10 +283,10 @@ type Htmelo =
         }
       )
 
-    addToNode (element, Fragment(children |> Seq.toList))
+    addToNode(element, Fragment(children |> Seq.toList))
 
   static member inline el(element: Node, children: IAsyncEnumerable<Node>) =
-    addToNode (element, AsyncSeqNode children)
+    addToNode(element, AsyncSeqNode children)
 
   static member inline el
     (
@@ -301,7 +301,7 @@ type Htmelo =
         }
       )
 
-    addToNode (element, AsyncSeqNode children)
+    addToNode(element, AsyncSeqNode children)
 
   static member inline el
     (
@@ -316,7 +316,7 @@ type Htmelo =
         }
       )
 
-    addToNode (element, AsyncSeqNode children)
+    addToNode(element, AsyncSeqNode children)
 
   static member inline el
     (
@@ -331,7 +331,7 @@ type Htmelo =
         }
       )
 
-    addToNode (element, AsyncSeqNode children)
+    addToNode(element, AsyncSeqNode children)
 
   static member inline text(text: string) = Text text
 
@@ -348,11 +348,11 @@ type NodeExtensions =
 
   [<Extension>]
   static member inline children(node: Node, children: Node seq) =
-    addToNode (node, Htmelo.fragment children)
+    addToNode(node, Htmelo.fragment children)
 
   [<Extension>]
   static member inline children(node: Node, children: IAsyncEnumerable<Node>) =
-    addToNode (node, AsyncSeqNode children)
+    addToNode(node, AsyncSeqNode children)
 
   [<Extension>]
   static member inline children
@@ -360,10 +360,10 @@ type NodeExtensions =
       node: Node,
       [<ParamArrayAttribute>] nodes: Node array
     ) =
-    addToNode (node, fragment nodes)
+    addToNode(node, fragment nodes)
 
   [<Extension>]
-  static member inline child(node: Node, child: Node) = addToNode (node, child)
+  static member inline child(node: Node, child: Node) = addToNode(node, child)
 
   [<Extension>]
   static member inline child(node: Node, child: Node ValueTask) =
@@ -375,11 +375,11 @@ type NodeExtensions =
         }
       )
 
-    addToNode (node, child)
+    addToNode(node, child)
 
   [<Extension>]
   static member inline child(node: Node, child: Node Task) =
-    node.child (
+    node.child(
       valueTask {
         let! child = child
         return child
@@ -388,7 +388,7 @@ type NodeExtensions =
 
   [<Extension>]
   static member inline child(node: Node, child: Node Async) =
-    node.child (
+    node.child(
       valueTask {
         let! child = child
         return child
@@ -397,7 +397,7 @@ type NodeExtensions =
 
   [<Extension>]
   static member inline class'(node: Node, className: string) =
-    addAttribute (
+    addAttribute(
       node,
       AttributeNode.Attribute { name = "class"; value = className }
     )
@@ -406,7 +406,7 @@ type NodeExtensions =
   static member inline class'(node: Node, classes: #seq<string>) =
     let classes = classes |> Seq.toList |> String.concat " "
 
-    addAttribute (
+    addAttribute(
       node,
       AttributeNode.Attribute { name = "class"; value = classes }
     )
@@ -418,11 +418,11 @@ type NodeExtensions =
       return { name = "class"; value = className }
     }
 
-    addAttribute (node, AttributeNode.AsyncAttribute attr)
+    addAttribute(node, AttributeNode.AsyncAttribute attr)
 
   [<Extension>]
   static member inline class'(node: Node, className: string Task) =
-    node.class' (
+    node.class'(
       valueTask {
         let! className = className
         return className
@@ -431,7 +431,7 @@ type NodeExtensions =
 
   [<Extension>]
   static member inline class'(node: Node, className: string Async) =
-    node.class' (
+    node.class'(
       valueTask {
         let! className = className
         return className
@@ -440,7 +440,7 @@ type NodeExtensions =
 
   [<Extension>]
   static member inline id(node: Node, id: string) =
-    addAttribute (node, AttributeNode.Attribute { name = "id"; value = id })
+    addAttribute(node, AttributeNode.Attribute { name = "id"; value = id })
 
   [<Extension>]
   static member inline id(node: Node, id: string ValueTask) =
@@ -449,11 +449,11 @@ type NodeExtensions =
       return { name = "id"; value = id }
     }
 
-    addAttribute (node, AttributeNode.AsyncAttribute attr)
+    addAttribute(node, AttributeNode.AsyncAttribute attr)
 
   [<Extension>]
   static member inline id(node: Node, id: string Task) =
-    node.id (
+    node.id(
       valueTask {
         let! id = id
         return id
@@ -462,7 +462,7 @@ type NodeExtensions =
 
   [<Extension>]
   static member inline id(node: Node, id: string Async) =
-    node.id (
+    node.id(
       valueTask {
         let! id = id
         return id
@@ -471,7 +471,7 @@ type NodeExtensions =
 
   [<Extension>]
   static member inline media(node: Node, media: string) =
-    addAttribute (
+    addAttribute(
       node,
       AttributeNode.Attribute { name = "media"; value = media }
     )
@@ -483,11 +483,11 @@ type NodeExtensions =
       return { name = "media"; value = media }
     }
 
-    addAttribute (node, AttributeNode.AsyncAttribute attr)
+    addAttribute(node, AttributeNode.AsyncAttribute attr)
 
   [<Extension>]
   static member inline media(node: Node, media: string Task) =
-    node.media (
+    node.media(
       valueTask {
         let! media = media
         return media
@@ -496,7 +496,7 @@ type NodeExtensions =
 
   [<Extension>]
   static member inline media(node: Node, media: string Async) =
-    node.media (
+    node.media(
       valueTask {
         let! media = media
         return media
@@ -505,7 +505,7 @@ type NodeExtensions =
 
   [<Extension>]
   static member inline src(node: Node, src: string) =
-    addAttribute (node, AttributeNode.Attribute { name = "src"; value = src })
+    addAttribute(node, AttributeNode.Attribute { name = "src"; value = src })
 
   [<Extension>]
   static member inline src(node: Node, src: string ValueTask) =
@@ -514,11 +514,11 @@ type NodeExtensions =
       return { name = "src"; value = src }
     }
 
-    addAttribute (node, AttributeNode.AsyncAttribute attr)
+    addAttribute(node, AttributeNode.AsyncAttribute attr)
 
   [<Extension>]
   static member inline src(node: Node, src: string Task) =
-    node.src (
+    node.src(
       valueTask {
         let! src = src
         return src
@@ -527,7 +527,7 @@ type NodeExtensions =
 
   [<Extension>]
   static member inline src(node: Node, src: string Async) =
-    node.src (
+    node.src(
       valueTask {
         let! src = src
         return src
@@ -536,7 +536,7 @@ type NodeExtensions =
 
   [<Extension>]
   static member inline href(node: Node, href: string) =
-    addAttribute (node, AttributeNode.Attribute { name = "href"; value = href })
+    addAttribute(node, AttributeNode.Attribute { name = "href"; value = href })
 
   [<Extension>]
   static member inline href(node: Node, href: string ValueTask) =
@@ -545,11 +545,11 @@ type NodeExtensions =
       return { name = "href"; value = href }
     }
 
-    addAttribute (node, AttributeNode.AsyncAttribute attr)
+    addAttribute(node, AttributeNode.AsyncAttribute attr)
 
   [<Extension>]
   static member inline href(node: Node, href: string Task) =
-    node.href (
+    node.href(
       valueTask {
         let! href = href
         return href
@@ -558,7 +558,7 @@ type NodeExtensions =
 
   [<Extension>]
   static member inline href(node: Node, href: string Async) =
-    node.href (
+    node.href(
       valueTask {
         let! href = href
         return href
@@ -567,7 +567,7 @@ type NodeExtensions =
 
   [<Extension>]
   static member inline style(node: Node, style: string) =
-    addAttribute (
+    addAttribute(
       node,
       AttributeNode.Attribute { name = "style"; value = style }
     )
@@ -579,11 +579,11 @@ type NodeExtensions =
       return { name = "style"; value = style }
     }
 
-    addAttribute (node, AttributeNode.AsyncAttribute attr)
+    addAttribute(node, AttributeNode.AsyncAttribute attr)
 
   [<Extension>]
   static member inline style(node: Node, style: string Task) =
-    node.style (
+    node.style(
       valueTask {
         let! style = style
         return style
@@ -592,7 +592,7 @@ type NodeExtensions =
 
   [<Extension>]
   static member inline style(node: Node, style: string Async) =
-    node.style (
+    node.style(
       valueTask {
         let! style = style
         return style
@@ -601,10 +601,7 @@ type NodeExtensions =
 
   [<Extension>]
   static member inline type'(node: Node, type': string) =
-    addAttribute (
-      node,
-      AttributeNode.Attribute { name = "type"; value = type' }
-    )
+    addAttribute(node, AttributeNode.Attribute { name = "type"; value = type' })
 
   [<Extension>]
   static member inline type'(node: Node, type': string ValueTask) =
@@ -613,11 +610,11 @@ type NodeExtensions =
       return { name = "type"; value = type' }
     }
 
-    addAttribute (node, AttributeNode.AsyncAttribute attr)
+    addAttribute(node, AttributeNode.AsyncAttribute attr)
 
   [<Extension>]
   static member inline type'(node: Node, type': string Task) =
-    node.type' (
+    node.type'(
       valueTask {
         let! type' = type'
         return type'
@@ -626,7 +623,7 @@ type NodeExtensions =
 
   [<Extension>]
   static member inline type'(node: Node, type': string Async) =
-    node.type' (
+    node.type'(
       valueTask {
         let! type' = type'
         return type'
@@ -635,7 +632,7 @@ type NodeExtensions =
 
   [<Extension>]
   static member inline value(node: Node, value: string) =
-    addAttribute (
+    addAttribute(
       node,
       AttributeNode.Attribute { name = "value"; value = value }
     )
@@ -647,11 +644,11 @@ type NodeExtensions =
       return { name = "value"; value = value }
     }
 
-    addAttribute (node, AttributeNode.AsyncAttribute attr)
+    addAttribute(node, AttributeNode.AsyncAttribute attr)
 
   [<Extension>]
   static member inline value(node: Node, value: string Task) =
-    node.value (
+    node.value(
       valueTask {
         let! value = value
         return value
@@ -660,7 +657,7 @@ type NodeExtensions =
 
   [<Extension>]
   static member inline value(node: Node, value: string Async) =
-    node.value (
+    node.value(
       valueTask {
         let! value = value
         return value
@@ -669,7 +666,7 @@ type NodeExtensions =
 
   [<Extension>]
   static member inline placeholder(node: Node, placeholder: string) =
-    addAttribute (
+    addAttribute(
       node,
       AttributeNode.Attribute {
         name = "placeholder"
@@ -688,11 +685,11 @@ type NodeExtensions =
       }
     }
 
-    addAttribute (node, AttributeNode.AsyncAttribute attr)
+    addAttribute(node, AttributeNode.AsyncAttribute attr)
 
   [<Extension>]
   static member inline placeholder(node: Node, placeholder: string Task) =
-    node.placeholder (
+    node.placeholder(
       valueTask {
         let! placeholder = placeholder
         return placeholder
@@ -701,7 +698,7 @@ type NodeExtensions =
 
   [<Extension>]
   static member inline placeholder(node: Node, placeholder: string Async) =
-    node.placeholder (
+    node.placeholder(
       valueTask {
         let! placeholder = placeholder
         return placeholder
@@ -710,7 +707,7 @@ type NodeExtensions =
 
   [<Extension>]
   static member inline disabled(node: Node, disabled: bool) =
-    addAttribute (
+    addAttribute(
       node,
       AttributeNode.Attribute {
         name = "disabled"
@@ -729,11 +726,11 @@ type NodeExtensions =
       }
     }
 
-    addAttribute (node, AttributeNode.AsyncAttribute attr)
+    addAttribute(node, AttributeNode.AsyncAttribute attr)
 
   [<Extension>]
   static member inline disabled(node: Node, disabled: bool Task) =
-    node.disabled (
+    node.disabled(
       valueTask {
         let! disabled = disabled
         return disabled
@@ -742,7 +739,7 @@ type NodeExtensions =
 
   [<Extension>]
   static member inline disabled(node: Node, disabled: bool Async) =
-    node.disabled (
+    node.disabled(
       valueTask {
         let! disabled = disabled
         return disabled
@@ -752,7 +749,7 @@ type NodeExtensions =
   [<Extension>]
   static member inline checked'(node: Node, checked': bool) =
     if checked' then
-      addAttribute (
+      addAttribute(
         node,
         AttributeNode.Attribute { name = "checked"; value = "checked" }
       )
@@ -770,11 +767,11 @@ type NodeExtensions =
       }
     }
 
-    addAttribute (node, AttributeNode.AsyncAttribute attr)
+    addAttribute(node, AttributeNode.AsyncAttribute attr)
 
   [<Extension>]
   static member inline checked'(node: Node, checked': bool Task) =
-    node.checked' (
+    node.checked'(
       valueTask {
         let! checked' = checked'
         return checked'
@@ -783,7 +780,7 @@ type NodeExtensions =
 
   [<Extension>]
   static member inline checked'(node: Node, checked': bool Async) =
-    node.checked' (
+    node.checked'(
       valueTask {
         let! checked' = checked'
         return checked'
