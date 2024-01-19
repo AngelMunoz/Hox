@@ -21,7 +21,6 @@ Example:
 Current Iteration:
 
 ```fsharp
-
 type Layout =
   static member inline Default(content: Node, ?head: Node, ?scripts: Node) =
     let head = defaultArg head (Fragment [])
