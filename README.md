@@ -34,35 +34,64 @@ type Layout =
         El
           "link[rel=stylesheet][href=https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.4/css/bulma.min.css]"
         head
-        El "script[src=https://unpkg.com/htmx.org@1]"
       ]
       El "body"
       |> Children [
         content
+        El "script[src=https://unpkg.com/htmx.org@1.9.10/dist/htmx.min.js]"
         scripts
       ]
     ]
 
-let streamed (ctx: HttpContext) = taskUnit {
+let renderTodos (http: HttpClient) = taskSeq {
+  use! todos = http.GetStreamAsync("https://jsonplaceholder.typicode.com/todos")
+
+  let! todos =
+    JsonSerializer.DeserializeAsync<{|
+      userId: int
+      id: int
+      title: string
+      completed: bool
+    |} list>(
+      todos
+    )
+
+  for todo in todos do
+    El "li.content"
+    |> Children [
+      El "h2.title" |> Text todo.title
+      El "p" |> Text($"Todo Id: %i{todo.id}")
+    ]
+}
+
+let asyncRender (ctx: HttpContext) (factory: IHttpClientFactory) = task {
+  let http = factory.CreateClient()
+  let todos = renderTodos http
+
   return!
-    ctx.streamView (
+    ctx.renderView (
       Layout.Default(
-        El "main"
-        |> Children [
-            El "h1" |> Text "Hello World!"
-            // Produce nodes from async work
-            TaskEl(task {
-                do! Task.Delay(200)
-                return El "div" |> Text "Encoded text"
-            })
-            // Produce nodes from async sequences
-            AwaitChildren(taskSeq {
-                for i in 1..10 do
-                    do! Task.Delay(200)
-                    yield El "p" |> Text($"Paragraph %d{i}")
-            })
+        Fragment [
+          El "h1" |> Text "Hello World!"
+          El "ul.todo-list" |> Children [ AwaitChildren(todos) ]
         ]
       )
     )
 }
+
+let streamRender (ctx: HttpContext) (factory: IHttpClientFactory) = taskUnit {
+  let http = factory.CreateClient()
+  let todos = renderTodos http
+
+  return!
+    ctx.streamView (
+      Layout.Default(
+        Fragment [
+          El "h1" |> Text "Hello World!"
+          El "ul.todo-list" |> Children [ AwaitChildren(todos) ]
+        ]
+      )
+    )
+}
+
 ```

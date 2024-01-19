@@ -21,6 +21,7 @@ open System.Text.Json
 
 [<AutoOpen>]
 module Extensions =
+  open System.Text
 
   [<Extension>]
   type HttpContextExtensions =
@@ -38,9 +39,9 @@ module Extensions =
     }
 
     [<Extension>]
-    static member inline renderView(ctx: HttpContext, view: Node) = task {
+    static member renderView(ctx: HttpContext, view: Node) = task {
       let! result = Builder.Task.render view ctx.RequestAborted
-      return Results.Text(result, "text/html")
+      return Results.Text(result, "text/html", Encoding.UTF8)
     }
 
 type Layout =
@@ -62,13 +63,12 @@ type Layout =
       El "body"
       |> Children [
         content
-        El "script[src=https://unpkg.com/htmx.org@1]"
+        El "script[src=https://unpkg.com/htmx.org@1.9.10/dist/htmx.min.js]"
         scripts
       ]
-
     ]
 
-let renderTodos (http: HttpClient) = vTask {
+let renderTodos (http: HttpClient) = taskSeq {
   use! todos = http.GetStreamAsync("https://jsonplaceholder.typicode.com/todos")
 
   let! todos =
@@ -81,17 +81,12 @@ let renderTodos (http: HttpClient) = vTask {
       todos
     )
 
-  let todoItems =
-    todos
-    |> List.map (fun todo ->
-      El "li"
-      |> Children [
-        El "span" |> Text todo.title
-        let ``checked`` = if todo.completed then "[checked=]" else ""
-        El $"input[type=checkbox][disabled]%s{``checked``}"
-      ])
-
-  return El "ul" |> Children todoItems
+  for todo in todos do
+    El "li.content"
+    |> Children [
+      El "h2.title" |> Text todo.title
+      El "p" |> Text($"Todo Id: %i{todo.id}")
+    ]
 }
 
 let inline index (ctx: HttpContext) (factory: IHttpClientFactory) = task {
@@ -103,13 +98,7 @@ let inline index (ctx: HttpContext) (factory: IHttpClientFactory) = task {
       Layout.Default(
         Fragment [
           El "h1" |> Text "Hello World!"
-          AwaitChildren(
-            taskSeq {
-              for i in 1..10 do
-                yield El "p" |> Text($"Paragraph %d{i}")
-            }
-          )
-          vTaskEl todos
+          El "ul.todo-list" |> Children [ AwaitChildren(todos) ]
         ]
       )
     )
@@ -124,13 +113,7 @@ let inline streamed (ctx: HttpContext) (factory: IHttpClientFactory) = taskUnit 
       Layout.Default(
         Fragment [
           El "h1" |> Text "Hello World!"
-          AwaitChildren(
-            taskSeq {
-              for i in 1..10 do
-                yield El "p" |> Text($"Paragraph %d{i}")
-            }
-          )
-          vTaskEl todos
+          El "ul.todo-list" |> Children [ AwaitChildren(todos) ]
         ]
       )
     )
