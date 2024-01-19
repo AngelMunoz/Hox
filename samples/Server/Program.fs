@@ -50,29 +50,39 @@ type Layout =
     let head = defaultArg head (Fragment [])
     let scripts = defaultArg scripts (Fragment [])
 
-    El "html[lang=en]"
-    |> Children [
-      El "head"
-      |> Children [
-        Styles.App
-        El "meta[charset=utf-8]"
-        El "meta[name=viewport][content=width=device-width, initial-scale=1.0]"
-        El "title" |> Text "Hello World!"
-        El
-          "link[rel=stylesheet][media=(prefers-color-scheme:light)][href=https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/themes/light.css]"
-        El
-          "link[rel=stylesheet][media=(prefers-color-scheme:dark)][onload=document.documentElement.classList.add('sl-theme-dark');][href=https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/themes/dark.css]"
-        Styles.Lists
+    el (
+      "html[lang=en].sl-theme-light",
+      el (
+        "head",
+        Styles.App,
+        el "meta[charset=utf-8]",
+        el "meta[name=viewport][content=width=device-width, initial-scale=1.0]",
+        el ("title", text "Htmelo"),
+        el(
+          "link[rel=stylesheet][href=https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/themes/light.css]"
+        )
+          .media ("(prefers-color-scheme:light)"),
+        el(
+          "link[rel=stylesheet][onload=document.documentElement.classList.add('sl-theme-dark');]"
+        )
+          .href(
+            "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/themes/dark.css"
+          )
+          .media ("(prefers-color-scheme:dark)"),
+        Styles.Lists,
         head
-      ]
-      El "body"
-      |> Children [
-        content
-        El
-          "script[type=module][src=https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/shoelace-autoloader.js]"
+      ),
+      el (
+        "body",
+        content,
+        el("script[type=module]")
+          .src (
+            "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/shoelace-autoloader.js"
+          ),
         scripts
-      ]
-    ]
+      )
+    )
+
 
 let renderTodos (http: HttpClient) = taskSeq {
   use! todos = http.GetStreamAsync("https://jsonplaceholder.typicode.com/todos")
@@ -88,17 +98,18 @@ let renderTodos (http: HttpClient) = taskSeq {
     )
 
   for todo in todos do
-    El "li"
-    |> Children [
-      El $"sl-details[summary={todo.title}]"
-      |> Children [
-        El "p" |> Text($"Todo Id: %i{todo.id}")
-        El "p"
-        |> Text(
-          $"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna\naliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+    el("li")
+      .child (
+        el (
+          $"sl-details[summary={todo.title}]",
+          el ("p", text $"Todo Id: %i{todo.id}"),
+          el (
+            "p",
+            text
+              $"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna\naliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+          )
         )
-      ]
-    ]
+      )
 }
 
 let inline index (ctx: HttpContext) (factory: IHttpClientFactory) = task {
@@ -108,14 +119,9 @@ let inline index (ctx: HttpContext) (factory: IHttpClientFactory) = task {
   return!
     ctx.renderView (
       Layout.Default(
-        El "main"
-        |> Attr.style (
-          css "padding: 1em; display: flex; flex-direction: column"
-        )
-        |> Children [
-          El "h1" |> Text "Hello World!"
-          El "ul.todo-list" |> Children [ AwaitChildren(todos) ]
-        ]
+        el("main")
+          .style(css "padding: 1em; display: flex; flex-direction: column")
+          .children (el ("h1", text "Hello World!"), el ("ul.todo-list", todos))
       )
     )
 }
@@ -127,14 +133,9 @@ let inline streamed (ctx: HttpContext) (factory: IHttpClientFactory) = taskUnit 
   return!
     ctx.streamView (
       Layout.Default(
-        El "main"
-        |> Attr.style (
-          css "padding: 1em; display: flex; flex-direction: column"
-        )
-        |> Children [
-          El "h1" |> Text "Hello World!"
-          El "ul.todo-list" |> Children [ AwaitChildren(todos) ]
-        ]
+        el("main")
+          .style(css "padding: 1em; display: flex; flex-direction: column")
+          .children (el ("h1", text "Hello World!"), el ("ul.todo-list", todos))
       )
     )
 }
