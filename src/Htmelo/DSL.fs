@@ -96,3 +96,14 @@ module Attr =
               :: element.attributes
       }
     | _ -> element
+
+  let inline style (value: string) (element: Node) =
+    match element with
+    | Element element ->
+      Element {
+        element with
+            attributes =
+              AttributeNode.Attribute { name = "style"; value = value }
+              :: element.attributes
+      }
+    | _ -> element
