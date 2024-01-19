@@ -8,7 +8,7 @@ module Extensions =
 
 module Styles =
 
-  let inline toStyle (content: string) = El "style" |> Raw content
+  let inline toStyle (content: string) = el ("style", raw content)
 
   let App =
     css
