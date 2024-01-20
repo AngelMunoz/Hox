@@ -1,17 +1,17 @@
-namespace Htmelo
+namespace Htmelo.Core
 
-open System.Threading.Tasks
 open IcedTasks
 open System.Collections.Generic
 
 [<Struct>]
-type Attribute = { name: string; value: string }
+type HAttribute = { name: string; value: string }
 
-[<Struct>]
+[<Struct; NoComparison; NoEquality>]
 type AttributeNode =
-  | Attribute of attribute: Attribute
-  | AsyncAttribute of asyncAttribute: Attribute CancellableValueTask
+  | Attribute of attribute: HAttribute
+  | AsyncAttribute of asyncAttribute: HAttribute CancellableValueTask
 
+[<NoComparison; NoEquality>]
 type Node =
   | Element of element: Element
   | Text of text: string
@@ -21,7 +21,7 @@ type Node =
   | AsyncNode of node: Node CancellableValueTask
   | AsyncSeqNode of nodes: Node IAsyncEnumerable
 
-and Element = {
+and [<NoComparison; NoEquality>] Element = {
   tag: string
   attributes: AttributeNode list
   children: Node list
