@@ -333,6 +333,8 @@ type NodeBuilder =
 
   static member inline raw(raw: string) = Raw raw
 
+  static member inline comment(comment: string) = Comment comment
+
   static member inline fragment(nodes: seq<Node>) =
     Fragment(nodes |> Seq.toList)
 

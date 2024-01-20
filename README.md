@@ -25,6 +25,7 @@ Reduced the core node builders to basically provide the core types
 - `h` - Generates `Node.Element` or adds `Node` to an existing `Node`
 - `text` - Generates `Node.Text`
 - `raw` - Generates `Node.Raw`
+- `comment` - Generates `Node.Comment`
 - `fragment` - Generates `Node.Fragment`
 
 The element parser now allows multiline strings so you can split attributes and classes when they are too large to fit in one single line string
