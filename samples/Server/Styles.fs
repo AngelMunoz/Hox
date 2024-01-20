@@ -1,6 +1,6 @@
 namespace Server
 
-open Htmelo.DSL
+open Htmelo.NodeBuilder
 
 [<AutoOpen>]
 module Extensions =
@@ -8,7 +8,7 @@ module Extensions =
 
 module Styles =
 
-  let inline toStyle(content: string) = el("style", raw content)
+  let inline toStyle(content: string) = h("style", raw content)
 
   let App =
     css

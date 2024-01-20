@@ -14,7 +14,7 @@ open IcedTasks
 open FSharp.Control
 
 open Htmelo
-open Htmelo.DSL
+open Htmelo.NodeBuilder
 open Htmelo.Rendering
 open System.Net.Http
 open System.Text.Json
@@ -28,19 +28,19 @@ module Extensions =
   type HttpContextExtensions =
 
     [<Extension>]
-    static member streamView(ctx: HttpContext, view: Node) = taskUnit {
-      use writer =
-        new StreamWriter(ctx.Response.Body, System.Text.Encoding.UTF8)
-
+    static member inline streamView(ctx: HttpContext, view: Node) = vTaskUnit {
       ctx.Response.ContentType <- "text/html; charset=utf-8"
 
+      let writer = ctx.Response.BodyWriter
+
       for chunk in Chunked.render view ctx.RequestAborted do
-        do! writer.WriteAsync(chunk)
-        do! writer.FlushAsync()
+        let chunk = ReadOnlyMemory(Encoding.UTF8.GetBytes(chunk))
+        do! writer.WriteAsync(chunk, ctx.RequestAborted) |> ValueTask.ignore
+        do! writer.FlushAsync() |> ValueTask.ignore
     }
 
     [<Extension>]
-    static member renderView(ctx: HttpContext, view: Node) = task {
+    static member inline renderView(ctx: HttpContext, view: Node) = task {
       let! result = Builder.Task.render view ctx.RequestAborted
       return Results.Text(result, "text/html", Encoding.UTF8)
     }
@@ -50,38 +50,40 @@ type Layout =
     let head = defaultArg head (Fragment [])
     let scripts = defaultArg scripts (Fragment [])
 
-    el(
+    h(
       "html[lang=en].sl-theme-light",
-      el(
+      h(
         "head",
         Styles.App,
-        el "meta[charset=utf-8]",
-        el "meta[name=viewport][content=width=device-width, initial-scale=1.0]",
-        el("title", text "Htmelo"),
-        el("link[rel=stylesheet]")
-          .href(
+        h "meta[charset=utf-8]",
+        h "meta[name=viewport][content=width=device-width, initial-scale=1.0]",
+        h("title", text "Htmelo"),
+        h("link[rel=stylesheet]")
+          .attr(
+            "href",
             "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/themes/light.css"
           )
-          .media("(prefers-color-scheme:light)"),
-        el("link[rel=stylesheet]")
-          .href(
+          .attr("media", "(prefers-color-scheme:light)"),
+        h("link[rel=stylesheet]")
+          .attr(
+            "href",
             "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/themes/dark.css"
           )
-          .media("(prefers-color-scheme:dark)")
-          .custom(
+          .attr("media", "(prefers-color-scheme:dark)")
+          .attr(
             "onload",
             "document.documentElement.classList.add('sl-theme-dark');"
           ),
         Styles.Lists,
         head
       ),
-      el(
+      h(
         "body",
         content,
-        el("script[type=module]")
-          .src(
-            "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/shoelace-autoloader.js"
-          ),
+        h(
+          @"script[type=module]
+                   [src=https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/shoelace-autoloader.js]"
+        ),
         scripts
       )
     )
@@ -101,12 +103,12 @@ let renderTodos(http: HttpClient) = taskSeq {
     )
 
   for todo in todos do
-    el("li")
+    h("li")
       .child(
-        el(
+        h(
           $"sl-details[summary={todo.title}]",
-          el("p", text $"Todo Id: %i{todo.id}"),
-          el(
+          h("p", text $"Todo Id: %i{todo.id}"),
+          h(
             "p",
             text
               $"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna\naliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
@@ -116,42 +118,61 @@ let renderTodos(http: HttpClient) = taskSeq {
 }
 
 let inline index (ctx: HttpContext) (factory: IHttpClientFactory) = task {
-  let http = factory.CreateClient()
-  let todos = renderTodos http
+  // let http = factory.CreateClient()
+  // let todos = renderTodos http
 
   return!
     ctx.renderView(
       Layout.Default(
-        el("main")
-          .style(css "padding: 1em; display: flex; flex-direction: column")
-          .children(el("h1", text "Hello World!"), el("ul.todo-list", todos))
-      )
-    )
-}
-
-let inline streamed (ctx: HttpContext) (factory: IHttpClientFactory) = taskUnit {
-  let http = factory.CreateClient()
-  // let todos = renderTodos http
-
-  return!
-    ctx.streamView(
-      Layout.Default(
-        el(
+        h(
           "main",
-          el("h1", text "Hello World!"),
+          h("h1", text "Hello World!"),
           // el("ul.todo-list", todos),
           Scoped.card(
-            Scoped.cardHeader(el("h2", text "Card Header")),
-            Scoped.cardContent(el("p", text "Card Content")),
-            Scoped.cardFooter(el("p", text "Card Footer"))
+            Scoped.cardHeader(h("h2", text "Card Header")),
+            Scoped.cardContent(h("p", text "Card Content")),
+            Scoped.cardFooter(h("p", text "Card Footer"))
           ),
-          el(
+          h(
             "p",
             text
               "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna\naliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
           )
         )
-          .style(css "padding: 1em; display: flex; flex-direction: column")
+          .attr(
+            "style",
+            css "padding: 1em; display: flex; flex-direction: column"
+          )
+      )
+    )
+}
+
+let inline streamed (ctx: HttpContext) (factory: IHttpClientFactory) = taskUnit {
+  // let http = factory.CreateClient()
+  // let todos = renderTodos http
+
+  return!
+    ctx.streamView(
+      Layout.Default(
+        h(
+          "main",
+          h("h1", text "Hello World!"),
+          // el("ul.todo-list", todos),
+          Scoped.card(
+            Scoped.cardHeader(h("h2", text "Card Header")),
+            Scoped.cardContent(h("p", text "Card Content")),
+            Scoped.cardFooter(h("p", text "Card Footer"))
+          ),
+          h(
+            "p",
+            text
+              "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna\naliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+          )
+        )
+          .attr(
+            "style",
+            css "padding: 1em; display: flex; flex-direction: column"
+          )
       )
     )
 }

@@ -1,58 +1,56 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using Htmelo;
-using static Htmelo.DSL;
-using static Htmelo.DSL.NodeExtensions;
-using static Htmelo.DSL.Htmelo;
+using Htmelo.Core;
+using static Htmelo.NodeBuilder;
+using static Htmelo.NodeExtensions;
 using static Htmelo.Rendering;
 
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddLogging();
 var app = builder.Build();
 
 app.MapGet("/", async (HttpContext ctx) =>
 {
 
-    var node = Layout(el("style", raw("h1 { color: red; }")))
-    .children(
-        el("h1", text("Hello World!")),
-        el("p", text("This is a paragraph."))
-    );
+  var node =
+      Layout(h("style", raw("h1 { color: red; }")))
+      .children(
+          h("h1", text("Hello World!")),
+          h("p", text("This is a paragraph."))
+      );
 
-    await ctx.StreamView(node);
+  // return await ctx.RenderView(node);
+  await ctx.StreamView(node);
 });
 
 app.Run();
 
 static Node Layout(Node? head = null, Node? scripts = null, params Node[] children) =>
-    el(
+    h(
       "html[lang=en].sl-theme-light",
-      el(
+      h(
         "head",
-        el("meta[charset=utf-8]"),
-        el("meta[name=viewport][content=width=device-width, initial-scale=1.0]"),
-        el("title", text("Htmelo")),
-        el("link[rel=stylesheet]")
-          .href(
-            "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/themes/light.css"
-          )
-          .media("(prefers-color-scheme:light)"),
-        el("link[rel=stylesheet]")
-          .href(
-            "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/themes/dark.css"
-          )
-          .media("(prefers-color-scheme:dark)")
-          .custom(
-            "onload",
-            "document.documentElement.classList.add('sl-theme-dark');"
-          ),
+        h("meta[charset=utf-8]"),
+        h(@"meta[name=viewport]
+                 [content=width=device-width, initial-scale=1.0]
+            "),
+        h("title", text("Htmelo")),
+        h(@"link[rel=stylesheet]
+                 [href=https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/themes/light.css]
+                 [media=(prefers-color-scheme:light)]"),
+        h(@"link[rel=stylesheet]
+                 [href=https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/themes/dark.css]
+                 [media=(prefers-color-scheme:dark)]
+                 [onload=document.documentElement.classList.add('sl-theme-dark');]"),
         head ?? fragment([])
       ),
-      el(
+      h(
         "body",
         fragment(children),
-        el("script[type=module]")
-          .src(
-            "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/shoelace-autoloader.js"
-          ),
+        h(@"script[type=module]
+                   [src=https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/shoelace-autoloader.js]"),
         scripts ?? fragment([])
       )
     );
@@ -60,15 +58,20 @@ static Node Layout(Node? head = null, Node? scripts = null, params Node[] childr
 
 static class HttpContextExtensions
 {
-    public static async Task StreamView(this HttpContext context, Node node)
-    {
-        using var writer = new StreamWriter(context.Response.Body, System.Text.Encoding.UTF8);
-        context.Response.ContentType = "text/html; charset=utf-8";
-        await foreach (var item in Chunked.render(node, context.RequestAborted))
-        {
-            await writer.WriteAsync(item);
-            await writer.FlushAsync();
-        }
-    }
+  public static async Task<IResult> RenderView(this HttpContext ctx, Node node)
+  {
+    var content = await Builder.ValueTask.render(node, ctx.RequestAborted);
 
+    return Results.Text(content, "text/html; charset=utf-8");
+  }
+
+  public static async Task StreamView(this HttpContext context, Node node)
+  {
+    context.Response.ContentType = "text/html; charset=utf-8";
+    await foreach (var item in Chunked.render(node, context.RequestAborted))
+    {
+      await context.Response.BodyWriter.WriteAsync(new ReadOnlyMemory<byte>(System.Text.Encoding.UTF8.GetBytes(item)), context.RequestAborted);
+      await context.Response.BodyWriter.FlushAsync(context.RequestAborted);
+    }
+  }
 }

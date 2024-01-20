@@ -1,31 +1,33 @@
 namespace Server
 
 open System
-open Server.Styles
+
 open Htmelo
+
+open Server.Styles
 
 type Scoped =
   static member inline card([<ParamArray>] content: Node array) =
 
     let tpl =
-      el(
+      h(
         "template[shadowrootmode=open]",
         Styles.Card,
-        el "slot[name=header]",
-        el "slot",
-        el "slot[name=footer]"
+        h "slot[name=header]",
+        h "slot",
+        h "slot[name=footer]"
       )
 
-    el("x-card", tpl, fragment content)
+    h("x-card", tpl, fragment content)
 
   static member inline cardHeader([<ParamArray>] content: Node array) =
-    let tpl = el("template[shadowrootmode=open]", el "slot")
-    el("x-card-header[slot=header]", tpl, fragment content)
+    let tpl = h("template[shadowrootmode=open]", h "slot")
+    h("x-card-header[slot=header]", tpl, fragment content)
 
   static member inline cardContent([<ParamArray>] content: Node array) =
-    let tpl = el("template[shadowrootmode=open]", el "slot")
-    el("x-card-content", tpl, fragment content)
+    let tpl = h("template[shadowrootmode=open]", h "slot")
+    h("x-card-content", tpl, fragment content)
 
   static member inline cardFooter([<ParamArray>] content: Node array) =
-    let tpl = el("template[shadowrootmode=open]", el "slot")
-    el("x-card-footer[slot=footer]", tpl, fragment content)
+    let tpl = h("template[shadowrootmode=open]", h "slot")
+    h("x-card-footer[slot=footer]", tpl, fragment content)
