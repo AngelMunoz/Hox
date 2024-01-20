@@ -1,18 +1,24 @@
 module Htmelo.Rendering
 
+open System
 open System.Collections.Generic
 open System.Diagnostics
+open System.Threading.Tasks
 
 open System.Web
 
 open FSharp.Control
 open IcedTasks
 
+open Htmelo.Core
+
 let private getAttributes(attributes: AttributeNode list) =
   attributes
   |> List.fold
     (fun (classes, attributes, asyncAttributes) attribute ->
       match attribute with
+      | AttributeNode.Attribute { name = ""; value = value } ->
+        (classes, attributes, asyncAttributes)
       | AttributeNode.Attribute { name = "class"; value = value } ->
         (value :: classes, attributes, asyncAttributes)
       | AttributeNode.Attribute attribute ->
@@ -29,8 +35,11 @@ let private renderAttr(node: AttributeNode) = cancellableValueTask {
   | AsyncAttribute asyncAttribute ->
     let! { name = name; value = value } = asyncAttribute
 
-    return
-      $" %s{HttpUtility.HtmlAttributeEncode name}=\"%s{HttpUtility.HtmlAttributeEncode value}\""
+    if name = System.String.Empty then
+      return System.String.Empty
+    else
+      return
+        $" %s{HttpUtility.HtmlAttributeEncode name}=\"%s{HttpUtility.HtmlAttributeEncode value}\""
 }
 
 module Builder =
@@ -135,8 +144,8 @@ module Builder =
   }
 
   module ValueTask =
-    let render(node: Node) = cancellableValueTask {
-      let! result = renderNode node
+    let render (node: Node) token = vTask {
+      let! result = renderNode node token
       return result
     }
 
@@ -145,9 +154,10 @@ module Builder =
       ValueTask.render node |> Async.AwaitCancellableValueTask
 
   module Task =
-    let inline render(node: Node) : CancellableTask<string> =
-      fun token -> (ValueTask.render node token).AsTask()
+    let inline render (node: Node) token : Task<string> =
+      (ValueTask.render node token).AsTask()
 
+[<RequireQualifiedAccess>]
 module Chunked =
   let rec private renderElement
     (
@@ -229,4 +239,4 @@ module Chunked =
           yield! renderNode(node, cancellationToken)
     }
 
-  let render(node: Node) = fun token -> renderNode(node, token)
+  let render (node: Node) token = renderNode(node, token)
