@@ -1,6 +1,6 @@
 namespace Server
 
-open Htmelo.NodeBuilder
+open Htmelo
 
 [<AutoOpen>]
 module Extensions =

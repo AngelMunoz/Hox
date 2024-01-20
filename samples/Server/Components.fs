@@ -3,6 +3,7 @@ namespace Server
 open System
 
 open Htmelo
+open Htmelo.Core
 
 open Server.Styles
 

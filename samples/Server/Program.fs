@@ -14,7 +14,7 @@ open IcedTasks
 open FSharp.Control
 
 open Htmelo
-open Htmelo.NodeBuilder
+open Htmelo.Core
 open Htmelo.Rendering
 open System.Net.Http
 open System.Text.Json

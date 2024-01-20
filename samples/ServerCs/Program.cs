@@ -1,9 +1,5 @@
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
-using Htmelo;
 using Htmelo.Core;
 using static Htmelo.NodeBuilder;
-using static Htmelo.NodeExtensions;
 using static Htmelo.Rendering;
 
 
@@ -13,12 +9,10 @@ var app = builder.Build();
 
 app.MapGet("/", async (HttpContext ctx) =>
 {
-
   var node =
-      Layout(h("style", raw("h1 { color: red; }")))
-      .children(
-          h("h1", text("Hello World!")),
-          h("p", text("This is a paragraph."))
+      Layout.Default(
+        h("h1", text("Hello World!")),
+        h("p", text("This is a paragraph."))
       );
 
   // return await ctx.RenderView(node);
@@ -27,7 +21,11 @@ app.MapGet("/", async (HttpContext ctx) =>
 
 app.Run();
 
-static Node Layout(Node? head = null, Node? scripts = null, params Node[] children) =>
+static class Layout
+{
+  public record DefaultLayoutArgs(Node? Head, Node? Scripts);
+
+  public static Node Default(DefaultLayoutArgs args, params Node[] children) =>
     h(
       "html[lang=en].sl-theme-light",
       h(
@@ -44,16 +42,20 @@ static Node Layout(Node? head = null, Node? scripts = null, params Node[] childr
                  [href=https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/themes/dark.css]
                  [media=(prefers-color-scheme:dark)]
                  [onload=document.documentElement.classList.add('sl-theme-dark');]"),
-        head ?? fragment([])
+        args.Head ?? fragment([])
       ),
       h(
         "body",
         fragment(children),
         h(@"script[type=module]
                    [src=https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/shoelace-autoloader.js]"),
-        scripts ?? fragment([])
+        args.Scripts ?? fragment([])
       )
     );
+
+  public static Node Default(params Node[] children) =>
+    Default(new DefaultLayoutArgs(null, null), children);
+}
 
 
 static class HttpContextExtensions
