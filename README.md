@@ -20,6 +20,101 @@ Example:
 
 Current Iteration:
 
+Reduced the core node builders to basically provide the core types
+
+- `h` - Generates `Node.Element` or adds `Node` to an existing `Node`
+- `text` - Generates `Node.Text`
+- `raw` - Generates `Node.Raw`
+- `fragment` - Generates `Node.Fragment`
+
+The element parser now allows multiline strings so you can split attributes and classes when they are too large to fit in one single line string
+
+```fsharp
+type Layout =
+  static member inline Default(content: Node, ?head: Node, ?scripts: Node) =
+    let head = defaultArg head (Fragment [])
+    let scripts = defaultArg scripts (Fragment [])
+
+    h(
+      "html[lang=en].sl-theme-light",
+      h(
+        "head",
+        Styles.App,
+        el "meta[charset=utf-8]",
+        el "meta[name=viewport][content=width=device-width, initial-scale=1.0]",
+        h("title", text "Htmelo"),
+        h(@"link[rel=stylesheet]
+                [href=https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/themes/light.css]
+                [media=(prefers-color-scheme:light)]"),
+        h(@"link[rel=stylesheet]
+                [href=https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/themes/dark.css]
+                [media=(prefers-color-scheme:dark)]
+                [onload=document.documentElement.classList.add('sl-theme-dark');]"),
+        Styles.Lists,
+        head
+      ),
+      h(
+        "body",
+        content,
+        h("script[type=module]
+                 [src=https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/cdn/shoelace-autoloader.js]"),
+        scripts
+      )
+    )
+
+let renderTodos(http: HttpClient) = taskSeq {
+  use! todos = http.GetStreamAsync("https://jsonplaceholder.typicode.com/todos")
+
+  let! todos =
+    JsonSerializer.DeserializeAsync<{|
+      userId: int
+      id: int
+      title: string
+      completed: bool
+    |} list>(
+      todos
+    )
+
+  for todo in todos do
+    h("li",
+      h(
+        $"sl-details[summary={todo.title}]",
+        h("p", text $"Todo Id: %i{todo.id}"),
+        h(
+          "p",
+          text
+            $"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna\naliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+        )
+      )
+    )
+}
+
+
+let inline streamed (ctx: HttpContext) (factory: IHttpClientFactory) = taskUnit {
+  let http = factory.CreateClient()
+  let todos = renderTodos http
+
+  return!
+    ctx.streamView(
+      Layout.Default(
+        h(
+          "main",
+          h("h1", text "Hello World!"),
+          h("ul.todo-list", todos),
+          h(
+            "p",
+            text
+              "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna\naliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+          )
+        )
+          .attr("style", css "padding: 1em; display: flex; flex-direction: column")
+      )
+    )
+}
+```
+
+Previous Iteration:
+
 ```fsharp
 type Layout =
   static member inline Default(content: Node, ?head: Node, ?scripts: Node) =
@@ -112,8 +207,6 @@ let inline streamed (ctx: HttpContext) (factory: IHttpClientFactory) = taskUnit 
       )
     )
 }
-
-
 ```
 
 Previous Iteration:
