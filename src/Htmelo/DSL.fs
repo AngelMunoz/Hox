@@ -16,17 +16,17 @@ module NodeOps =
     | Element target, Element value ->
       Element {
         target with
-            children = target.children @ [ Element value ]
+            children = [ yield! target.children; Element value ]
       }
     | Element target, Text value ->
       Element {
         target with
-            children = target.children @ [ Text value ]
+            children = [ yield! target.children; Text value ]
       }
     | Element target, Raw value ->
       Element {
         target with
-            children = target.children @ [ Raw value ]
+            children = [ yield! target.children; Raw value ]
       }
     | Element target, AsyncNode value ->
       let tsk = cancellableValueTask {
@@ -43,7 +43,7 @@ module NodeOps =
     | Element target, AsyncSeqNode value ->
       Element {
         target with
-            children = target.children @ [ AsyncSeqNode value ]
+            children = [ yield! target.children; AsyncSeqNode value ]
       }
     | AsyncNode target, Element value ->
       let tsk = cancellableValueTask {
@@ -90,41 +90,79 @@ module NodeOps =
 
       AsyncNode tsk
     | AsyncSeqNode target, Element value ->
-      AsyncSeqNode(target |> TaskSeq.append(taskSeq { Element value }))
+      AsyncSeqNode(
+        taskSeq {
+          yield! target
+          Element value
+        }
+      )
     | AsyncSeqNode target, Text value ->
-      AsyncSeqNode(target |> TaskSeq.append(taskSeq { Text value }))
+      AsyncSeqNode(
+        taskSeq {
+          yield! target
+          Text value
+        }
+      )
     | AsyncSeqNode target, Raw value ->
-      AsyncSeqNode(target |> TaskSeq.append(taskSeq { Raw value }))
+      AsyncSeqNode(
+        taskSeq {
+          yield! target
+          Raw value
+        }
+      )
     | AsyncSeqNode target, AsyncNode value ->
       let tsk = cancellableValueTask {
         let! value = value
-        return AsyncSeqNode(target |> TaskSeq.append(taskSeq { value }))
+
+        return
+          AsyncSeqNode(
+            taskSeq {
+              yield! target
+              value
+            }
+          )
       }
 
       AsyncNode tsk
     | AsyncSeqNode target, AsyncSeqNode value ->
-      AsyncSeqNode(target |> TaskSeq.append value)
+      AsyncSeqNode(
+        taskSeq {
+          yield! target
+          yield! value
+        }
+      )
     | AsyncSeqNode target, Fragment value ->
-      AsyncSeqNode(target |> TaskSeq.append(taskSeq { Fragment value }))
-    | Fragment target, Element value -> Fragment(target @ [ Element value ])
-    | Fragment target, Text value -> Fragment(target @ [ Text value ])
-    | Fragment target, Raw value -> Fragment(target @ [ Raw value ])
+      AsyncSeqNode(
+        taskSeq {
+          yield! target
+          yield! value
+        }
+      )
+    | Fragment target, Element value ->
+      Fragment([ yield! target; Element value ])
+    | Fragment target, Text value -> Fragment([ yield! target; Text value ])
+    | Fragment target, Raw value -> Fragment([ yield! target; Raw value ])
     | Fragment target, AsyncNode value ->
       let tsk = cancellableValueTask {
         let! value = value
-        return Fragment(target @ [ value ])
+        return Fragment([ yield! target; value ])
       }
 
       AsyncNode tsk
     | Fragment target, AsyncSeqNode value ->
-      AsyncSeqNode(target |> TaskSeq.ofList |> TaskSeq.append value)
+      AsyncSeqNode(
+        taskSeq {
+          yield! target
+          yield! value
+        }
+      )
     | Fragment target, Fragment value -> Fragment(target @ value)
     | Text target, Text value -> Text(target + value)
     | Text target, Raw value -> Text(target + value)
     | Text target, Element value ->
       Element {
         value with
-            children = value.children @ [ Text target ]
+            children = [ yield! value.children; Text target ]
       }
     | Text target, AsyncNode value ->
       let tsk = cancellableValueTask {
