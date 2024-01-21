@@ -1,0 +1,52 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Server", "Server\Server.fsproj", "{2E46D357-7CCD-44DE-85DD-103CA2B59798}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerCs", "ServerCs\ServerCs.csproj", "{9DD933CE-93DD-4F76-B9DB-40FD71E19698}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ServerF", "Falco\ServerF.fsproj", "{47AD9F16-DFC5-40D6-BFFB-6F0CDAC1DC1E}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FelizEngine", "FelizEngine\FelizEngine.fsproj", "{CA68E23B-5EF3-40D4-8BCB-E47545D2EB5D}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ServerG", "Giraffe\ServerG.fsproj", "{003C395D-8AD5-4409-8445-F858F8C53DB0}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Htmelo", "..\src\Htmelo\Htmelo.fsproj", "{8C10C1B2-47A0-41B5-9FC1-8D4D4ED29625}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2E46D357-7CCD-44DE-85DD-103CA2B59798}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E46D357-7CCD-44DE-85DD-103CA2B59798}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E46D357-7CCD-44DE-85DD-103CA2B59798}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E46D357-7CCD-44DE-85DD-103CA2B59798}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9DD933CE-93DD-4F76-B9DB-40FD71E19698}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9DD933CE-93DD-4F76-B9DB-40FD71E19698}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9DD933CE-93DD-4F76-B9DB-40FD71E19698}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9DD933CE-93DD-4F76-B9DB-40FD71E19698}.Release|Any CPU.Build.0 = Release|Any CPU
+		{47AD9F16-DFC5-40D6-BFFB-6F0CDAC1DC1E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{47AD9F16-DFC5-40D6-BFFB-6F0CDAC1DC1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{47AD9F16-DFC5-40D6-BFFB-6F0CDAC1DC1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{47AD9F16-DFC5-40D6-BFFB-6F0CDAC1DC1E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CA68E23B-5EF3-40D4-8BCB-E47545D2EB5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CA68E23B-5EF3-40D4-8BCB-E47545D2EB5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CA68E23B-5EF3-40D4-8BCB-E47545D2EB5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CA68E23B-5EF3-40D4-8BCB-E47545D2EB5D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{003C395D-8AD5-4409-8445-F858F8C53DB0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{003C395D-8AD5-4409-8445-F858F8C53DB0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{003C395D-8AD5-4409-8445-F858F8C53DB0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{003C395D-8AD5-4409-8445-F858F8C53DB0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8C10C1B2-47A0-41B5-9FC1-8D4D4ED29625}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8C10C1B2-47A0-41B5-9FC1-8D4D4ED29625}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8C10C1B2-47A0-41B5-9FC1-8D4D4ED29625}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8C10C1B2-47A0-41B5-9FC1-8D4D4ED29625}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
