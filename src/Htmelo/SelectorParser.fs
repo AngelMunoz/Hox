@@ -28,16 +28,7 @@ let private pId: Parser<SelectorValue, unit> =
   pchar '#' >>. manyChars value .>> unicodeSpaces >>= (fun id -> preturn(Id id))
 
 let private pClass: Parser<SelectorValue, unit> =
-  let avoid =
-    noneOf [
-      ' '
-      '\t'
-      '\n'
-      '\r'
-      '['
-      '.'
-      '#'
-    ]
+  let avoid = noneOf [ ' '; '\t'; '\n'; '\r'; '['; '.'; '#' ]
 
   pchar '.' >>. manyChars(letter <|> digit <|> pchar '-' <|> avoid)
   .>> unicodeSpaces
