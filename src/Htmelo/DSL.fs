@@ -408,10 +408,10 @@ type NodeBuilder =
 
   static member inline comment(comment: string) = Comment comment
 
-  static member inline fragment(nodes: #seq<Node>) =
+  static member inline fragment(nodes: Node seq) =
     Fragment(nodes |> Seq.toList)
 
-  static member inline fragment(nodes: #seq<Node> Task) =
+  static member inline fragment(nodes: Node seq Task) =
     AsyncNode(
       cancellableValueTask {
         let! nodes = nodes
@@ -419,7 +419,7 @@ type NodeBuilder =
       }
     )
 
-  static member inline fragment(nodes: #seq<Node> Async) =
+  static member inline fragment(nodes: Node seq Async) =
     AsyncNode(
       cancellableValueTask {
         let! nodes = nodes

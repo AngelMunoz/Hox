@@ -561,7 +561,7 @@ type NodeBuilder =
   /// var node = fragment([ text "Hello World", text "second" ]);
   /// </code>
   /// </example>
-  static member inline fragment: nodes: #(Node seq) -> Node
+  static member inline fragment: nodes: (Node seq) -> Node
 
   /// <summary>
   /// Creates a "fragment" node, this node is used to group multiple nodes together
@@ -574,7 +574,7 @@ type NodeBuilder =
   /// let node = fragment (task { return [ for i in 1 .. 10 -> h("li", text $"Item {i}") ] })
   /// </code>
   /// </example>
-  static member inline fragment: nodes: Task<#(Node seq)> -> Node
+  static member inline fragment: nodes: Task<(Node seq)> -> Node
 
   /// <summary>
   /// Creates a "fragment" node, this node is used to group multiple nodes together
@@ -587,7 +587,7 @@ type NodeBuilder =
   /// let node = fragment (async { return [ for i in 1 .. 10 -> h("li", text $"Item {i}") ] })
   /// </code>
   /// </example>
-  static member inline fragment: nodes: Async<#(Node seq)> -> Node
+  static member inline fragment: nodes: Async<(Node seq)> -> Node
 
   /// <summary>
   /// Adds an attribute to the 'target' node.
