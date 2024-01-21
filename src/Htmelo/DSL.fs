@@ -7,6 +7,7 @@ open System.Runtime.CompilerServices
 
 open FSharp.Control
 open IcedTasks
+
 open Htmelo
 open Htmelo.Core
 
@@ -371,14 +372,6 @@ type NodeBuilder =
 
   static member inline text(text: string) = Text text
 
-  static member inline text(text: string ValueTask) =
-    AsyncNode(
-      cancellableValueTask {
-        let! text = text
-        return Text text
-      }
-    )
-
   static member inline text(text: string Task) =
     AsyncNode(
       cancellableValueTask {
@@ -387,15 +380,15 @@ type NodeBuilder =
       }
     )
 
-  static member inline raw(raw: string) = Raw raw
-
-  static member inline raw(raw: string ValueTask) =
+  static member inline text(text: string Async) =
     AsyncNode(
       cancellableValueTask {
-        let! raw = raw
-        return Raw raw
+        let! text = text
+        return Text text
       }
     )
+
+  static member inline raw(raw: string) = Raw raw
 
   static member inline raw(raw: string Task) =
     AsyncNode(
@@ -413,19 +406,10 @@ type NodeBuilder =
       }
     )
 
-
   static member inline comment(comment: string) = Comment comment
 
   static member inline fragment(nodes: #seq<Node>) =
     Fragment(nodes |> Seq.toList)
-
-  static member inline fragment(nodes: #seq<Node> ValueTask) =
-    AsyncNode(
-      cancellableValueTask {
-        let! nodes = nodes
-        return Fragment(nodes |> Seq.toList)
-      }
-    )
 
   static member inline fragment(nodes: #seq<Node> Task) =
     AsyncNode(
@@ -474,131 +458,100 @@ type NodeExtensions =
 
 
   [<Extension>]
-  static member inline attr(node: Node, name: string, value: string ValueTask) =
-    let value =
-      AsyncAttribute(
-        cancellableValueTask {
-          let! value = value
-
-          return { name = name; value = value }
-        }
-      )
-
-    node <+. value
-
-  [<Extension>]
   static member inline attr(node: Node, name: string, value: string Task) =
-    node.attr(
-      name,
-      valueTask {
+    node
+    <+. AsyncAttribute(
+      cancellableValueTask {
         let! value = value
-        return value
+        return { name = name; value = value }
       }
     )
 
   [<Extension>]
   static member inline attr(node: Node, name: string, value: string Async) =
-    node.attr(
-      name,
-      valueTask {
+    node
+    <+. AsyncAttribute(
+      cancellableValueTask {
         let! value = value
-        return value
+        return { name = name; value = value }
       }
     )
 
   [<Extension>]
-  static member inline attr(node: Node, name: string, value: bool ValueTask) =
-    let value = cancellableValueTask {
-      let! value = value
-
-      if value then
-        return { name = name; value = String.Empty }
-      else
-        return {
-          name = String.Empty
-          value = String.Empty
-        }
-    }
-
-    node <+. AsyncAttribute value
-
-  [<Extension>]
   static member inline attr(node: Node, name: string, value: bool Task) =
-    node.attr(
-      name,
-      valueTask {
+
+    node
+    <+. AsyncAttribute(
+      cancellableValueTask {
         let! value = value
-        return value
+
+        if value then
+          return { name = name; value = String.Empty }
+        else
+          return {
+            name = String.Empty
+            value = String.Empty
+          }
       }
     )
 
   [<Extension>]
   static member inline attr(node: Node, name: string, value: bool Async) =
-    node.attr(
-      name,
-      valueTask {
+    node
+    <+. AsyncAttribute(
+      cancellableValueTask {
         let! value = value
-        return value
+
+        if value then
+          return { name = name; value = String.Empty }
+        else
+          return {
+            name = String.Empty
+            value = String.Empty
+          }
       }
     )
 
   [<Extension>]
-  static member inline attr(node: Node, name: string, value: int ValueTask) =
-    let value = cancellableValueTask {
-      let! value = value
-      return { name = name; value = $"%i{value}" }
-    }
-
-    node <+. AsyncAttribute value
-
-  [<Extension>]
   static member inline attr(node: Node, name: string, value: int Task) =
-    node.attr(
-      name,
-      valueTask {
+    node
+    <+. AsyncAttribute(
+      cancellableValueTask {
         let! value = value
-        return value
+        return { name = name; value = $"%i{value}" }
       }
     )
 
   [<Extension>]
   static member inline attr(node: Node, name: string, value: int Async) =
-    node.attr(
-      name,
-      valueTask {
+    node
+    <+. AsyncAttribute(
+      cancellableValueTask {
         let! value = value
-        return value
+        return { name = name; value = $"%i{value}" }
       }
     )
 
   [<Extension>]
-  static member inline attr(node: Node, name: string, value: float ValueTask) =
-    let value = cancellableValueTask {
-      let! value = value
-      return { name = name; value = $"%f{value}" }
-    }
-
-    node <+. AsyncAttribute value
-
-  [<Extension>]
   static member inline attr(node: Node, name: string, value: float Task) =
-    node.attr(
-      name,
-      valueTask {
+    node
+    <+. AsyncAttribute(
+      cancellableValueTask {
         let! value = value
-        return value
+        return { name = name; value = $"%f{value}" }
       }
     )
 
   [<Extension>]
   static member inline attr(node: Node, name: string, value: float Async) =
-    node.attr(
-      name,
-      valueTask {
+    node
+    <+. AsyncAttribute(
+      cancellableValueTask {
         let! value = value
-        return value
+        return { name = name; value = $"%f{value}" }
       }
     )
+
 
 [<AutoOpen>]
 type DeclarativeShadowDom =
@@ -612,7 +565,7 @@ type DeclarativeShadowDom =
 
     fun instanceContent -> h(tagName, tpl, instanceContent)
 
-  static member inline shC
+  static member inline shcs
     (
       tagName: string,
       [<ParamArray>] templateDefinition: Node array
@@ -621,7 +574,7 @@ type DeclarativeShadowDom =
 
     Func<Node, Node>(fun instanceContent -> h(tagName, tpl, instanceContent))
 
-type ScopableElemens =
+type ScopableElements =
 
   static member inline article([<ParamArray>] content: _ array) =
     content |> fragment |> sh "article"

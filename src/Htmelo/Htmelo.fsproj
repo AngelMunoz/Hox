@@ -3,12 +3,17 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <OtherFlags>$(OtherFlags)--warnon:3390</OtherFlags>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Node.fsi" />
     <Compile Include="Node.fs" />
+    <Compile Include="SelectorParser.fsi" />
     <Compile Include="SelectorParser.fs" />
+    <Compile Include="Rendering.fsi" />
     <Compile Include="Rendering.fs" />
+    <Compile Include="DSL.fsi" />
     <Compile Include="DSL.fs" />
   </ItemGroup>
   <ItemGroup>

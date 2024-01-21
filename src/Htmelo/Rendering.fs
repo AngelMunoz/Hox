@@ -143,16 +143,19 @@ module Builder =
       return sb.Append(children).Append("</").Append(tag).Append(">").ToString()
   }
 
+  [<RequireQualifiedAccess>]
   module ValueTask =
     let render (node: Node) token = vTask {
       let! result = renderNode node token
       return result
     }
 
+  [<RequireQualifiedAccess>]
   module Async =
     let inline render(node: Node) =
       ValueTask.render node |> Async.AwaitCancellableValueTask
 
+  [<RequireQualifiedAccess>]
   module Task =
     let inline render (node: Node) token : Task<string> =
       (ValueTask.render node token).AsTask()
