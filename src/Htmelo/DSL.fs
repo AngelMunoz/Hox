@@ -189,13 +189,15 @@ module NodeOps =
       AsyncNode tsk
     | _ -> target
 
-  /// Adds the 'value' node to the 'target' node, it can be seen as ading
-  /// a child to a parent.
-  let rec inline (<+) (target: Node) (value: Node) = addToNode(target, value)
+  [<AutoOpen>]
+  module Operators =
+    /// Adds the 'value' node to the 'target' node, it can be seen as ading
+    /// a child to a parent.
+    let rec inline (<+) (target: Node) (value: Node) = addToNode(target, value)
 
-  /// Adds an attribute to the 'target' node.
-  let rec inline (<+.) (target: Node) (value: AttributeNode) =
-    addAttribute(target, value)
+    /// Adds an attribute to the 'target' node.
+    let rec inline (<+.) (target: Node) (value: AttributeNode) =
+      addAttribute(target, value)
 
 open NodeOps
 
@@ -369,12 +371,77 @@ type NodeBuilder =
 
   static member inline text(text: string) = Text text
 
+  static member inline text(text: string ValueTask) =
+    AsyncNode(
+      cancellableValueTask {
+        let! text = text
+        return Text text
+      }
+    )
+
+  static member inline text(text: string Task) =
+    AsyncNode(
+      cancellableValueTask {
+        let! text = text
+        return Text text
+      }
+    )
+
   static member inline raw(raw: string) = Raw raw
+
+  static member inline raw(raw: string ValueTask) =
+    AsyncNode(
+      cancellableValueTask {
+        let! raw = raw
+        return Raw raw
+      }
+    )
+
+  static member inline raw(raw: string Task) =
+    AsyncNode(
+      cancellableValueTask {
+        let! raw = raw
+        return Raw raw
+      }
+    )
+
+  static member inline raw(raw: string Async) =
+    AsyncNode(
+      cancellableValueTask {
+        let! raw = raw
+        return Raw raw
+      }
+    )
+
 
   static member inline comment(comment: string) = Comment comment
 
-  static member inline fragment(nodes: seq<Node>) =
+  static member inline fragment(nodes: #seq<Node>) =
     Fragment(nodes |> Seq.toList)
+
+  static member inline fragment(nodes: #seq<Node> ValueTask) =
+    AsyncNode(
+      cancellableValueTask {
+        let! nodes = nodes
+        return Fragment(nodes |> Seq.toList)
+      }
+    )
+
+  static member inline fragment(nodes: #seq<Node> Task) =
+    AsyncNode(
+      cancellableValueTask {
+        let! nodes = nodes
+        return Fragment(nodes |> Seq.toList)
+      }
+    )
+
+  static member inline fragment(nodes: #seq<Node> Async) =
+    AsyncNode(
+      cancellableValueTask {
+        let! nodes = nodes
+        return Fragment(nodes |> Seq.toList)
+      }
+    )
 
   static member inline fragment(nodes: IAsyncEnumerable<Node>) =
     AsyncSeqNode nodes
@@ -383,83 +450,33 @@ type NodeBuilder =
 type NodeExtensions =
 
   [<Extension>]
-  static member inline children(node: Node, children: Node seq) =
-    node <+ NodeBuilder.fragment children
-
-  [<Extension>]
-  static member inline children(node: Node, children: IAsyncEnumerable<Node>) =
-    node <+ NodeBuilder.fragment children
-
-  [<Extension>]
-  static member inline children
-    (
-      node: Node,
-      [<ParamArrayAttribute>] nodes: Node array
-    ) =
-    node <+ NodeBuilder.fragment nodes
-
-  [<Extension>]
-  static member inline child(node: Node, child: Node) = node <+ child
-
-  [<Extension>]
-  static member inline child(node: Node, child: Node ValueTask) =
-    let child =
-      AsyncNode(
-        cancellableValueTask {
-          let! child = child
-          return child
-        }
-      )
-
-    node <+ child
-
-  [<Extension>]
-  static member inline child(node: Node, child: Node Task) =
-    node.child(
-      valueTask {
-        let! child = child
-        return child
-      }
-    )
-
-  [<Extension>]
-  static member inline child(node: Node, child: Node Async) =
-    node.child(
-      valueTask {
-        let! child = child
-        return child
-      }
-    )
-
-  [<Extension>]
   static member inline attr(node: Node, name: string, ?value: string) =
     node
-    <+. AttributeNode.Attribute {
+    <+. Attribute {
       name = name
-      value = defaultArg value System.String.Empty
+      value = defaultArg value String.Empty
     }
-
 
   [<Extension>]
   static member inline attr(node: Node, name: string, value: bool) =
     if value then
-      node <+. AttributeNode.Attribute { name = name; value = "" }
+      node <+. Attribute { name = name; value = String.Empty }
     else
       node
 
   [<Extension>]
   static member inline attr(node: Node, name: string, value: int) =
-    node <+. AttributeNode.Attribute { name = name; value = $"%i{value}" }
+    node <+. Attribute { name = name; value = $"%i{value}" }
 
   [<Extension>]
   static member inline attr(node: Node, name: string, value: float) =
-    node <+. AttributeNode.Attribute { name = name; value = $"%f{value}" }
+    node <+. Attribute { name = name; value = $"%f{value}" }
 
 
   [<Extension>]
   static member inline attr(node: Node, name: string, value: string ValueTask) =
     let value =
-      AttributeNode.AsyncAttribute(
+      AsyncAttribute(
         cancellableValueTask {
           let! value = value
 
@@ -503,7 +520,7 @@ type NodeExtensions =
         }
     }
 
-    node <+. AttributeNode.AsyncAttribute value
+    node <+. AsyncAttribute value
 
   [<Extension>]
   static member inline attr(node: Node, name: string, value: bool Task) =
@@ -532,7 +549,7 @@ type NodeExtensions =
       return { name = name; value = $"%i{value}" }
     }
 
-    node <+. AttributeNode.AsyncAttribute value
+    node <+. AsyncAttribute value
 
   [<Extension>]
   static member inline attr(node: Node, name: string, value: int Task) =
@@ -561,7 +578,7 @@ type NodeExtensions =
       return { name = name; value = $"%f{value}" }
     }
 
-    node <+. AttributeNode.AsyncAttribute value
+    node <+. AsyncAttribute value
 
   [<Extension>]
   static member inline attr(node: Node, name: string, value: float Task) =
@@ -582,3 +599,80 @@ type NodeExtensions =
         return value
       }
     )
+
+[<AutoOpen>]
+type DeclarativeShadowDom =
+
+  static member inline sh
+    (
+      tagName: string,
+      [<ParamArray>] templateDefinition: Node array
+    ) =
+    let tpl = h("template[shadowrootmode=open]", templateDefinition)
+
+    fun instanceContent -> h(tagName, tpl, instanceContent)
+
+  static member inline shC
+    (
+      tagName: string,
+      [<ParamArray>] templateDefinition: Node array
+    ) =
+    let tpl = h("template[shadowrootmode=closed]", templateDefinition)
+
+    Func<Node, Node>(fun instanceContent -> h(tagName, tpl, instanceContent))
+
+type ScopableElemens =
+
+  static member inline article([<ParamArray>] content: _ array) =
+    content |> fragment |> sh "article"
+
+  static member inline aside([<ParamArray>] content: _ array) =
+    content |> fragment |> sh "aside"
+
+  static member inline blockquote([<ParamArray>] content: _ array) =
+    content |> fragment |> sh "blockquote"
+
+  static member inline body([<ParamArray>] content: _ array) =
+    content |> fragment |> sh "body"
+
+  static member inline div([<ParamArray>] content: _ array) =
+    content |> fragment |> sh "div"
+
+  static member inline footer([<ParamArray>] content: _ array) =
+    content |> fragment |> sh "footer"
+
+  static member inline h1([<ParamArray>] content: _ array) =
+    content |> fragment |> sh "h1"
+
+  static member inline h2([<ParamArray>] content: _ array) =
+    content |> fragment |> sh "h2"
+
+  static member inline h3([<ParamArray>] content: _ array) =
+    content |> fragment |> sh "h3"
+
+  static member inline h4([<ParamArray>] content: _ array) =
+    content |> fragment |> sh "h4"
+
+  static member inline h5([<ParamArray>] content: _ array) =
+    content |> fragment |> sh "h5"
+
+  static member inline h6([<ParamArray>] content: _ array) =
+    content |> fragment |> sh "h6"
+
+  static member inline header([<ParamArray>] content: _ array) =
+    content |> fragment |> sh "header"
+
+  static member inline main([<ParamArray>] content: _ array) =
+    content |> fragment |> sh "main"
+
+  static member inline nav([<ParamArray>] content: _ array) =
+    content |> fragment |> sh "nav"
+
+  static member inline p([<ParamArray>] content: _ array) =
+    content |> fragment |> sh "p"
+
+  static member inline section([<ParamArray>] content: _ array) =
+    content |> fragment |> sh "section"
+
+  static member inline span([<ParamArray>] content: _ array) =
+    content |> fragment |> sh "span"
