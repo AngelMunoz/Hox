@@ -1,14 +1,11 @@
 open System
 open System.Runtime.CompilerServices
-open System.Collections.Generic
-open System.IO
 open System.Threading.Tasks
 
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Http
 open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.DependencyInjection
-open Microsoft.Extensions.Http
 
 open IcedTasks
 open FSharp.Control
@@ -103,18 +100,18 @@ let renderTodos(http: HttpClient) = taskSeq {
     )
 
   for todo in todos do
-    h("li")
-      .child(
+    h(
+      "li",
+      h(
+        $"sl-details[summary={todo.title}]",
+        h("p", text $"Todo Id: %i{todo.id}"),
         h(
-          $"sl-details[summary={todo.title}]",
-          h("p", text $"Todo Id: %i{todo.id}"),
-          h(
-            "p",
-            text
-              $"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna\naliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
-          )
+          "p",
+          text
+            $"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna\naliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
         )
       )
+    )
 }
 
 let inline index (ctx: HttpContext) (factory: IHttpClientFactory) = task {
@@ -159,9 +156,9 @@ let inline streamed (ctx: HttpContext) (factory: IHttpClientFactory) = taskUnit 
           h("h1", text "Hello World!"),
           // el("ul.todo-list", todos),
           Scoped.card(
-            Scoped.cardHeader(h("h2", text "Card Header")),
+            Scoped.cardFooter(h("p", text "Card Footer")),
             Scoped.cardContent(h("p", text "Card Content")),
-            Scoped.cardFooter(h("p", text "Card Footer"))
+            Scoped.cardHeader(h("h1", text "Card Header"))
           ),
           h(
             "p",

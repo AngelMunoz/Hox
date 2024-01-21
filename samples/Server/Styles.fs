@@ -6,6 +6,7 @@ open Htmelo
 module Extensions =
   let inline css(content: string) = content
 
+[<RequireQualifiedAccess>]
 module Styles =
 
   let inline toStyle(content: string) = h("style", raw content)
@@ -28,6 +29,9 @@ body {
   padding: 0;
   height: 100dvh;
   overflow-y: auto;
+}
+h1 {
+  font-size: 2.5rem;
 }
         """
     |> toStyle
@@ -60,6 +64,9 @@ body {
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.15);
   margin: 0.5rem 0;
   padding: 1rem;
+}
+h1 {
+  font-size: 1.5rem;
 }
 x-card-header {
   display: block;
