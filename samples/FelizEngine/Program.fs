@@ -50,7 +50,8 @@ type HtmlEngine<'Node> with
 
   member inline _.fragment(nodes: Node IAsyncEnumerable) = AsyncSeqNode nodes
 
-let add (attr: AttributeNode) (node: Node) = NodeOps.addAttribute(node, attr)
+let inline add (attr: AttributeNode) (node: Node) =
+  NodeOps.addAttribute(node, attr)
 
 let content =
   Html.html [
