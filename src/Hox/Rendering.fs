@@ -11,8 +11,9 @@ open FSharp.Control
 open IcedTasks
 
 open Hox.Core
+open System.Threading
 
-let private getAttributes(attributes: AttributeNode list) =
+let getAttributes(attributes: AttributeNode list) =
   attributes
   |> List.fold
     (fun (classes, attributes, asyncAttributes) attribute ->
@@ -27,7 +28,7 @@ let private getAttributes(attributes: AttributeNode list) =
         (classes, attributes, asyncAttribute :: asyncAttributes))
     ([], [], [])
 
-let private renderAttr(node: AttributeNode) = cancellableValueTask {
+let renderAttr(node: AttributeNode) = cancellableValueTask {
   match node with
   | AttributeNode.Attribute { name = name; value = value } ->
     return
@@ -35,28 +36,30 @@ let private renderAttr(node: AttributeNode) = cancellableValueTask {
   | AsyncAttribute asyncAttribute ->
     let! { name = name; value = value } = asyncAttribute
 
-    if name = System.String.Empty then
-      return System.String.Empty
+    if name = String.Empty then
+      return String.Empty
     else
       return
         $" %s{HttpUtility.HtmlAttributeEncode name}=\"%s{HttpUtility.HtmlAttributeEncode value}\""
 }
 
+/// This module contains functions that are used to render a node to a string
+/// It is backed by a StringBuilder.
+
 module Builder =
   open System.Text
 
-  let rec private renderNode(node: Node) = cancellableValueTask {
+  let rec renderNode(node: Node) = cancellableValueTask {
     match node with
     | Element element -> return! renderElement element
     | Text text -> return HttpUtility.HtmlEncode text
     | Raw raw -> return raw
     | Comment comment -> return $"<!--%s{comment}-->"
     | Fragment nodes ->
-      let! token = CancellableValueTask.getCancellationToken()
       let sb = StringBuilder()
 
       for node in nodes do
-        let! node = renderNode node token
+        let! node = renderNode node
         sb.Append(node) |> ignore
 
       return sb.ToString()
@@ -77,8 +80,7 @@ module Builder =
       return sb.ToString()
   }
 
-  and private renderElement(element: Element) = cancellableValueTask {
-    let! token = CancellableValueTask.getCancellationToken()
+  and renderElement(element: Element) = cancellableValueTask {
     let classes, attributes, asyncAttributes = getAttributes element.attributes
     let sb = StringBuilder()
     sb.Append("<").Append(element.tag) |> ignore
@@ -134,7 +136,7 @@ module Builder =
         let sb = StringBuilder()
 
         for child in element.children do
-          let! child = renderNode child token
+          let! child = renderNode child
           sb.Append(child) |> ignore
 
         return sb.ToString()
@@ -143,26 +145,35 @@ module Builder =
       return sb.Append(children).Append("</").Append(tag).Append(">").ToString()
   }
 
-  [<RequireQualifiedAccess>]
-  module ValueTask =
-    let render (node: Node) token = vTask {
-      let! result = renderNode node token
-      return result
-    }
 
-  [<RequireQualifiedAccess>]
-  module Async =
-    let inline render(node: Node) =
-      ValueTask.render node |> Async.AwaitCancellableValueTask
-
-  [<RequireQualifiedAccess>]
-  module Task =
-    let inline render (node: Node) token : Task<string> =
-      (ValueTask.render node token).AsTask()
-
+/// This module contains functions that are used to render a node to a sequence of strings
+/// As soon as a chunk is ready it is yielded to the caller.
 [<RequireQualifiedAccess>]
 module Chunked =
-  let rec private renderElement
+  let rec renderNode
+    (
+      node: Node,
+      cancellationToken
+    ) : IAsyncEnumerable<string> =
+    taskSeq {
+      match node with
+      | Element element -> yield! renderElement(element, cancellationToken)
+      | Text text -> HttpUtility.HtmlEncode text
+      | Raw raw -> raw
+      | Comment comment -> $"<!--{comment}-->"
+      | Fragment nodes ->
+        for node in nodes do
+          yield! renderNode(node, cancellationToken)
+      | AsyncNode node ->
+        let! node = node cancellationToken
+
+        yield! renderNode(node, cancellationToken)
+      | AsyncSeqNode nodes ->
+        for node in nodes do
+          yield! renderNode(node, cancellationToken)
+    }
+
+  and renderElement
     (
       element: Element,
       cancellationToken
@@ -219,27 +230,48 @@ module Chunked =
         $"</{tag}>"
     }
 
-  and private renderNode
-    (
-      node: Node,
-      cancellationToken
-    ) : IAsyncEnumerable<string> =
-    taskSeq {
-      match node with
-      | Element element -> yield! renderElement(element, cancellationToken)
-      | Text text -> HttpUtility.HtmlEncode text
-      | Raw raw -> raw
-      | Comment comment -> $"<!--{comment}-->"
-      | Fragment nodes ->
-        for node in nodes do
-          yield! renderNode(node, cancellationToken)
-      | AsyncNode node ->
-        let! node = node cancellationToken
+type Render =
 
-        yield! renderNode(node, cancellationToken)
-      | AsyncSeqNode nodes ->
-        for node in nodes do
-          yield! renderNode(node, cancellationToken)
+  [<CompiledName "Start">]
+  static member start(node: Node, ?cancellationToken: CancellationToken) =
+    let cancellationToken =
+      defaultArg cancellationToken CancellationToken.None
+    taskSeq {
+
+      // Cancellation token propagation is not fully supported yet in TaskSeq see
+      // https://github.com/fsprojects/FSharp.Control.TaskSeq/issues/133 for more info.
+      // We'll pass the token to the operation as we may need to manually bind to TaskSeq.* functions
+      // which ignore the default cancellation token.
+      // For the rest of the operations it should technically flow with the cancellation token in GetAsyncEnumerator
+      let enumerator = (Chunked.renderNode(node, cancellationToken)).GetAsyncEnumerator(cancellationToken)
+      while! enumerator.MoveNextAsync() do
+        enumerator.Current
+      do! enumerator.DisposeAsync()
     }
 
-  let render (node: Node) token = renderNode(node, token)
+  [<CompiledName "ToStream">]
+  static member toStream(node: Node, stream: IO.Stream, ?bufferSize: int, ?cancellationToken: CancellationToken) = taskUnit {
+      let cancellationToken =
+        defaultArg cancellationToken CancellationToken.None
+      let bufferSize =
+        defaultArg bufferSize 1440
+      use writer = new IO.BufferedStream(stream, bufferSize)
+      let enumerator = (Chunked.renderNode(node, cancellationToken)).GetAsyncEnumerator(cancellationToken)
+      while! enumerator.MoveNextAsync() do
+        let bytes = System.Text.Encoding.UTF8.GetBytes(enumerator.Current)
+        do! writer.WriteAsync(ReadOnlyMemory(bytes), cancellationToken)
+        do! writer.FlushAsync()
+      do! enumerator.DisposeAsync()
+    }
+
+  [<CompiledName "AsString">]
+  static member asString(node: Node, ?cancellationToken: CancellationToken) =
+    let cancellationToken =
+      defaultArg cancellationToken CancellationToken.None
+    Builder.renderNode node cancellationToken
+
+  static member asStringAsync(node: Node) =
+    async {
+      return! Builder.renderNode node
+    }
+
