@@ -66,15 +66,11 @@ module Builder =
       let! node = node
       return! renderNode node
     | AsyncSeqNode nodes ->
-      let! token = CancellableValueTask.getCancellationToken()
       let sb = StringBuilder()
 
-      do!
-        nodes
-        |> TaskSeq.iterAsync(fun node -> task {
-          let! node = renderNode node token
-          sb.Append(node) |> ignore
-        })
+      for node in nodes do
+        let! node = renderNode node
+        sb.Append(node) |> ignore
 
       return sb.ToString()
   }
