@@ -86,6 +86,73 @@ type NodeBuilder =
   /// in a standard way.
   /// </summary>
   /// <param name="cssSelector">The tag name of the element</param>
+  /// <param name="child">The async child to add to the newly created element</param>
+  /// <returns>A new node</returns>
+  /// <remarks>
+  /// The css selector supports multiple lines to avoid long lines.
+  /// </remarks>
+  /// <remarks>
+  /// The css selector is parsed on a strict subset, it is not a full CSS parser, so it does not
+  /// support all the features of CSS.
+  /// </remarks>
+  /// <example>
+  /// <code lang="fsharp">
+  /// let node = h "div#the-id.class-one.class-two[attribute=value]"
+  /// </code>
+  /// </example>
+  /// <example>
+  /// <code lang="fsharp">
+  /// let getNode() = task { let! data = getData(); return h $"article[data-csv-data={data}]" }
+  /// let node =
+  ///  h("div#the-id
+  ///        .class-one
+  ///        .class-two
+  ///        [attribute=value]",
+  ///    getNode()
+  ///  )
+  /// </code>
+  /// </example>
+  static member inline h: cssSelector: string * child: Node Task -> Node
+
+  /// <summary>
+  /// Creates a new element from a css selector, the selector supports classes, attributes and id
+  /// in a standard way.
+  /// </summary>
+  /// <param name="cssSelector">The tag name of the element</param>
+  /// <param name="child">The tag name of the element</param>
+  /// <returns>A new node</returns>
+  /// <remarks>
+  /// The css selector supports multiple lines to avoid long lines.
+  /// </remarks>
+  /// <remarks>
+  /// The css selector is parsed on a strict subset, it is not a full CSS parser, so it does not
+  /// support all the features of CSS.
+  /// </remarks>
+  /// <example>
+  /// <code lang="fsharp">
+  /// let node = h "div#the-id.class-one.class-two[attribute=value]"
+  /// </code>
+  /// </example>
+  /// <example>
+  /// <code lang="fsharp">
+  /// let getNode() = async { let! data = getData(); return h $"article[data-csv-data={data}]" }
+  /// let node =
+  ///  h("div#the-id
+  ///        .class-one
+  ///        .class-two
+  ///        [attribute=value]",
+  ///    getNode()
+  ///  )
+  /// </code>
+  /// </example>
+  static member inline h: cssSelector: string * child: Node Async -> Node
+
+
+  /// <summary>
+  /// Creates a new element from a css selector, the selector supports classes, attributes and id
+  /// in a standard way.
+  /// </summary>
+  /// <param name="cssSelector">The tag name of the element</param>
   /// <param name="children">A sequence of nodes to add to the newly created node</param>
   /// <returns>A new node</returns>
   /// <remarks>

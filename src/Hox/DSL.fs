@@ -208,6 +208,28 @@ type NodeBuilder =
   static member inline h(cssSelector: string) =
     Element(Parsers.selector cssSelector)
 
+  static member inline h(cssSelector: string, child: Node Task) =
+    let child =
+      AsyncNode(
+        cancellableValueTask {
+          let! child = child
+          return child
+        }
+      )
+
+    Element(Parsers.selector cssSelector) <+ child
+
+  static member inline h(cssSelector: string, child: Node Async) =
+    let child =
+      AsyncNode(
+        cancellableValueTask {
+          let! child = child
+          return child
+        }
+      )
+
+    Element(Parsers.selector cssSelector) <+ child
+
   static member inline h(cssSelector: string, children: Node seq) =
     Element(Parsers.selector cssSelector) <+ Fragment(children |> Seq.toList)
 
