@@ -5,7 +5,9 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{68392489-15B6-42F0-8060-133DCB96F388}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Htmelo", "src\Htmelo\Htmelo.fsproj", "{82FD650C-763F-463D-826C-D579EA8D9813}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Hox", "src\Hox\Hox.fsproj", "{82FD650C-763F-463D-826C-D579EA8D9813}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Hox.Feliz", "src\Hox.Feliz\Hox.Feliz.fsproj", "{76076E72-D33A-4452-B5F7-C534EDAB0E69}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -20,8 +22,13 @@ Global
 		{82FD650C-763F-463D-826C-D579EA8D9813}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{82FD650C-763F-463D-826C-D579EA8D9813}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{82FD650C-763F-463D-826C-D579EA8D9813}.Release|Any CPU.Build.0 = Release|Any CPU
+		{76076E72-D33A-4452-B5F7-C534EDAB0E69}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{76076E72-D33A-4452-B5F7-C534EDAB0E69}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{76076E72-D33A-4452-B5F7-C534EDAB0E69}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{76076E72-D33A-4452-B5F7-C534EDAB0E69}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{82FD650C-763F-463D-826C-D579EA8D9813} = {68392489-15B6-42F0-8060-133DCB96F388}
+		{76076E72-D33A-4452-B5F7-C534EDAB0E69} = {68392489-15B6-42F0-8060-133DCB96F388}
 	EndGlobalSection
 EndGlobal

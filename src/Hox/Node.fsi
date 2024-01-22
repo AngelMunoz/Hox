@@ -1,4 +1,4 @@
-namespace Htmelo.Core
+namespace Hox.Core
 
 open IcedTasks
 open System.Collections.Generic

@@ -1,4 +1,4 @@
-module Htmelo.Rendering
+module Hox.Rendering
 
 open System
 open System.Collections.Generic
@@ -7,7 +7,7 @@ open System.Threading.Tasks
 
 open FSharp.Control
 
-open Htmelo.Core
+open Hox.Core
 
 /// This module contains functions that are used to render a node to a string
 /// It is backed by a StringBuilder.

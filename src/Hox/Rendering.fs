@@ -1,4 +1,4 @@
-module Htmelo.Rendering
+module Hox.Rendering
 
 open System
 open System.Collections.Generic
@@ -10,7 +10,7 @@ open System.Web
 open FSharp.Control
 open IcedTasks
 
-open Htmelo.Core
+open Hox.Core
 
 let private getAttributes(attributes: AttributeNode list) =
   attributes

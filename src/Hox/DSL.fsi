@@ -1,4 +1,4 @@
-namespace Htmelo
+namespace Hox
 
 open System
 open System.Collections.Generic
@@ -6,7 +6,7 @@ open System.Threading.Tasks
 open System.Runtime.CompilerServices
 
 open FSharp.Control
-open Htmelo.Core
+open Hox.Core
 
 /// This module contains functions that are used to add notes to other nodes
 module NodeOps =
@@ -975,9 +975,9 @@ type ScopableElements =
   static member inline article: [<ParamArray>] content: Node array -> Node
 
   /// <summary>
-  /// Creates a new aside element with declarative shadow DOM enabled.
+  /// Creates a new blockquote element with declarative shadow DOM enabled.
   /// </summary>
-  /// <param name="content">The content to add to the aside</param>
+  /// <param name="content">The content to add to the blockquote</param>
   /// <returns>A new node</returns>
   /// <remarks>
   /// This element has declarative shdow dom enabled, meaning

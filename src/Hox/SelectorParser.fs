@@ -1,11 +1,11 @@
 [<RequireQualifiedAccess>]
-module Htmelo.Parsers
+module Hox.Parsers
 
 open System.Collections.Immutable
 
 open FParsec
 
-open Htmelo.Core
+open Hox.Core
 
 [<Struct>]
 type private SelectorValue =

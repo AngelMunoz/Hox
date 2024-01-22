@@ -2,7 +2,7 @@ namespace Server
 
 open System
 
-open Htmelo
+open Hox
 
 
 module private TemplateDefinitions =

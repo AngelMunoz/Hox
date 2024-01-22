@@ -13,7 +13,7 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FelizEngine", "FelizEngine\
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ServerG", "Giraffe\ServerG.fsproj", "{003C395D-8AD5-4409-8445-F858F8C53DB0}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Htmelo", "..\src\Htmelo\Htmelo.fsproj", "{8C10C1B2-47A0-41B5-9FC1-8D4D4ED29625}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Hox", "..\src\Hox\Hox.fsproj", "{8C10C1B2-47A0-41B5-9FC1-8D4D4ED29625}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

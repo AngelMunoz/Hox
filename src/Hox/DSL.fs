@@ -1,4 +1,4 @@
-namespace Htmelo
+namespace Hox
 
 open System
 open System.Collections.Generic
@@ -8,8 +8,8 @@ open System.Runtime.CompilerServices
 open FSharp.Control
 open IcedTasks
 
-open Htmelo
-open Htmelo.Core
+open Hox
+open Hox.Core
 
 module NodeOps =
   let rec addToNode(target: Node, value: Node) =
@@ -408,8 +408,7 @@ type NodeBuilder =
 
   static member inline comment(comment: string) = Comment comment
 
-  static member inline fragment(nodes: Node seq) =
-    Fragment(nodes |> Seq.toList)
+  static member inline fragment(nodes: Node seq) = Fragment(nodes |> Seq.toList)
 
   static member inline fragment(nodes: Node seq Task) =
     AsyncNode(

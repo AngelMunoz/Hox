@@ -1,7 +1,7 @@
 [<RequireQualifiedAccess>]
-module Htmelo.Parsers
+module Hox.Parsers
 
-open Htmelo.Core
+open Hox.Core
 
 /// <summary>A function that takes a CSS-like selector and produces an Element from it</summary>
 /// <example>

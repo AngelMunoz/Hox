@@ -1,6 +1,6 @@
 namespace Server
 
-open Htmelo
+open Hox
 
 [<AutoOpen>]
 module Extensions =

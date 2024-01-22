@@ -10,9 +10,9 @@ open Giraffe.ViewEngine
 
 open FSharp.Control
 
-open Htmelo
-open Htmelo.Core
-open Htmelo.Rendering
+open Hox
+open Hox.Core
+open Hox.Rendering
 
 
 let inline xmlAttrToHtmelo(attr: XmlAttribute) : AttributeNode =

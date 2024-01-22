@@ -9,9 +9,9 @@ open Falco.Routing
 open Falco.HostBuilder
 open Falco.Markup
 
-open Htmelo
-open Htmelo.Core
-open Htmelo.Rendering
+open Hox
+open Hox.Core
+open Hox.Rendering
 
 let inline xmlAttrToHtmelo(attr: XmlAttribute) : AttributeNode =
   match attr with

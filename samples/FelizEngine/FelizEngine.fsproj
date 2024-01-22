@@ -10,11 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Feliz.Engine" Version="1.0.0-beta-004" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\Htmelo\Htmelo.fsproj" />
+    <ProjectReference Include="..\..\src\Hox.Feliz\Hox.Feliz.fsproj" />
   </ItemGroup>
 
 </Project>

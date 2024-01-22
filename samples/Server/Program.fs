@@ -10,9 +10,9 @@ open Microsoft.Extensions.DependencyInjection
 open IcedTasks
 open FSharp.Control
 
-open Htmelo
-open Htmelo.Core
-open Htmelo.Rendering
+open Hox
+open Hox.Core
+open Hox.Rendering
 open System.Net.Http
 open System.Text.Json
 open Server
