@@ -3,7 +3,7 @@ module Hox.Rendering
 open System.Collections.Generic
 open System.Threading
 open System.Threading.Tasks
-
+open System.Runtime.InteropServices
 
 open FSharp.Control
 
@@ -27,7 +27,7 @@ type Render =
   /// </remarks>
   [<CompiledName "Start">]
   static member start:
-    node: Node * ?cancellationToken: CancellationToken ->
+    node: Node * [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
       string IAsyncEnumerable
 
   /// <summary>
@@ -46,8 +46,8 @@ type Render =
   static member toStream:
     node: Node *
     stream: System.IO.Stream *
-    ?bufferSize: int *
-    ?cancellationToken: CancellationToken ->
+    [<OptionalAttribute>] ?bufferSize: int *
+    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
       Task
 
   /// <summary>
@@ -62,7 +62,8 @@ type Render =
   /// </remarks>
   [<CompiledName "AsString">]
   static member asString:
-    node: Node * ?cancellationToken: CancellationToken -> string ValueTask
+    node: Node * [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
+      string ValueTask
 
   /// <summary>
   /// Renders the node to a string using F#'s async workflows

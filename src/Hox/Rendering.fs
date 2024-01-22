@@ -3,7 +3,6 @@ module Hox.Rendering
 open System
 open System.Collections.Generic
 open System.Diagnostics
-open System.Threading.Tasks
 
 open System.Web
 
@@ -150,28 +149,23 @@ module Builder =
 /// As soon as a chunk is ready it is yielded to the caller.
 [<RequireQualifiedAccess>]
 module Chunked =
-  let rec renderNode
-    (
-      node: Node,
-      cancellationToken
-    ) : IAsyncEnumerable<string> =
-    taskSeq {
-      match node with
-      | Element element -> yield! renderElement(element, cancellationToken)
-      | Text text -> HttpUtility.HtmlEncode text
-      | Raw raw -> raw
-      | Comment comment -> $"<!--{comment}-->"
-      | Fragment nodes ->
-        for node in nodes do
-          yield! renderNode(node, cancellationToken)
-      | AsyncNode node ->
-        let! node = node cancellationToken
-
+  let rec renderNode(node: Node, cancellationToken) : IAsyncEnumerable<string> = taskSeq {
+    match node with
+    | Element element -> yield! renderElement(element, cancellationToken)
+    | Text text -> HttpUtility.HtmlEncode text
+    | Raw raw -> raw
+    | Comment comment -> $"<!--{comment}-->"
+    | Fragment nodes ->
+      for node in nodes do
         yield! renderNode(node, cancellationToken)
-      | AsyncSeqNode nodes ->
-        for node in nodes do
-          yield! renderNode(node, cancellationToken)
-    }
+    | AsyncNode node ->
+      let! node = node cancellationToken
+
+      yield! renderNode(node, cancellationToken)
+    | AsyncSeqNode nodes ->
+      for node in nodes do
+        yield! renderNode(node, cancellationToken)
+  }
 
   and renderElement
     (
@@ -233,30 +227,48 @@ module Chunked =
 type Render =
 
   [<CompiledName "Start">]
-  static member start(node: Node, ?cancellationToken: CancellationToken) =
-    let cancellationToken =
-      defaultArg cancellationToken CancellationToken.None
+  static member start
+    (
+      node: Node,
+      [<Runtime.InteropServices.OptionalAttribute>] ?cancellationToken:
+        CancellationToken
+    ) =
+    let cancellationToken = defaultArg cancellationToken CancellationToken.None
+
     taskSeq {
 
       // Cancellation token propagation is not fully supported yet in TaskSeq see
       // https://github.com/fsprojects/FSharp.Control.TaskSeq/issues/133 for more info.
-      // We'll pass the token to the operation as we may need to manually bind to TaskSeq.* functions
-      // which ignore the default cancellation token.
+      // We'll pass the token to the operation as we may need to manually bind to
+      // inner functions within TaskSeq.* functions which ignore the default cancellation token.
       // For the rest of the operations it should technically flow with the cancellation token in GetAsyncEnumerator
-      let enumerator = (Chunked.renderNode(node, cancellationToken)).GetAsyncEnumerator(cancellationToken)
+      let enumerator =
+        (Chunked.renderNode(node, cancellationToken))
+          .GetAsyncEnumerator(cancellationToken)
       while! enumerator.MoveNextAsync() do
         enumerator.Current
       do! enumerator.DisposeAsync()
     }
 
   [<CompiledName "ToStream">]
-  static member toStream(node: Node, stream: IO.Stream, ?bufferSize: int, ?cancellationToken: CancellationToken) = taskUnit {
+  static member toStream
+    (
+      node: Node,
+      stream: IO.Stream,
+      [<Runtime.InteropServices.OptionalAttribute>] ?bufferSize: int,
+      [<Runtime.InteropServices.OptionalAttribute>] ?cancellationToken:
+        CancellationToken
+    ) =
+    taskUnit {
       let cancellationToken =
         defaultArg cancellationToken CancellationToken.None
-      let bufferSize =
-        defaultArg bufferSize 1440
+
+      let bufferSize = defaultArg bufferSize 1440
       use writer = new IO.BufferedStream(stream, bufferSize)
-      let enumerator = (Chunked.renderNode(node, cancellationToken)).GetAsyncEnumerator(cancellationToken)
+
+      let enumerator =
+        (Chunked.renderNode(node, cancellationToken))
+          .GetAsyncEnumerator(cancellationToken)
       while! enumerator.MoveNextAsync() do
         let bytes = System.Text.Encoding.UTF8.GetBytes(enumerator.Current)
         do! writer.WriteAsync(ReadOnlyMemory(bytes), cancellationToken)
@@ -265,13 +277,15 @@ type Render =
     }
 
   [<CompiledName "AsString">]
-  static member asString(node: Node, ?cancellationToken: CancellationToken) =
-    let cancellationToken =
-      defaultArg cancellationToken CancellationToken.None
+  static member asString
+    (
+      node: Node,
+      [<Runtime.InteropServices.OptionalAttribute>] ?cancellationToken:
+        CancellationToken
+    ) =
+    let cancellationToken = defaultArg cancellationToken CancellationToken.None
     Builder.renderNode node cancellationToken
 
-  static member asStringAsync(node: Node) =
-    async {
-      return! Builder.renderNode node
-    }
-
+  static member asStringAsync(node: Node) = async {
+    return! Builder.renderNode node
+  }
