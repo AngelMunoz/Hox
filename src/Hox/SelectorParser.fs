@@ -37,8 +37,7 @@ let private pClass: Parser<SelectorValue, unit> =
 let private pAttribute: Parser<SelectorValue, unit> =
   let name = manyChars(letter <|> digit <|> pchar '-')
   let eq = pchar '='
-
-  let value = manyChars(satisfy(fun ch -> ch <> ']'))
+  let value = manySatisfy(fun ch -> ch <> ']')
 
   pchar '[' >>. name .>> eq .>>. value
   .>> unicodeSpaces
@@ -47,7 +46,7 @@ let private pAttribute: Parser<SelectorValue, unit> =
   >>= fun (name, value) -> preturn(Attribute { name = name; value = value })
 
 let private pSelector: Parser<Element, unit> =
-  tagName .>> unicodeSpaces
+  unicodeSpaces >>. tagName .>> unicodeSpaces
   .>>. many(attempt pClass <|> attempt pAttribute <|> attempt pId)
   .>> unicodeSpaces
   >>= fun (tag, values) ->
