@@ -27,47 +27,45 @@ let inline foldAttributes (node: Node) (attr: XmlAttribute) : Node =
   | Boolean key ->
     NodeOps.addAttribute(node, Attribute { name = key; value = "" })
 
-let rec xmlNodeToHtmelo(fmNode: XmlNode) : Node =
+let rec xmlNodeToHoxNode(fmNode: XmlNode) : Node =
   match fmNode with
   | ParentNode((tagName, attributes), children) ->
     attributes
     |> Array.fold
       foldAttributes
-      (h(tagName, children |> List.map xmlNodeToHtmelo))
+      (h(tagName, children |> List.map xmlNodeToHoxNode))
   | HtmlElements.Text text -> Core.Text text
   | VoidElement((tagName, attributes)) ->
     attributes |> Array.fold foldAttributes (h tagName)
 
 let streamHtml(node: XmlNode) : HttpHandler =
-  fun (next: HttpFunc) (ctx: HttpContext) -> task {
-    let writer = ctx.Response.BodyWriter
-    let token = ctx.RequestAborted
-    let node = xmlNodeToHtmelo node
+  setContentType "text/html; charset=utf-8"
+  >=> fun (_: HttpFunc) (ctx: HttpContext) -> task {
+    let node = xmlNodeToHoxNode node
 
-    for chunk in Chunked.render node token do
-      let bytes = Encoding.UTF8.GetBytes(chunk)
-      do! writer.WriteAsync(ReadOnlyMemory(bytes), token) |> ValueTask.ignore
-
-      do! writer.FlushAsync(token) |> ValueTask.ignore
-
-    return! earlyReturn ctx
-  }
-
-let streamHtmelo(node: Node) : HttpHandler =
-  fun (next: HttpFunc) (ctx: HttpContext) -> task {
-    let writer = ctx.Response.BodyWriter
-    let token = ctx.RequestAborted
-
-    for chunk in Chunked.render node token do
-      let bytes = Encoding.UTF8.GetBytes(chunk)
-      do! writer.WriteAsync(ReadOnlyMemory(bytes), token) |> ValueTask.ignore
-
-      do! writer.FlushAsync(token) |> ValueTask.ignore
+    do!
+      Render.toStream(
+        node,
+        ctx.Response.Body,
+        cancellationToken = ctx.RequestAborted
+      )
 
     return! earlyReturn ctx
   }
 
+let streamHox(node: Node) : HttpHandler =
+  setContentType "text/html; charset=utf-8"
+  >=> fun (_: HttpFunc) (ctx: HttpContext) -> task {
 
+    do!
+      Render.toStream(
+        node,
+        ctx.Response.Body,
+        cancellationToken = ctx.RequestAborted
+      )
+
+    return! earlyReturn ctx
+  }
 
 let GiraffeView =
   html [ _lang "en" ] [
@@ -133,7 +131,7 @@ let webApp =
   choose [
     GET
     >=> choose [
-      route "/" >=> (streamHtmelo HtmeloView)
+      route "/" >=> (streamHox HtmeloView)
       route "/giraffe" >=> (htmlView GiraffeView)
       route "/giraffe2" >=> (streamHtml GiraffeView)
     ]

@@ -37,7 +37,7 @@ let content =
   ]
 
 task {
-  for chunk in Chunked.render content CancellationToken.None do
+  for chunk in Render.start(content, CancellationToken.None) do
     printf $"%s{chunk}"
 }
 |> Async.AwaitTask

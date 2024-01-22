@@ -1,5 +1,6 @@
 open System
-open System.Runtime.CompilerServices
+open System.Net.Http
+open System.Text.Json
 open System.Threading.Tasks
 
 open Microsoft.AspNetCore.Builder
@@ -13,33 +14,44 @@ open FSharp.Control
 open Hox
 open Hox.Core
 open Hox.Rendering
-open System.Net.Http
-open System.Text.Json
+
 open Server
 
-[<AutoOpen>]
-module Extensions =
-  open System.Text
 
-  [<Extension>]
-  type HttpContextExtensions =
+module Results =
 
-    [<Extension>]
-    static member inline streamView(ctx: HttpContext, view: Node) = vTaskUnit {
-      ctx.Response.ContentType <- "text/html; charset=utf-8"
+  let Stream(view: Node) =
+    { new IResult with
+        member _.ExecuteAsync(ctx: HttpContext) : Task = taskUnit {
+          ctx.Response.ContentType <- "text/html; charset=utf-8"
 
-      let writer = ctx.Response.BodyWriter
+          do! ctx.Response.StartAsync(ctx.RequestAborted)
 
-      for chunk in Chunked.render view ctx.RequestAborted do
-        let chunk = ReadOnlyMemory(Encoding.UTF8.GetBytes(chunk))
-        do! writer.WriteAsync(chunk, ctx.RequestAborted) |> ValueTask.ignore
-        do! writer.FlushAsync() |> ValueTask.ignore
+          do!
+            Render.toStream(
+              view,
+              ctx.Response.Body,
+              cancellationToken = ctx.RequestAborted
+            )
+
+          do! ctx.Response.CompleteAsync()
+        }
     }
 
-    [<Extension>]
-    static member inline renderView(ctx: HttpContext, view: Node) = task {
-      let! result = Builder.Task.render view ctx.RequestAborted
-      return Results.Text(result, "text/html", Encoding.UTF8)
+  let Text(view: Node) =
+    { new IResult with
+        member _.ExecuteAsync(ctx: HttpContext) : Task = taskUnit {
+          ctx.Response.ContentType <- "text/html; charset=utf-8"
+
+          do! ctx.Response.StartAsync(ctx.RequestAborted)
+
+          let! content =
+            Render.asString(view, cancellationToken = ctx.RequestAborted)
+
+          do! ctx.Response.WriteAsync(content)
+
+          return! ctx.Response.CompleteAsync()
+        }
     }
 
 type Layout =
@@ -54,7 +66,7 @@ type Layout =
         Styles.App,
         h "meta[charset=utf-8]",
         h "meta[name=viewport][content=width=device-width, initial-scale=1.0]",
-        h("title", text "Htmelo"),
+        h("title", text "Hox"),
         h("link[rel=stylesheet]")
           .attr(
             "href",
@@ -114,64 +126,64 @@ let renderTodos(http: HttpClient) = taskSeq {
     )
 }
 
-let inline index (ctx: HttpContext) (factory: IHttpClientFactory) = task {
-  // let http = factory.CreateClient()
-  // let todos = renderTodos http
+let inline asString(factory: IHttpClientFactory) = task {
+  let http = factory.CreateClient()
+  let todos = renderTodos http
 
-  return!
-    ctx.renderView(
-      Layout.Default(
+  let content =
+    Layout.Default(
+      h(
+        "main",
+        h("h1", text "Hello World!"),
+        h("ul.todo-list", todos),
+        Scoped.card(
+          Scoped.cardHeader(h("h2", text "Card Header")),
+          Scoped.cardContent(h("p", text "Card Content")),
+          Scoped.cardFooter(h("p", text "Card Footer"))
+        ),
         h(
-          "main",
-          h("h1", text "Hello World!"),
-          // el("ul.todo-list", todos),
-          Scoped.card(
-            Scoped.cardHeader(h("h2", text "Card Header")),
-            Scoped.cardContent(h("p", text "Card Content")),
-            Scoped.cardFooter(h("p", text "Card Footer"))
-          ),
-          h(
-            "p",
-            text
-              "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna\naliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
-          )
+          "p",
+          text
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna\naliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
         )
-          .attr(
-            "style",
-            css "padding: 1em; display: flex; flex-direction: column"
-          )
       )
+        .attr(
+          "style",
+          css "padding: 1em; display: flex; flex-direction: column"
+        )
     )
+
+  return Results.Text content
 }
 
-let inline streamed (ctx: HttpContext) (factory: IHttpClientFactory) = taskUnit {
-  // let http = factory.CreateClient()
-  // let todos = renderTodos http
+let inline streamed(factory: IHttpClientFactory) = task {
+  let http = factory.CreateClient()
+  let todos = renderTodos http
 
-  return!
-    ctx.streamView(
-      Layout.Default(
+  let content =
+    Layout.Default(
+      h(
+        "main",
+        h("h1", text "Hello World!"),
+        h("ul.todo-list", todos),
+        Scoped.card(
+          Scoped.cardFooter(h("p", text "Card Footer")),
+          Scoped.cardContent(h("p", text "Card Content")),
+          Scoped.cardHeader(h("h1", text "Card Header"))
+        ),
         h(
-          "main",
-          h("h1", text "Hello World!"),
-          // el("ul.todo-list", todos),
-          Scoped.card(
-            Scoped.cardFooter(h("p", text "Card Footer")),
-            Scoped.cardContent(h("p", text "Card Content")),
-            Scoped.cardHeader(h("h1", text "Card Header"))
-          ),
-          h(
-            "p",
-            text
-              "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna\naliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
-          )
+          "p",
+          text
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna\naliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
         )
-          .attr(
-            "style",
-            css "padding: 1em; display: flex; flex-direction: column"
-          )
       )
+        .attr(
+          "style",
+          css "padding: 1em; display: flex; flex-direction: column"
+        )
     )
+
+  return Results.Stream content
 }
 
 [<EntryPoint>]
@@ -180,10 +192,9 @@ let main args =
   builder.Services.AddHttpClient() |> ignore
   let app = builder.Build()
 
-  app.MapGet("/", Func<HttpContext, IHttpClientFactory, Task<IResult>>(index))
-  |> ignore
+  app.MapGet("/", Func<IHttpClientFactory, Task<IResult>>(streamed)) |> ignore
 
-  app.MapGet("/streamed", Func<HttpContext, IHttpClientFactory, Task>(streamed))
+  app.MapGet("/string", Func<IHttpClientFactory, Task<IResult>>(asString))
   |> ignore
 
   app.Run()

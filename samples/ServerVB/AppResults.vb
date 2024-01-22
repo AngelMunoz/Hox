@@ -6,10 +6,9 @@ Imports Microsoft.AspNetCore.Http
 Imports Hox.Core
 Imports Hox.Rendering
 
-
 Module AppResults
 
-    Public Class HoxStreamedResult
+    Public NotInheritable Class HoxStreamedResult
         Implements IResult
 
         Private ReadOnly _node As Node
@@ -22,18 +21,9 @@ Module AppResults
             context.Response.ContentType = "text/html; charset=utf-8"
             Dim Reader = context.Response.BodyWriter
             Dim Token = context.RequestAborted
-            Dim Node = Chunked.render(_node, Token)
             Await context.Response.StartAsync(Token)
 
-            Dim ChunkEnumerator = Node.GetAsyncEnumerator(Token)
-
-            While Await ChunkEnumerator.MoveNextAsync()
-                Dim _Chunk = ChunkEnumerator.Current
-                Await Reader.WriteAsync(New ReadOnlyMemory(Of Byte)(System.Text.Encoding.UTF8.GetBytes(_Chunk)), Token)
-                Await context.Response.Body.FlushAsync(Token)
-            End While
-
-            Await ChunkEnumerator.DisposeAsync()
+            Await Render.ToStream(_node, context.Response.Body, cancellationToken:=Token)
 
             Await context.Response.CompleteAsync()
         End Function
@@ -50,7 +40,7 @@ Module AppResults
         Dim Token As CancellationToken
         If CancellationToken = Nothing Then Token = CancellationToken.None Else Token = CancellationToken
 
-        Dim Text = Await Builder.ValueTask.render(Node, Token)
+        Dim Text = Await Render.AsString(Node, Token)
 
         Return Results.Text(Text, "text/html", Encoding.UTF8)
 

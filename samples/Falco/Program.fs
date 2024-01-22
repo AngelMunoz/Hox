@@ -1,7 +1,4 @@
 open System
-open System.Text
-open System.Threading.Tasks
-
 open FSharp.Control
 
 open Falco
@@ -38,37 +35,34 @@ let rec xmlNodeToHtmelo(fmNode: XmlNode) : Node =
 
 module Response =
   let ofHtmlStream(node: XmlNode) : HttpHandler =
-    fun ctx ->
-      task {
-        let node = xmlNodeToHtmelo node
-        let writer = ctx.Response.BodyWriter
-        let token = ctx.RequestAborted
+    Response.withContentType "text/html; charset=utf-8"
+    >> fun ctx -> task {
+      do! ctx.Response.StartAsync(ctx.RequestAborted)
 
-        for chunk in Chunked.render node token do
-          let bytes = Encoding.UTF8.GetBytes(chunk)
+      do!
+        Render.toStream(
+          xmlNodeToHtmelo node,
+          ctx.Response.Body,
+          cancellationToken = ctx.RequestAborted
+        )
 
-          do!
-            writer.WriteAsync(ReadOnlyMemory(bytes), token) |> ValueTask.ignore
+      do! ctx.Response.CompleteAsync()
+    }
 
-          do! writer.FlushAsync(token) |> ValueTask.ignore
-      }
-      :> Task
+  let ofHox(node: Node) : HttpHandler =
+    Response.withContentType "text/html; charset=utf-8"
+    >> fun ctx -> task {
+      do! ctx.Response.StartAsync(ctx.RequestAborted)
 
-  let ofHtmelo(node: Node) : HttpHandler =
-    fun ctx ->
-      task {
-        let writer = ctx.Response.BodyWriter
-        let token = ctx.RequestAborted
+      do!
+        Render.toStream(
+          node,
+          ctx.Response.Body,
+          cancellationToken = ctx.RequestAborted
+        )
 
-        for chunk in Chunked.render node token do
-          let bytes = Encoding.UTF8.GetBytes(chunk)
-
-          do!
-            writer.WriteAsync(ReadOnlyMemory(bytes), token) |> ValueTask.ignore
-
-          do! writer.FlushAsync(token) |> ValueTask.ignore
-      }
-      :> Task
+      do! ctx.Response.CompleteAsync()
+    }
 
 let FalcoView =
   Elem.html [ Attr.lang "en" ] [
@@ -102,7 +96,7 @@ let FalcoView =
     ]
   ]
 
-let HtmeloView =
+let HoxView =
   h(
     "html[lang=en]",
     h(
@@ -135,9 +129,9 @@ let HtmeloView =
 let main args =
   webHost args {
     endpoints [
-      get "/" (Response.ofHtmelo HtmeloView)
-      get "/falco" (Response.ofHtml FalcoView)
-      get "/falco2" (Response.ofHtmlStream FalcoView)
+      get "/" (Response.ofHox HoxView)
+      get "/stream-falco" (Response.ofHtmlStream FalcoView)
+      get "/string-falco" (Response.ofHtml FalcoView)
     ]
   }
 
