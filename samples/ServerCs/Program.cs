@@ -1,9 +1,9 @@
-using Htmelo.Core;
+using Hox.Core;
 
 using System.Diagnostics;
 
-using static Htmelo.NodeBuilder;
-using static Htmelo.Rendering;
+using static Hox.NodeBuilder;
+using static Hox.Rendering;
 
 
 var builder = WebApplication.CreateBuilder(args);
