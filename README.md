@@ -1,16 +1,24 @@
-# Htmelo (Final name TBD)
+# Hox
 
-> **_Note_**: Please note that I'm using the term `async` here to denote any asynchronous operation like `task`, F#'s `async`, `valueTask`
+Hox is an extensible HTML rendering library, it provides a set of functions to work with **Nodes** and compose them together as well as a couple of async rendering functions that support cancellation.
 
-This is an experimental library to provide an engine (like Feliz.Engine) for async html rendering in the server.
+The core features are:
 
-There are two main ways to render html, the first one is by asynchronously fill a string builder and just get a string.
+- A single core `Node` type that drives the whole rendering mechanism.
+- Side-by-side Asynchronous Nodes, you can add sync or async nodes into sync/async parents/sibling nodes.
+- Cancellable sync/async Rendering process that leverages ValueTasks.
+- Render to a single string or `IAsyncEnumerable<string>`.
+- A simplistic core DSL based on css selector parsing to generate nodes.
 
-This allows to have "Async" nodes within your HTML, e.g. having an async function that returns a "Node" which will be rendered once it is available.
+A couple of opt-in extra supported features are:
 
-The other way and the more interesting one, is to produce an `IAsyncEnumerator<string>` that contains the whole HTML string, this can be useful specially on web servers as this can be used to stream html to the client via `Transfer-Encoding: chunked` header, some Javascript libraries can use these to provide out of order rendering in the client.
+- Declarative Shadow DOM support for built-in html elements (e.g. div, article, nav, etc.)
+- Templating functions for Declarative Shadow DOM custom elements.
+- C# and VB.NET compatibility out of the box for the core constructs.
+- Feliz-like API thanks to Feliz.Engine for an F# flavored style.
 
-This could enable some F# web servers to have compatible responses to some javascript libraries in the future which after this would be the next stop in the experimentation process.
+The core bits are somewhat low level building blocks to enable these kinds of features and possibly more in the future.
+Feel free to chime in if you have a use case that could be solved by this library!
 
 ## HTML DSL
 
