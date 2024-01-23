@@ -44,180 +44,199 @@ let renderAttr(node: AttributeNode) = cancellableValueTask {
 
 /// This module contains functions that are used to render a node to a string
 /// It is backed by a StringBuilder.
-
 module Builder =
   open System.Text
 
-  let rec renderNode(node: Node) = cancellableValueTask {
-    match node with
-    | Element element -> return! renderElement element
-    | Text text -> return HttpUtility.HtmlEncode text
-    | Raw raw -> return raw
-    | Comment comment -> return $"<!--%s{comment}-->"
-    | Fragment nodes ->
-      let sb = StringBuilder()
-
-      for node in nodes do
-        let! node = renderNode node
-        sb.Append(node) |> ignore
-
-      return sb.ToString()
-    | AsyncNode(node) ->
-      let! node = node
-      return! renderNode node
-    | AsyncSeqNode nodes ->
-      let sb = StringBuilder()
-
-      for node in nodes do
-        let! node = renderNode node
-        sb.Append(node) |> ignore
-
-      return sb.ToString()
-  }
-
-  and renderElement(element: Element) = cancellableValueTask {
-    let classes, attributes, asyncAttributes = getAttributes element.attributes
+  let renderNode(node: Node) : CancellableValueTask<string> = cancellableValueTask {
     let sb = StringBuilder()
-    sb.Append("<").Append(element.tag) |> ignore
+    let stack = Stack<struct (Node * bool)>()
+    stack.Push(node, false)
 
-    match classes with
-    | [] -> ()
-    | classes ->
-      sb.Append(" class=\"").AppendJoin(' ', classes).Append("\"") |> ignore
+    while stack.Count > 0 do
+      let struct (node, closing) = stack.Pop()
 
+      match node with
+      | Element element when closing ->
+        sb.Append("</").Append(element.tag).Append(">") |> ignore
+      | Element element ->
+        sb.Append("<").Append(element.tag) |> ignore
 
-    let! attributes = cancellableValueTask {
-      let sb = StringBuilder()
+        let classes, attributes, asyncAttributes =
+          getAttributes element.attributes
 
-      for attribute in attributes do
-        let! attribute = renderAttr(AttributeNode.Attribute attribute)
-        sb.Append(attribute) |> ignore
+        match classes with
+        | [] -> ()
+        | classes ->
+          sb.Append(" class=\"").AppendJoin(' ', classes).Append("\"") |> ignore
 
-      for attribute in asyncAttributes do
-        let! attribute = renderAttr(AttributeNode.AsyncAttribute attribute)
-        sb.Append(attribute) |> ignore
+        for attribute in attributes do
+          let! attribute = renderAttr(AttributeNode.Attribute attribute)
+          sb.Append(attribute) |> ignore
 
-      return sb.ToString()
-    }
+        for attribute in asyncAttributes do
+          let! attribute = renderAttr(AttributeNode.AsyncAttribute attribute)
+          sb.Append(attribute) |> ignore
 
-    sb.Append(attributes).Append(">") |> ignore
+        sb.Append(">") |> ignore
 
-    match element.tag.ToLowerInvariant() with
-    | "area"
-    | "base"
-    | "br"
-    | "col"
-    | "command"
-    | "embed"
-    | "hr"
-    | "img"
-    | "input"
-    | "keygen"
-    | "link"
-    | "meta"
-    | "param"
-    | "source"
-    | "track"
-    | "wbr" ->
-      if element.children.Length > 0 then
-        Debug.WriteLine(
-          $"Warning: Self closing tag has children",
-          element.children |> Seq.cast<obj> |> Seq.toArray
-        )
+        match element.tag.ToLowerInvariant() with
+        | "area"
+        | "base"
+        | "br"
+        | "col"
+        | "command"
+        | "embed"
+        | "hr"
+        | "img"
+        | "input"
+        | "keygen"
+        | "link"
+        | "meta"
+        | "param"
+        | "source"
+        | "track"
+        | "wbr" -> ()
+        | tag ->
+          stack.Push(Element element, true)
 
-      return sb.ToString()
-    | tag ->
-      let! children = cancellableValueTask {
-        let sb = StringBuilder()
+          if element.children.Length > 0 then
+            for child in element.children.Length - 1 .. -1 .. 0 do
+              stack.Push((element.children[child], false))
 
-        for child in element.children do
-          let! child = renderNode child
-          sb.Append(child) |> ignore
+      | Text text -> sb.Append(HttpUtility.HtmlEncode text) |> ignore
+      | Raw raw -> sb.Append(raw) |> ignore
+      | Comment comment -> sb.Append($"<!--%s{comment}-->") |> ignore
+      | Fragment nodes ->
+        if nodes.Length > 0 then
+          for child in nodes.Length - 1 .. -1 .. 0 do
+            stack.Push((nodes[child], false))
 
-        return sb.ToString()
-      }
+      | AsyncNode node ->
+        let! node = node
+        stack.Push(node, false)
+      | AsyncSeqNode nodes ->
+        let! nodes = nodes |> TaskSeq.toListAsync
 
-      return sb.Append(children).Append("</").Append(tag).Append(">").ToString()
+        if nodes.Length > 0 then
+          for child in nodes.Length - 1 .. -1 .. 0 do
+            stack.Push((nodes[child], false))
+
+    return sb.ToString()
   }
-
 
 /// This module contains functions that are used to render a node to a sequence of strings
 /// As soon as a chunk is ready it is yielded to the caller.
 [<RequireQualifiedAccess>]
 module Chunked =
-  let rec renderNode(node: Node, cancellationToken) : IAsyncEnumerable<string> = taskSeq {
-    match node with
-    | Element element -> yield! renderElement(element, cancellationToken)
-    | Text text -> HttpUtility.HtmlEncode text
-    | Raw raw -> raw
-    | Comment comment -> $"<!--{comment}-->"
-    | Fragment nodes ->
-      for node in nodes do
-        yield! renderNode(node, cancellationToken)
-    | AsyncNode node ->
-      let! node = node cancellationToken
 
-      yield! renderNode(node, cancellationToken)
-    | AsyncSeqNode nodes ->
-      for node in nodes do
-        yield! renderNode(node, cancellationToken)
-  }
-
-  and renderElement
+  /// <summary>
+  /// Renders the node and it's children to an asynchronous sequence of strings
+  /// The sequence is chunked by node and we keep track of the depth of the node
+  /// so we can choose between rendering recursively or buffering the async sequences
+  /// to avoid stack overflows.
+  /// </summary>
+  /// <param name="stack">The stack of nodes to render</param>
+  /// <param name="cancellationToken">The cancellation token to use</param>
+  /// <returns>An asynchronous sequence of strings</returns>
+  /// <remarks>
+  /// This function will switch between rendering recursively and buffering the async sequences
+  /// depending on the depth of the node for nodes 200+ levels deep we'll default to buffering the chunk.
+  /// </remarks>
+  let rec renderNode
     (
-      element: Element,
-      cancellationToken
+      stack: Stack<struct (Node * bool * int)>,
+      cancellationToken: CancellationToken
     ) : IAsyncEnumerable<string> =
     taskSeq {
-      let classes, attributes, asyncAttributes =
-        getAttributes element.attributes
+      while stack.Count > 0 do
+        let struct (node, closing, depth) = stack.Pop()
 
-      $"<{element.tag}"
+        match node with
+        | Element element when closing -> $"</%s{element.tag}>"
+        | Element element ->
+          $"<%s{element.tag}"
 
-      if classes.Length > 0 then
-        " class=\""
-        yield! classes
-        "\""
+          let classes, attributes, asyncAttributes =
+            getAttributes element.attributes
 
-      for attribute in attributes do
-        let! attr =
-          renderAttr (AttributeNode.Attribute attribute) cancellationToken
+          match classes with
+          | [] -> ()
+          | classes ->
+            " class=\""
+            yield! classes
+            "\""
 
-        attr
+          for attribute in attributes do
+            let! attribute =
+              renderAttr (AttributeNode.Attribute attribute) cancellationToken
 
-      for asyncAttribute in asyncAttributes do
-        let! attr =
-          renderAttr
-            (AttributeNode.AsyncAttribute asyncAttribute)
-            cancellationToken
+            attribute
 
-        attr
+          for attribute in asyncAttributes do
+            let! attribute =
+              renderAttr
+                (AttributeNode.AsyncAttribute attribute)
+                cancellationToken
 
-      ">"
+            attribute
 
-      match element.tag.ToLowerInvariant() with
-      | "area"
-      | "base"
-      | "br"
-      | "col"
-      | "command"
-      | "embed"
-      | "hr"
-      | "img"
-      | "input"
-      | "keygen"
-      | "link"
-      | "meta"
-      | "param"
-      | "source"
-      | "track"
-      | "wbr" -> ()
-      | tag ->
+          ">"
 
-        for child in element.children do
-          yield! renderNode(child, cancellationToken)
+          match element.tag with
+          | "area"
+          | "base"
+          | "br"
+          | "col"
+          | "command"
+          | "embed"
+          | "hr"
+          | "img"
+          | "input"
+          | "keygen"
+          | "link"
+          | "meta"
+          | "param"
+          | "source"
+          | "track"
+          | "wbr" -> ()
+          | _ ->
+            stack.Push(Element element, true, depth)
 
-        $"</{tag}>"
+            if element.children.Length > 0 then
+              for child in element.children.Length - 1 .. -1 .. 0 do
+                stack.Push((element.children[child], false, depth + 1))
+
+        | Text text -> HttpUtility.HtmlEncode text
+        | Raw raw -> raw
+        | Comment comment -> $"<!--%s{comment}-->"
+        | Fragment nodes ->
+          if nodes.Length > 0 then
+            for child in nodes.Length - 1 .. -1 .. 0 do
+              stack.Push((nodes[child], false, depth + 1))
+
+        | AsyncNode node ->
+          let! node = node cancellationToken
+          stack.Push(node, false, depth)
+
+        | AsyncSeqNode nodes ->
+          // This number is tricky, I've seen stack frames overflow at 248
+          // but also at 355, we'll keep it to 235 for now, we'll need to investigate
+          // further or if you're reading this and have an idea, let me know please :).
+          if depth > 235 then
+            let! nodes = nodes |> TaskSeq.toListAsync
+
+            if nodes.Length > 0 then
+              for child in nodes.Length - 1 .. -1 .. 0 do
+                stack.Push((nodes[child], false, depth))
+
+          else
+
+            for node in nodes do
+              stack.Push(node, false, depth)
+              let strings = renderNode(stack, cancellationToken)
+
+              for string in strings do
+                string
     }
 
 type Render =
@@ -231,14 +250,13 @@ type Render =
     ) =
     let cancellationToken = defaultArg cancellationToken CancellationToken.None
 
-    Chunked.renderNode(node, cancellationToken)
+    Chunked.renderNode(Stack([ struct (node, false, 0) ]), cancellationToken)
 
   [<CompiledName "ToStream">]
   static member toStream
     (
       node: Node,
       stream: IO.Stream,
-      [<Runtime.InteropServices.OptionalAttribute>] ?bufferSize: int,
       [<Runtime.InteropServices.OptionalAttribute>] ?cancellationToken:
         CancellationToken
     ) =
@@ -246,13 +264,14 @@ type Render =
       let cancellationToken =
         defaultArg cancellationToken CancellationToken.None
 
-      let bufferSize = defaultArg bufferSize 1440
-      use writer = new IO.BufferedStream(stream, bufferSize)
-
-      for chunk in Chunked.renderNode(node, cancellationToken) do
+      for chunk in
+        Chunked.renderNode(
+          Stack([ struct (node, false, 0) ]),
+          cancellationToken
+        ) do
         let bytes = System.Text.Encoding.UTF8.GetBytes(chunk)
-        do! writer.WriteAsync(ReadOnlyMemory(bytes), cancellationToken)
-        do! writer.FlushAsync()
+        do! stream.WriteAsync(ReadOnlyMemory(bytes), cancellationToken)
+        do! stream.FlushAsync()
     }
 
   [<CompiledName "AsString">]

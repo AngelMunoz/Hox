@@ -25,6 +25,10 @@ type Render =
   /// F# users can use `FSharp.Control.TaskSeq` to consume the sequence or
   /// call `GetAsyncEnumerator(token)` manually.
   /// </remarks>
+  /// <remarks>
+  /// This function will switch between rendering recursively and buffering the async sequences
+  /// depending on the depth of the node for nodes 200+ levels deep we'll default to buffering the chunk.
+  /// </remarks>
   [<CompiledName "Start">]
   static member start:
     node: Node * [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
@@ -35,18 +39,16 @@ type Render =
   /// </summary>
   /// <param name="node"></param>
   /// <param name="stream"></param>
-  /// <param name="bufferSize"></param>
   /// <param name="cancellationToken">The cancellation token required to stop the rendering process.</param>
   /// <returns>A sequence of strings that represents the rendering operation</returns>
   /// <remarks>
-  /// This method uses a `BufferedStream` internally, please adjust the buffer size accordingly
-  /// to your use case.
+  /// This function will switch between rendering recursively and buffering the async sequences
+  /// depending on the depth of the node for nodes 200+ levels deep we'll default to buffering the chunk.
   /// </remarks>
   [<CompiledName "ToStream">]
   static member toStream:
     node: Node *
     stream: System.IO.Stream *
-    [<OptionalAttribute>] ?bufferSize: int *
     [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
       Task
 
