@@ -34,7 +34,7 @@ let rec createNestedStructure depth : Node =
   )
 
 // funnily enough creting a value for this particular taskSeq doesn't overflow the stack on my computer
-let bigNestedStructure() = createNestedStructure 4000
+let bigNestedStructure() = createNestedStructure 1000
 
 // but it did when I was rendering it inside the node tree below
 let content =
@@ -54,9 +54,6 @@ let content =
           bigNestedStructure()
         ]
       )
-      bigNestedStructure()
-      bigNestedStructure()
-      bigNestedStructure()
       bigNestedStructure()
       H.p [
         H.text "This is a "
@@ -86,7 +83,7 @@ task {
       "./test.html",
       FileMode.OpenOrCreate,
       FileAccess.ReadWrite,
-      FileShare.ReadWrite
+      FileShare.Read
     )
 
   do! Render.toStream(content, file, cancellationToken = CancellationToken.None)
