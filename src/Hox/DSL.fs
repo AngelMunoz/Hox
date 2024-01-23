@@ -247,50 +247,9 @@ type NodeBuilder =
     ) =
     Element(Parsers.selector cssSelector) <+ AsyncSeqNode children
 
-  static member inline h(cssSelector: string, child: Node ValueTask) =
-    let child =
-      AsyncNode(
-        cancellableValueTask {
-          let! child = child
-          return child
-        }
-      )
-
-    Element(Parsers.selector cssSelector) <+ child
-
-  static member inline h(element: Node ValueTask) =
+  static member inline h(element: Node Task) =
     AsyncNode(
       cancellableValueTask {
-        let! element = element
-        return element
-      }
-    )
-
-  static member inline h(element: Node ValueTask, child: Node) =
-    let element =
-      AsyncNode(
-        cancellableValueTask {
-          let! element = element
-          return element
-        }
-      )
-
-    element <+ child
-
-  static member inline h(element: Node ValueTask, children: Node seq) =
-    let element =
-      AsyncNode(
-        cancellableValueTask {
-          let! element = element
-          return element
-        }
-      )
-
-    element <+ Fragment(children |> Seq.toList)
-
-  static member inline h(element: Node Task) =
-    NodeBuilder.h(
-      valueTask {
         let! element = element
         return element
       }
@@ -319,78 +278,51 @@ type NodeBuilder =
     element <+ Fragment(children |> Seq.toList)
 
   static member inline h(element: Node Async) =
-    NodeBuilder.h(
-      valueTask {
+    AsyncNode(
+      cancellableValueTask {
         let! element = element
         return element
       }
     )
 
   static member inline h(element: Node Async, child: Node) =
-    let element =
-      AsyncNode(
-        cancellableValueTask {
-          let! element = element
-          return element
-        }
-      )
-
-    element <+ child
+    AsyncNode(
+      cancellableValueTask {
+        let! element = element
+        return element <+ child
+      }
+    )
 
   static member inline h(element: Node Async, children: Node seq) =
-    let element =
-      AsyncNode(
-        cancellableValueTask {
-          let! element = element
-          return element
-        }
-      )
-
-    element <+ Fragment(children |> Seq.toList)
+    AsyncNode(
+      cancellableValueTask {
+        let! element = element
+        return element <+ Fragment(children |> Seq.toList)
+      }
+    )
 
   static member inline h(element: Node, children: IAsyncEnumerable<Node>) =
     element <+ AsyncSeqNode children
 
-  static member inline h
-    (
-      element: Node ValueTask,
-      children: IAsyncEnumerable<Node>
-    ) =
-    let element =
-      AsyncNode(
-        cancellableValueTask {
-          let! element = element
-          return element
-        }
-      )
-
-    element <+ AsyncSeqNode children
-
   static member inline h(element: Node Task, children: IAsyncEnumerable<Node>) =
-    let element =
-      AsyncNode(
-        cancellableValueTask {
-          let! element = element
-          return element
-        }
-      )
-
-    element <+ AsyncSeqNode children
+    AsyncNode(
+      cancellableValueTask {
+        let! element = element
+        return element <+ AsyncSeqNode children
+      }
+    )
 
   static member inline h
     (
       element: Node Async,
       children: IAsyncEnumerable<Node>
     ) =
-    let element =
-      AsyncNode(
-        cancellableValueTask {
-          let! element = element
-          return element
-        }
-      )
-
-    element <+ AsyncSeqNode children
+    AsyncNode(
+      cancellableValueTask {
+        let! element = element
+        return element <+ AsyncSeqNode children
+      }
+    )
 
   static member inline text(text: string) = Text text
 
