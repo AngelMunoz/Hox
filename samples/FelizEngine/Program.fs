@@ -19,13 +19,13 @@ let rec createNestedStructure depth : Node =
         let soup = ResizeArray()
 
         for i in 0..depth do
-          H.text $"I'm doing a thing {i}"
+          H.div [ H.p [ H.text $"I'm doing a thing {i}" ] ]
 
           if i < 255 then
             soup.Add(byte i)
 
         let a = System.Text.Encoding.UTF32.GetString([| yield! soup |])
-        H.text $"Then again... {a}"
+        H.p [ H.text $"Then again... {a}" ]
 
         H.ul [
           H.li [ H.text $"Item {depth}"; createNestedStructure(depth - 1) ]
@@ -34,7 +34,7 @@ let rec createNestedStructure depth : Node =
   )
 
 // funnily enough creting a value for this particular taskSeq doesn't overflow the stack on my computer
-let bigNestedStructure() = createNestedStructure 1000
+let bigNestedStructure() = createNestedStructure 100
 
 // but it did when I was rendering it inside the node tree below
 let content =
@@ -51,10 +51,23 @@ let content =
         [
           for i in 1..10 do
             H.p [ H.text $"This is Fragment paragraph {i}" ]
-          bigNestedStructure()
+        // bigNestedStructure()
         ]
       )
-      bigNestedStructure()
+      // bigNestedStructure()
+      H.fragment(
+        taskSeq {
+          for i in 1..10 do
+            H.p [ H.text $"This is an async paragraph {i}" ]
+
+            H.fragment(
+              taskSeq {
+                for j in 1..i do
+                  H.p [ H.text $"This is an async inner paragraph {i + j}" ]
+              }
+            )
+        }
+      )
       H.p [
         H.text "This is a "
         H.a [ H.text "link" ] |> Attr.set(A.href "https://google.com")
@@ -62,7 +75,7 @@ let content =
         H.async(
           async {
             do! Async.Sleep(10)
-            return H.fragment([ H.text " (async)"; bigNestedStructure() ])
+            return H.fragment([ H.text " (async)" ])
           }
         )
       ]
