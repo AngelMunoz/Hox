@@ -212,7 +212,7 @@ module Chunked =
         | Fragment nodes ->
           if nodes.Length > 0 then
             for child in nodes.Length - 1 .. -1 .. 0 do
-              stack.Push((nodes[child], false, depth + 1))
+              stack.Push((nodes[child], false, depth))
 
         | AsyncNode node ->
           let! node = node cancellationToken
@@ -230,13 +230,29 @@ module Chunked =
                 stack.Push((nodes[child], false, depth))
 
           else
+            // This part makes me a bit sad, since we can't reverse the sequence
+            // we have to add each node to a queue and then dequeue them in order
+            // to render them in the correctly in the final html file.
+            // so... we're kind of doing the same thing above but still yielding
+            // recursively the chunks once available Not fan of this approach
+            // we might as well just keep above's approach and that's it.
+
+            // Ideally I'd just for node in nodes do renderThing but that would
+            // render the nodes in reverse order.
+            // I guess we'll be stuck until recursion us supported for Tasks/TaskSeq in the F# compiler 🫠
+            // that or we could use async computations to attempt a recursive solution
+            // but that would potentially make ValueTasks Hot which we'd like to avoid untill
+            // we know the ValueTask is actually an async operation (see the cases above).
+            let items = ResizeArray()
 
             for node in nodes do
-              stack.Push(node, false, depth)
-              let strings = renderNode(stack, cancellationToken)
+              items.Add node
 
-              for string in strings do
-                string
+            for i in items.Count - 1 .. -1 .. 0 do
+              stack.Push((items.[i], false, depth))
+
+            yield! renderNode(stack, cancellationToken)
+
     }
 
 type Render =

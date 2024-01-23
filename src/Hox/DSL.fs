@@ -286,43 +286,55 @@ type NodeBuilder =
     )
 
   static member inline h(element: Node Async, child: Node) =
-    AsyncNode(
-      cancellableValueTask {
-        let! element = element
-        return element <+ child
-      }
-    )
+    let node =
+      AsyncNode(
+        cancellableValueTask {
+          let! element = element
+          return element
+        }
+      )
+
+    node <+ child
 
   static member inline h(element: Node Async, children: Node seq) =
-    AsyncNode(
-      cancellableValueTask {
-        let! element = element
-        return element <+ Fragment(children |> Seq.toList)
-      }
-    )
+    let node =
+      AsyncNode(
+        cancellableValueTask {
+          let! element = element
+          return element
+        }
+      )
+
+    node <+ Fragment(children |> Seq.toList)
 
   static member inline h(element: Node, children: IAsyncEnumerable<Node>) =
     element <+ AsyncSeqNode children
 
   static member inline h(element: Node Task, children: IAsyncEnumerable<Node>) =
-    AsyncNode(
-      cancellableValueTask {
-        let! element = element
-        return element <+ AsyncSeqNode children
-      }
-    )
+    let node =
+      AsyncNode(
+        cancellableValueTask {
+          let! element = element
+          return element
+        }
+      )
+
+    node <+ AsyncSeqNode children
 
   static member inline h
     (
       element: Node Async,
       children: IAsyncEnumerable<Node>
     ) =
-    AsyncNode(
-      cancellableValueTask {
-        let! element = element
-        return element <+ AsyncSeqNode children
-      }
-    )
+    let node =
+      AsyncNode(
+        cancellableValueTask {
+          let! element = element
+          return element
+        }
+      )
+
+    node <+ AsyncSeqNode children
 
   static member inline text(text: string) = Text text
 
