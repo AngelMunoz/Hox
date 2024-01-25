@@ -223,6 +223,21 @@ module NodeOps =
 
 open NodeOps
 
+/// A for us, node represents a renderable item in an HTML document structure
+/// it can be a text node, an element node, a comment node, a raw node or a fragment node.
+/// The fragment node is a special node that allows you to group multiple nodes together
+/// without having to wrap them in a parent element.
+/// Attributes in our case are not a separate node, but rather a property of an element node.
+/// While we could have attributes as nodes themselves, we don't really need them to be at least
+/// for the moment.
+///
+/// For asynchronous nodes (e.g. Task&gt;Node&lt;, or Async&lt;Node&gt;) we'll implement cancellation
+/// semantics at this level, the ValueTask that areused to wrap these applications should
+/// check for cancellation before trying to await the value, in case that cancellation has been requested:
+/// - Nodes should return empty nodes e.g. Fragment []
+/// - Attributes should return empty attributes e.g. Attribute { name = String.Empty; value = String.Empty }
+///
+/// For IAsyncEnumerable&gt;Node&lt; we'll implement cancellation semantics at the rendering level.
 [<AutoOpen>]
 type NodeBuilder =
 
@@ -233,8 +248,13 @@ type NodeBuilder =
     let child =
       AsyncNode(
         cancellableValueTask {
-          let! child = child
-          return child
+          let! token = CancellableValueTask.getCancellationToken()
+
+          if token.IsCancellationRequested then
+            return Fragment([])
+          else
+            let! child = child
+            return child
         }
       )
 
@@ -244,8 +264,13 @@ type NodeBuilder =
     let child =
       AsyncNode(
         cancellableValueTask {
-          let! child = child
-          return child
+          let! token = CancellableValueTask.getCancellationToken()
+
+          if token.IsCancellationRequested then
+            return Fragment([])
+          else
+            let! child = child
+            return child
         }
       )
 
@@ -271,8 +296,13 @@ type NodeBuilder =
   static member inline h(element: Node Task) =
     AsyncNode(
       cancellableValueTask {
-        let! element = element
-        return element
+        let! token = CancellableValueTask.getCancellationToken()
+
+        if token.IsCancellationRequested then
+          return Fragment([])
+        else
+          let! element = element
+          return element
       }
     )
 
@@ -280,8 +310,13 @@ type NodeBuilder =
     let element =
       AsyncNode(
         cancellableValueTask {
-          let! element = element
-          return element
+          let! token = CancellableValueTask.getCancellationToken()
+
+          if token.IsCancellationRequested then
+            return Fragment([])
+          else
+            let! element = element
+            return element
         }
       )
 
@@ -291,8 +326,13 @@ type NodeBuilder =
     let element =
       AsyncNode(
         cancellableValueTask {
-          let! element = element
-          return element
+          let! token = CancellableValueTask.getCancellationToken()
+
+          if token.IsCancellationRequested then
+            return Fragment([])
+          else
+            let! element = element
+            return element
         }
       )
 
@@ -301,8 +341,13 @@ type NodeBuilder =
   static member inline h(element: Node Async) =
     AsyncNode(
       cancellableValueTask {
-        let! element = element
-        return element
+        let! token = CancellableValueTask.getCancellationToken()
+
+        if token.IsCancellationRequested then
+          return Fragment([])
+        else
+          let! element = element
+          return element
       }
     )
 
@@ -310,8 +355,13 @@ type NodeBuilder =
     let node =
       AsyncNode(
         cancellableValueTask {
-          let! element = element
-          return element
+          let! token = CancellableValueTask.getCancellationToken()
+
+          if token.IsCancellationRequested then
+            return Fragment([])
+          else
+            let! element = element
+            return element
         }
       )
 
@@ -321,8 +371,13 @@ type NodeBuilder =
     let node =
       AsyncNode(
         cancellableValueTask {
-          let! element = element
-          return element
+          let! token = CancellableValueTask.getCancellationToken()
+
+          if token.IsCancellationRequested then
+            return Fragment([])
+          else
+            let! element = element
+            return element
         }
       )
 
@@ -335,8 +390,13 @@ type NodeBuilder =
     let node =
       AsyncNode(
         cancellableValueTask {
-          let! element = element
-          return element
+          let! token = CancellableValueTask.getCancellationToken()
+
+          if token.IsCancellationRequested then
+            return Fragment([])
+          else
+            let! element = element
+            return element
         }
       )
 
@@ -350,8 +410,13 @@ type NodeBuilder =
     let node =
       AsyncNode(
         cancellableValueTask {
-          let! element = element
-          return element
+          let! token = CancellableValueTask.getCancellationToken()
+
+          if token.IsCancellationRequested then
+            return Fragment([])
+          else
+            let! element = element
+            return element
         }
       )
 
@@ -362,16 +427,26 @@ type NodeBuilder =
   static member inline text(text: string Task) =
     AsyncNode(
       cancellableValueTask {
-        let! text = text
-        return Text text
+        let! token = CancellableValueTask.getCancellationToken()
+
+        if token.IsCancellationRequested then
+          return Text String.Empty
+        else
+          let! text = text
+          return Text text
       }
     )
 
   static member inline text(text: string Async) =
     AsyncNode(
       cancellableValueTask {
-        let! text = text
-        return Text text
+        let! token = CancellableValueTask.getCancellationToken()
+
+        if token.IsCancellationRequested then
+          return Text String.Empty
+        else
+          let! text = text
+          return Text text
       }
     )
 
@@ -380,16 +455,26 @@ type NodeBuilder =
   static member inline raw(raw: string Task) =
     AsyncNode(
       cancellableValueTask {
-        let! raw = raw
-        return Raw raw
+        let! token = CancellableValueTask.getCancellationToken()
+
+        if token.IsCancellationRequested then
+          return Raw String.Empty
+        else
+          let! raw = raw
+          return Raw raw
       }
     )
 
   static member inline raw(raw: string Async) =
     AsyncNode(
       cancellableValueTask {
-        let! raw = raw
-        return Raw raw
+        let! token = CancellableValueTask.getCancellationToken()
+
+        if token.IsCancellationRequested then
+          return Raw String.Empty
+        else
+          let! raw = raw
+          return Raw raw
       }
     )
 
@@ -400,16 +485,26 @@ type NodeBuilder =
   static member inline fragment(nodes: Node seq Task) =
     AsyncNode(
       cancellableValueTask {
-        let! nodes = nodes
-        return Fragment(nodes |> Seq.toList)
+        let! token = CancellableValueTask.getCancellationToken()
+
+        if token.IsCancellationRequested then
+          return Fragment([])
+        else
+          let! nodes = nodes
+          return Fragment(nodes |> Seq.toList)
       }
     )
 
   static member inline fragment(nodes: Node seq Async) =
     AsyncNode(
       cancellableValueTask {
-        let! nodes = nodes
-        return Fragment(nodes |> Seq.toList)
+        let! token = CancellableValueTask.getCancellationToken()
+
+        if token.IsCancellationRequested then
+          return Fragment([])
+        else
+          let! nodes = nodes
+          return Fragment(nodes |> Seq.toList)
       }
     )
 
@@ -448,8 +543,16 @@ type NodeExtensions =
     node
     <+. AsyncAttribute(
       cancellableValueTask {
-        let! value = value
-        return { name = name; value = value }
+        let! token = CancellableValueTask.getCancellationToken()
+
+        if token.IsCancellationRequested then
+          return {
+            name = String.Empty
+            value = String.Empty
+          }
+        else
+          let! value = value
+          return { name = name; value = value }
       }
     )
 
@@ -458,8 +561,16 @@ type NodeExtensions =
     node
     <+. AsyncAttribute(
       cancellableValueTask {
-        let! value = value
-        return { name = name; value = value }
+        let! token = CancellableValueTask.getCancellationToken()
+
+        if token.IsCancellationRequested then
+          return {
+            name = String.Empty
+            value = String.Empty
+          }
+        else
+          let! value = value
+          return { name = name; value = value }
       }
     )
 
@@ -469,15 +580,23 @@ type NodeExtensions =
     node
     <+. AsyncAttribute(
       cancellableValueTask {
-        let! value = value
+        let! token = CancellableValueTask.getCancellationToken()
 
-        if value then
-          return { name = name; value = String.Empty }
-        else
+        if token.IsCancellationRequested then
           return {
             name = String.Empty
             value = String.Empty
           }
+        else
+          let! value = value
+
+          if value then
+            return { name = name; value = String.Empty }
+          else
+            return {
+              name = String.Empty
+              value = String.Empty
+            }
       }
     )
 
@@ -486,15 +605,24 @@ type NodeExtensions =
     node
     <+. AsyncAttribute(
       cancellableValueTask {
-        let! value = value
+        let! token = CancellableValueTask.getCancellationToken()
 
-        if value then
-          return { name = name; value = String.Empty }
-        else
+        if token.IsCancellationRequested then
           return {
             name = String.Empty
             value = String.Empty
           }
+        else
+
+          let! value = value
+
+          if value then
+            return { name = name; value = String.Empty }
+          else
+            return {
+              name = String.Empty
+              value = String.Empty
+            }
       }
     )
 
@@ -503,8 +631,17 @@ type NodeExtensions =
     node
     <+. AsyncAttribute(
       cancellableValueTask {
-        let! value = value
-        return { name = name; value = $"%i{value}" }
+        let! token = CancellableValueTask.getCancellationToken()
+
+        if token.IsCancellationRequested then
+          return {
+            name = String.Empty
+            value = String.Empty
+          }
+        else
+
+          let! value = value
+          return { name = name; value = $"%i{value}" }
       }
     )
 
@@ -513,8 +650,16 @@ type NodeExtensions =
     node
     <+. AsyncAttribute(
       cancellableValueTask {
-        let! value = value
-        return { name = name; value = $"%i{value}" }
+        let! token = CancellableValueTask.getCancellationToken()
+
+        if token.IsCancellationRequested then
+          return {
+            name = String.Empty
+            value = String.Empty
+          }
+        else
+          let! value = value
+          return { name = name; value = $"%i{value}" }
       }
     )
 
@@ -523,8 +668,17 @@ type NodeExtensions =
     node
     <+. AsyncAttribute(
       cancellableValueTask {
-        let! value = value
-        return { name = name; value = $"%f{value}" }
+        let! token = CancellableValueTask.getCancellationToken()
+
+        if token.IsCancellationRequested then
+          return {
+            name = String.Empty
+            value = String.Empty
+          }
+        else
+
+          let! value = value
+          return { name = name; value = $"%f{value}" }
       }
     )
 
@@ -533,8 +687,16 @@ type NodeExtensions =
     node
     <+. AsyncAttribute(
       cancellableValueTask {
-        let! value = value
-        return { name = name; value = $"%f{value}" }
+        let! token = CancellableValueTask.getCancellationToken()
+
+        if token.IsCancellationRequested then
+          return {
+            name = String.Empty
+            value = String.Empty
+          }
+        else
+          let! value = value
+          return { name = name; value = $"%f{value}" }
       }
     )
 

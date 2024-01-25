@@ -72,11 +72,15 @@ module Builder =
   open System.Text
 
   let renderNode(node: Node) : CancellableValueTask<string> = cancellableValueTask {
+    let! token = CancellableValueTask.getCancellationToken()
     let sb = StringBuilder()
     let stack = Stack<struct (Node * bool)>()
     stack.Push(node, false)
 
     while stack.Count > 0 do
+      if token.IsCancellationRequested then
+        token.ThrowIfCancellationRequested()
+
       let struct (node, closing) = stack.Pop()
 
       match node with
@@ -119,7 +123,7 @@ module Builder =
         | "source"
         | "track"
         | "wbr" -> ()
-        | tag ->
+        | _ ->
           stack.Push(Element element, true)
 
           if element.children.Length > 0 then
@@ -136,13 +140,22 @@ module Builder =
             stack.Push((nodes[child], false))
 
       | AsyncNode node ->
+        // These nodes are already handling cancellation semantics
+        // when they're added to the parent node, so we don't need to
+        // do anything here.
         let! node = node
         stack.Push(node, false)
       | AsyncSeqNode nodes ->
+        // This is a complicated case, we need to handle cancellation
+        // but TaskSeq.toListAsync doesn't support cancellation
         let! nodes = nodes |> TaskSeq.toListAsync
 
         if nodes.Length > 0 then
           for child in nodes.Length - 1 .. -1 .. 0 do
+
+            if token.IsCancellationRequested then
+              token.ThrowIfCancellationRequested()
+
             stack.Push((nodes[child], false))
 
     return sb.ToString()
@@ -173,6 +186,10 @@ module Chunked =
     ) : IAsyncEnumerable<string> =
     taskSeq {
       while stack.Count > 0 do
+        if cancellationToken.IsCancellationRequested then
+
+          cancellationToken.ThrowIfCancellationRequested()
+
         let struct (node, closing, depth) = stack.Pop()
 
         match node with
@@ -235,6 +252,9 @@ module Chunked =
               stack.Push((nodes[child], false, depth))
 
         | AsyncNode node ->
+          // These nodes are already handling cancellation semantics
+          // when they're added to the parent node, so we don't need to
+          // do anything here.
           let! node = node cancellationToken
           stack.Push(node, false, depth)
 
@@ -243,16 +263,23 @@ module Chunked =
           // but also at 355, we'll keep it to 235 for now, we'll need to investigate
           // further or if you're reading this and have an idea, let me know please :).
           if depth > 235 then
+            // Similarly to the Builder module, we can't cancell this operation
+            // as it doesn't support cancellation, so we'll just have to wait
+            // for it to finish.
             let! nodes = nodes |> TaskSeq.toListAsync
 
             if nodes.Length > 0 then
               for child in nodes.Length - 1 .. -1 .. 0 do
+
+                if cancellationToken.IsCancellationRequested then
+                  cancellationToken.ThrowIfCancellationRequested()
+
                 stack.Push((nodes[child], false, depth))
 
           else
             // This part makes me a bit sad, since we can't reverse the sequence
             // we have to add each node to a queue and then dequeue them in order
-            // to render them in the correctly in the final html file.
+            // to render them in the correctly in the final html string.
             // so... we're kind of doing the same thing above but still yielding
             // recursively the chunks once available Not fan of this approach
             // we might as well just keep above's approach and that's it.
@@ -270,7 +297,9 @@ module Chunked =
 
             for i in items.Count - 1 .. -1 .. 0 do
               stack.Push((items.[i], false, depth))
-
+            // in this case we're yielding recursively
+            // so the next renderNode call will check it's own
+            // cancellation token and throw if needed.
             yield! renderNode(stack, cancellationToken)
 
     }
