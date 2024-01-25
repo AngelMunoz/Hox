@@ -132,7 +132,7 @@ let ``It should render an element with attributes``() = taskUnit {
       children = []
     }
 
-  let expected = "<div class=\"foo\" id=\"bar\"></div>"
+  let expected = "<div id=\"bar\" class=\"foo\"></div>"
 
   let! actual = Render.asString node
   Assert.Equal(expected, actual)
@@ -190,7 +190,7 @@ let ``It should render a mix of sync/async nodes with attributes``() = taskUnit 
       Text "world!"
     ]
 
-  let expected = "Hello, <div class=\"foo\" id=\"bar\"></div>world!"
+  let expected = "Hello, <div id=\"bar\" class=\"foo\"></div>world!"
 
   let! actual = Render.asString node
   Assert.Equal(expected, actual)
