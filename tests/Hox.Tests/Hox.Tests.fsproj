@@ -10,6 +10,7 @@
     <Compile Include="RenderAsyncString.fs" />
     <Compile Include="ChunkRender.fs" />
     <Compile Include="DSL.fs" />
+    <Compile Include="Cancellation.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
