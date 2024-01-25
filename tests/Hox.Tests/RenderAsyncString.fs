@@ -359,3 +359,47 @@ let ``It should render a mix of sync/async nodes with async attributes and async
     let! actual = Render.asString node
     Assert.Equal(expected, actual)
   }
+
+
+[<Fact>]
+let ``Rendering childless nodes should not write the end tag``() = taskUnit {
+  let node =
+    Element {
+      tag = "input"
+      attributes = []
+      children = []
+    }
+
+  let expected = "<input>"
+
+  let! actual = Render.asString node
+  Assert.Equal(expected, actual)
+}
+
+[<Fact>]
+let ``Childless nodes can be added to elements and fragments``() = taskUnit {
+  let node =
+    Fragment [
+      Element {
+        tag = "div"
+        attributes = []
+        children = [
+          Element {
+            tag = "source"
+            attributes = [ Attribute { name = "src"; value = "foo" } ]
+            children = []
+          }
+        ]
+      }
+      Element {
+        tag = "input"
+        attributes = []
+        children = []
+      }
+    ]
+
+  let expected = "<div><source src=\"foo\"></div><input>"
+
+  let! actual = Render.asString node
+  Assert.Equal(expected, actual)
+}
