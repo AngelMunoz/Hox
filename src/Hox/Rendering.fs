@@ -12,20 +12,44 @@ open IcedTasks
 open Hox.Core
 open System.Threading
 
-let getAttributes(attributes: AttributeNode list) =
-  attributes
-  |> List.fold
-    (fun (classes, attributes, asyncAttributes) attribute ->
-      match attribute with
-      | AttributeNode.Attribute { name = ""; value = value } ->
-        (classes, attributes, asyncAttributes)
-      | AttributeNode.Attribute { name = "class"; value = value } ->
-        (value :: classes, attributes, asyncAttributes)
-      | AttributeNode.Attribute attribute ->
-        (classes, attribute :: attributes, asyncAttributes)
-      | AttributeNode.AsyncAttribute asyncAttribute ->
-        (classes, attributes, asyncAttribute :: asyncAttributes))
-    ([], [], [])
+let getAttributes(attributes: AttributeNode list) = cancellableValueTask {
+  let clsSeq = ResizeArray()
+  let attrSeq = ResizeArray()
+  let mutable id = ValueNone
+
+  // ids and classes have to be HtmlAttributeEncode'ed because we're
+  // handling them separately, attributes are handled by the renderAttr function
+  // which will HtmlAttributeEncode them.
+  for attribute in attributes do
+    match attribute with
+    | AttributeNode.Attribute { name = ""; value = value } -> ()
+    | AttributeNode.Attribute { name = "class"; value = value } ->
+      clsSeq.Add(value |> HttpUtility.HtmlAttributeEncode)
+    | AttributeNode.Attribute { name = "id"; value = value } ->
+      id <-
+        id
+        |> ValueOption.orElse(
+          ValueSome(value |> HttpUtility.HtmlAttributeEncode)
+        )
+    | AttributeNode.Attribute attribute -> attrSeq.Add(attribute)
+    | AttributeNode.AsyncAttribute asyncAttribute ->
+      let! { name = name; value = value } = asyncAttribute
+
+      if name = String.Empty then
+        ()
+      elif name = "id" then
+        id <-
+          id
+          |> ValueOption.orElse(
+            ValueSome(value |> HttpUtility.HtmlAttributeEncode)
+          )
+      elif name = "class" then
+        clsSeq.Add(value |> HttpUtility.HtmlAttributeEncode)
+      else
+        attrSeq.Add({ name = name; value = value })
+
+  return id, clsSeq, attrSeq
+}
 
 let renderAttr(node: AttributeNode) = cancellableValueTask {
   match node with
@@ -61,20 +85,19 @@ module Builder =
       | Element element ->
         sb.Append("<").Append(element.tag) |> ignore
 
-        let classes, attributes, asyncAttributes =
-          getAttributes element.attributes
+        let! id, classes, attributes = getAttributes element.attributes
+
+        match id with
+        | ValueSome id -> sb.Append($" id=\"%s{id}\"") |> ignore
+        | ValueNone -> ()
 
         match classes with
-        | [] -> ()
+        | classes when classes.Count = 0 -> ()
         | classes ->
           sb.Append(" class=\"").AppendJoin(' ', classes).Append("\"") |> ignore
 
         for attribute in attributes do
           let! attribute = renderAttr(AttributeNode.Attribute attribute)
-          sb.Append(attribute) |> ignore
-
-        for attribute in asyncAttributes do
-          let! attribute = renderAttr(AttributeNode.AsyncAttribute attribute)
           sb.Append(attribute) |> ignore
 
         sb.Append(">") |> ignore
@@ -105,7 +128,8 @@ module Builder =
 
       | Text text -> sb.Append(HttpUtility.HtmlEncode text) |> ignore
       | Raw raw -> sb.Append(raw) |> ignore
-      | Comment comment -> sb.Append($"<!--%s{comment}-->") |> ignore
+      | Comment comment ->
+        sb.Append($"<!--%s{HttpUtility.HtmlEncode comment}-->") |> ignore
       | Fragment nodes ->
         if nodes.Length > 0 then
           for child in nodes.Length - 1 .. -1 .. 0 do
@@ -156,27 +180,23 @@ module Chunked =
         | Element element ->
           $"<%s{element.tag}"
 
-          let classes, attributes, asyncAttributes =
-            getAttributes element.attributes
+          let! id, classes, attributes =
+            getAttributes element.attributes cancellationToken
+
+          match id with
+          | ValueSome id -> $" id=\"%s{id}\""
+          | ValueNone -> ()
 
           match classes with
-          | [] -> ()
+          | classes when classes.Count = 0 -> ()
           | classes ->
             " class=\""
-            yield! classes
+            System.String.Join(' ', classes)
             "\""
 
           for attribute in attributes do
             let! attribute =
               renderAttr (AttributeNode.Attribute attribute) cancellationToken
-
-            attribute
-
-          for attribute in asyncAttributes do
-            let! attribute =
-              renderAttr
-                (AttributeNode.AsyncAttribute attribute)
-                cancellationToken
 
             attribute
 
@@ -208,7 +228,7 @@ module Chunked =
 
         | Text text -> HttpUtility.HtmlEncode text
         | Raw raw -> raw
-        | Comment comment -> $"<!--%s{comment}-->"
+        | Comment comment -> $"<!--%s{HttpUtility.HtmlEncode comment}-->"
         | Fragment nodes ->
           if nodes.Length > 0 then
             for child in nodes.Length - 1 .. -1 .. 0 do
