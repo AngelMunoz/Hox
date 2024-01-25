@@ -9,7 +9,7 @@
     <Compile Include="Parser.fs" />
     <Compile Include="RenderAsyncString.fs" />
     <Compile Include="ChunkRender.fs" />
-    <Compile Include="Tests.fs" />
+    <Compile Include="DSL.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

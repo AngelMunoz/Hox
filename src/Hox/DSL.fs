@@ -24,6 +24,11 @@ module NodeOps =
         target with
             children = [ yield! target.children; Text value ]
       }
+    | Element target, Comment value ->
+      Element {
+        target with
+            children = [ yield! target.children; Comment value ]
+      }
     | Element target, Raw value ->
       Element {
         target with
@@ -71,7 +76,7 @@ module NodeOps =
     | AsyncNode target, AsyncNode value ->
       let tsk = cancellableValueTask {
         let! target = target
-        let! value = value
+        and! value = value
         return addToNode(target, value)
       }
 
@@ -158,8 +163,24 @@ module NodeOps =
         }
       )
     | Fragment target, Fragment value -> Fragment(target @ value)
+
     | Text target, Text value -> Text(target + value)
-    | Text target, Raw value -> Text(target + value)
+    // merging a text node with a raw node is not supported
+    // as the raw node contents will be scaped by the text node
+    | Text target, Raw _ -> Text target
+
+    // WARNING: merging anything with raw node will result in converting the content
+    // into RAW nodes, which can lead to unescaped inputs.
+    // make sure to note this in the documentation
+    | Raw target, Text value -> Raw(target + value)
+    | Raw target, Raw value -> Raw(target + value)
+
+    | Comment target, Comment value -> Comment(target + value)
+    | Comment target, Text value -> Comment(target + value)
+    // merging a comment node with a raw node is not supported
+    // as the raw node contents will be scaped by the comment node
+    | Comment target, Raw _ -> Comment target
+
     | Text target, Element value ->
       Element {
         value with
@@ -179,7 +200,7 @@ module NodeOps =
     | Element target ->
       Element {
         target with
-            attributes = attribute :: target.attributes
+            attributes = [ yield! target.attributes; attribute ]
       }
     | AsyncNode target ->
       let tsk = cancellableValueTask {
@@ -535,62 +556,66 @@ type DeclarativeShadowDom =
       tagName: string,
       [<ParamArray>] templateDefinition: Node array
     ) =
-    let tpl = h("template[shadowrootmode=closed]", templateDefinition)
+    let tpl = h("template[shadowrootmode=open]", templateDefinition)
 
     Func<Node, Node>(fun instanceContent -> h(tagName, tpl, instanceContent))
 
 type ScopableElements =
 
-  static member inline article([<ParamArray>] content: _ array) =
-    content |> fragment |> sh "article"
+  static member inline article(styles: Node, [<ParamArray>] content: _ array) =
+    content |> fragment |> sh("article", styles)
 
-  static member inline aside([<ParamArray>] content: _ array) =
-    content |> fragment |> sh "aside"
+  static member inline aside(styles: Node, [<ParamArray>] content: _ array) =
+    content |> fragment |> sh("aside", styles)
 
-  static member inline blockquote([<ParamArray>] content: _ array) =
-    content |> fragment |> sh "blockquote"
+  static member inline blockquote
+    (
+      styles: Node,
+      [<ParamArray>] content: _ array
+    ) =
+    content |> fragment |> sh("blockquote", styles)
 
-  static member inline body([<ParamArray>] content: _ array) =
-    content |> fragment |> sh "body"
+  static member inline body(styles: Node, [<ParamArray>] content: _ array) =
+    content |> fragment |> sh("body", styles)
 
-  static member inline div([<ParamArray>] content: _ array) =
-    content |> fragment |> sh "div"
+  static member inline div(styles: Node, [<ParamArray>] content: _ array) =
+    content |> fragment |> sh("div", styles)
 
-  static member inline footer([<ParamArray>] content: _ array) =
-    content |> fragment |> sh "footer"
+  static member inline footer(styles: Node, [<ParamArray>] content: _ array) =
+    content |> fragment |> sh("footer", styles)
 
-  static member inline h1([<ParamArray>] content: _ array) =
-    content |> fragment |> sh "h1"
+  static member inline h1(styles: Node, [<ParamArray>] content: _ array) =
+    content |> fragment |> sh("h1", styles)
 
-  static member inline h2([<ParamArray>] content: _ array) =
-    content |> fragment |> sh "h2"
+  static member inline h2(styles: Node, [<ParamArray>] content: _ array) =
+    content |> fragment |> sh("h2", styles)
 
-  static member inline h3([<ParamArray>] content: _ array) =
-    content |> fragment |> sh "h3"
+  static member inline h3(styles: Node, [<ParamArray>] content: _ array) =
+    content |> fragment |> sh("h3", styles)
 
-  static member inline h4([<ParamArray>] content: _ array) =
-    content |> fragment |> sh "h4"
+  static member inline h4(styles: Node, [<ParamArray>] content: _ array) =
+    content |> fragment |> sh("h4", styles)
 
-  static member inline h5([<ParamArray>] content: _ array) =
-    content |> fragment |> sh "h5"
+  static member inline h5(styles: Node, [<ParamArray>] content: _ array) =
+    content |> fragment |> sh("h5", styles)
 
-  static member inline h6([<ParamArray>] content: _ array) =
-    content |> fragment |> sh "h6"
+  static member inline h6(styles: Node, [<ParamArray>] content: _ array) =
+    content |> fragment |> sh("h6", styles)
 
-  static member inline header([<ParamArray>] content: _ array) =
-    content |> fragment |> sh "header"
+  static member inline header(styles: Node, [<ParamArray>] content: _ array) =
+    content |> fragment |> sh("header", styles)
 
-  static member inline main([<ParamArray>] content: _ array) =
-    content |> fragment |> sh "main"
+  static member inline main(styles: Node, [<ParamArray>] content: _ array) =
+    content |> fragment |> sh("main", styles)
 
-  static member inline nav([<ParamArray>] content: _ array) =
-    content |> fragment |> sh "nav"
+  static member inline nav(styles: Node, [<ParamArray>] content: _ array) =
+    content |> fragment |> sh("nav", styles)
 
-  static member inline p([<ParamArray>] content: _ array) =
-    content |> fragment |> sh "p"
+  static member inline p(styles: Node, [<ParamArray>] content: _ array) =
+    content |> fragment |> sh("p", styles)
 
-  static member inline section([<ParamArray>] content: _ array) =
-    content |> fragment |> sh "section"
+  static member inline section(styles: Node, [<ParamArray>] content: _ array) =
+    content |> fragment |> sh("section", styles)
 
-  static member inline span([<ParamArray>] content: _ array) =
-    content |> fragment |> sh "span"
+  static member inline span(styles: Node, [<ParamArray>] content: _ array) =
+    content |> fragment |> sh("span", styles)
