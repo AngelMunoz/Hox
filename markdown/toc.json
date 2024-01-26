@@ -1,0 +1,92 @@
+[
+    {
+        "title": "Hox",
+        "file": "index.md",
+        "created": "2019-01-01",
+        "updated": null,
+        "author": "Hox Team",
+        "contributors": [],
+        "summary": "Hox is a DSL for writing HTML in F#.",
+        "category": null
+    },
+    {
+        "title": "About Hox",
+        "file": "about.md",
+        "created": "2019-01-01",
+        "updated": null,
+        "author": "Hox Team",
+        "contributors": [],
+        "summary": "Hox is a DSL for writing HTML in F#.",
+        "category": null
+    },
+    {
+        "title": "Usage",
+        "file": "guides/general-usage.md",
+        "created": "2019-01-01",
+        "updated": null,
+        "author": "Hox Team",
+        "contributors": [],
+        "summary": "Hox is a DSL for writing HTML in F#.",
+        "category": "Guide"
+    },
+    {
+        "title": "Using Feliz",
+        "file": "guides/using-feliz.md",
+        "created": "2019-01-01",
+        "updated": null,
+        "author": "Hox Team",
+        "contributors": [],
+        "summary": "Hox is a DSL for writing HTML in F#.",
+        "category": "Guide"
+    },
+    {
+        "title": "Write Your Own DSL",
+        "file": "guides/write-your-own-dsl.md",
+        "created": "2019-01-01",
+        "updated": null,
+        "author": "Hox Team",
+        "contributors": [],
+        "summary": "Hox is a DSL for writing HTML in F#.",
+        "category": "Guide"
+    },
+    {
+        "title": "Render Others With Hox",
+        "file": "guides/render-other-dsls.md",
+        "created": "2019-01-01",
+        "updated": null,
+        "author": "Hox Team",
+        "contributors": [],
+        "summary": "Hox is a DSL for writing HTML in F#.",
+        "category": "Guide"
+    },
+    {
+        "title": "Nodes",
+        "file": "reference/nodes.md",
+        "created": "2019-01-01",
+        "updated": null,
+        "author": "Hox Team",
+        "contributors": [],
+        "summary": "Hox is a DSL for writing HTML in F#.",
+        "category": "Reference"
+    },
+    {
+        "title": "DSL",
+        "file": "reference/dsl.md",
+        "created": "2019-01-01",
+        "updated": null,
+        "author": "Hox Team",
+        "contributors": [],
+        "summary": "Hox is a DSL for writing HTML in F#.",
+        "category": "Reference"
+    },
+    {
+        "title": "Rendering",
+        "file": "reference/rendering.md",
+        "created": "2019-01-01",
+        "updated": null,
+        "author": "Hox Team",
+        "contributors": [],
+        "summary": "Hox is a DSL for writing HTML in F#.",
+        "category": "Reference"
+    }
+]
