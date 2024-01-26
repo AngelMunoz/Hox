@@ -239,10 +239,19 @@ open NodeOps
 ///
 /// For IAsyncEnumerable&gt;Node&lt; we'll implement cancellation semantics at the rendering level.
 [<AutoOpen>]
-type NodeBuilder =
+type NodeDsl =
 
   static member inline h(cssSelector: string) =
     Element(Parsers.selector cssSelector)
+
+
+  static member inline h
+    (
+      cssSelector: string,
+      [<ParamArray>] textNodes: string array
+    ) =
+    Element(Parsers.selector cssSelector)
+    <+ Fragment([ for node in textNodes -> Text node ])
 
   static member inline h(cssSelector: string, child: Node Task) =
     let child =

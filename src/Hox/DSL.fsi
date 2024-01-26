@@ -49,7 +49,7 @@ module NodeOps =
 
 /// This class contains a small core DSL that is used to build nodes in a declarative way.
 [<Class; AutoOpen>]
-type NodeBuilder =
+type NodeDsl =
   /// <summary>
   /// Creates a new element from a css selector, the selector supports classes, attributes and id
   /// in a standard way.
@@ -80,6 +80,28 @@ type NodeBuilder =
   /// </code>
   /// </example>
   static member inline h: cssSelector: string -> Node
+
+  /// <summary>
+  /// Creates a new element from a css selector, the selector supports classes, attributes and id
+  /// in a standard way.
+  /// </summary>
+  /// <param name="cssSelector">The tag name of the element</param>
+  /// <param name="textNodes">text nodes to add</param>
+  /// <returns>A new node</returns>
+  /// <remarks>
+  /// The css selector supports multiple lines to avoid long lines.
+  /// </remarks>
+  /// <remarks>
+  /// The css selector is parsed on a strict subset, it is not a full CSS parser, so it does not
+  /// support all the features of CSS.
+  /// </remarks>
+  /// <example>
+  /// <code lang="fsharp">
+  /// let node = h("p", "Hello World", "Hello Second World")
+  /// </code>
+  /// </example>
+  static member inline h:
+    cssSelector: string * [<ParamArray>] textNodes: string array -> Node
 
   /// <summary>
   /// Creates a new element from a css selector, the selector supports classes, attributes and id

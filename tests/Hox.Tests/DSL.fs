@@ -315,6 +315,22 @@ module Texts =
       Assert.Fail
         $"Expected node to be a Raw node with value 'Hello, World!Hello, World1!', but got %A{other}"
 
+  [<Fact>]
+  let ``h parses the first string and the subsecuent ones become text nodes``
+    ()
+    =
+    let node = h("p", "Hello, World!", "Hello, World1!")
+
+    match node with
+    | Element {
+                tag = "p"
+                children = [ Text "Hello, World!"; Text "Hello, World1!" ]
+                attributes = []
+              } -> ()
+    | other ->
+      Assert.Fail
+        $"Expected node to be an Element with tag 'p' and two children, but got %A{other}"
+
 module AsyncNodes =
 
   [<Fact>]
