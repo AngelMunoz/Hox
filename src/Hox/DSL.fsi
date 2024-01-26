@@ -660,6 +660,32 @@ type NodeDsl =
   /// <returns>A new node</returns>
   /// <example>
   /// <code lang="fsharp">
+  /// let node =
+  ///   fragment(
+  ///     h "link[rel=stylesheet][href=/assets/main.css]",
+  ///     h "link[rel=stylesheet][href=/assets/shared.css]"
+  ///   )
+  /// </code>
+  /// </example>
+  /// <example>
+  /// <code lang="csharp">
+  /// var node =
+  ///   fragment(
+  ///     h "link[rel=stylesheet][href=/assets/main.css]",
+  ///     h "link[rel=stylesheet][href=/assets/shared.css]"
+  ///   );
+  /// </code>
+  /// </example>
+  static member inline fragment: [<ParamArray>] nodes: (Node array) -> Node
+
+  /// <summary>
+  /// Creates a "fragment" node, this node is used to group multiple nodes together
+  /// without a parent node.
+  /// </summary>
+  /// <param name="nodes">The nodes to add to the fragment</param>
+  /// <returns>A new node</returns>
+  /// <example>
+  /// <code lang="fsharp">
   /// let node = fragment (task { return [ for i in 1 .. 10 -> h("li", text $"Item {i}") ] })
   /// </code>
   /// </example>

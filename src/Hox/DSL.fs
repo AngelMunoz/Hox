@@ -491,6 +491,9 @@ type NodeDsl =
 
   static member inline fragment(nodes: Node seq) = Fragment(nodes |> Seq.toList)
 
+  static member inline fragment([<ParamArray>] nodes: Node array) =
+    Fragment(nodes |> Seq.toList)
+
   static member inline fragment(nodes: Node seq Task) =
     AsyncNode(
       cancellableValueTask {
