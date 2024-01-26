@@ -7,6 +7,14 @@ open Markdig
 
 open IcedTasks
 
+module private Pipeline =
+  let pipeline =
+    lazy
+      (MarkdownPipelineBuilder()
+        .UseAdvancedExtensions()
+        .UseYamlFrontMatter()
+        .Build())
+
 type Html =
 
   static member inline ofMarkdown
@@ -16,17 +24,12 @@ type Html =
     ) =
     Markdown.ToHtml(markdown, ?pipeline = pipeline)
 
-  static member inline ofMarkdownFile
-    (
-      path: string,
-      ?pipeline: MarkdownPipeline
-    ) =
-    cancellableTask {
-      let! token = CancellableTask.getCancellationToken()
+  static member ofMarkdownFile(path: string) = cancellableTask {
+    let! token = CancellableTask.getCancellationToken()
 
-      if token.IsCancellationRequested then
-        return String.Empty
-      else
-        let! markdown = File.ReadAllTextAsync(path, token)
-        return Html.ofMarkdown(markdown, ?pipeline = pipeline)
-    }
+    if token.IsCancellationRequested then
+      return String.Empty
+    else
+      let! markdown = File.ReadAllTextAsync(path, token)
+      return Html.ofMarkdown(markdown, Pipeline.pipeline.Value)
+  }

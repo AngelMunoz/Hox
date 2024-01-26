@@ -10,6 +10,7 @@ open FSharp.Control
 open IcedTasks
 open Hox.Markdown
 open System.Threading
+open System.Collections.Generic
 
 module Decoders =
 
@@ -59,7 +60,7 @@ type EntryMetadata with
       category = ob.Optional.Field "category" Decode.string
     })
 
-let getMetadata() = task {
+let getMetadata = coldTask {
   let! content = File.ReadAllTextAsync("markdown/toc.json")
 
   match Decode.fromString (Decode.list(EntryMetadata.Decode)) content with
@@ -68,14 +69,35 @@ let getMetadata() = task {
 }
 
 type ToC =
-  static member getContent(?cancellationToken: CancellationToken) =
-    let token = defaultArg cancellationToken CancellationToken.None
+  static member getContent = cancellableTask {
+    let! token = CancellableTask.getCancellationToken()
+    let! metadata = getMetadata()
 
-    taskSeq {
-      let! metadata = getMetadata()
+    let operations =
+      metadata
+      |> List.map(fun entry -> async {
+        let created = File.GetCreationTime($"markdown/{entry.file}").Date
+        let updated = File.GetLastWriteTime($"markdown/{entry.file}").Date
 
-      for entry in metadata do
-        token.ThrowIfCancellationRequested()
-        let! content = Html.ofMarkdownFile $"markdown/{entry.file}" token
-        entry, content
-    }
+        let entry =
+          if created = updated then
+            entry
+          else
+            {
+              entry with
+                  updated =
+                    File.GetLastWriteTime($"markdown/{entry.file}").Date
+                    |> DateOnly.FromDateTime
+                    |> Some
+            }
+
+        let! content = Html.ofMarkdownFile($"markdown/{entry.file}")
+
+        return entry, content
+      })
+
+    if token.IsCancellationRequested then
+      return Array.empty
+    else
+      return! Async.Parallel(operations)
+  }
