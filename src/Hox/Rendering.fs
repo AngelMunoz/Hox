@@ -78,8 +78,7 @@ module Builder =
     stack.Push(node, false)
 
     while stack.Count > 0 do
-      if token.IsCancellationRequested then
-        token.ThrowIfCancellationRequested()
+      token.ThrowIfCancellationRequested()
 
       let struct (node, closing) = stack.Pop()
 
@@ -152,9 +151,7 @@ module Builder =
 
         if nodes.Length > 0 then
           for child in nodes.Length - 1 .. -1 .. 0 do
-
-            if token.IsCancellationRequested then
-              token.ThrowIfCancellationRequested()
+            token.ThrowIfCancellationRequested()
 
             stack.Push((nodes[child], false))
 
@@ -186,9 +183,7 @@ module Chunked =
     ) : IAsyncEnumerable<string> =
     taskSeq {
       while stack.Count > 0 do
-        if cancellationToken.IsCancellationRequested then
-
-          cancellationToken.ThrowIfCancellationRequested()
+        cancellationToken.ThrowIfCancellationRequested()
 
         let struct (node, closing, depth) = stack.Pop()
 
@@ -270,9 +265,7 @@ module Chunked =
 
             if nodes.Length > 0 then
               for child in nodes.Length - 1 .. -1 .. 0 do
-
-                if cancellationToken.IsCancellationRequested then
-                  cancellationToken.ThrowIfCancellationRequested()
+                cancellationToken.ThrowIfCancellationRequested()
 
                 stack.Push((nodes[child], false, depth))
 
@@ -296,9 +289,9 @@ module Chunked =
               items.Add node
 
             for i in items.Count - 1 .. -1 .. 0 do
+              cancellationToken.ThrowIfCancellationRequested()
               stack.Push((items.[i], false, depth))
-            // in this case we're yielding recursively
-            // so the next renderNode call will check it's own
+            // The next renderNode call will check it's own
             // cancellation token and throw if needed.
             yield! renderNode(stack, cancellationToken)
 
