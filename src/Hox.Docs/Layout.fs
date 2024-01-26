@@ -11,13 +11,32 @@ open type Hox.ScopableElements
 module Views =
 
   let tableOfContents toc =
+    let (categorized, uncategorized) =
+      toc |> List.skip 2 |> List.partition(fun entry -> entry.category <> None)
+
+    let categorized = List.groupBy (fun item -> item.category.Value) categorized
+
     h(
       "ul",
-      toc
-      |> List.skip 2
-      |> List.map(fun (entry: EntryMetadata) ->
-        let fileUrl = entry.file.Replace(".md", ".html")
-        h("li", h($"a[href=/{fileUrl}]", entry.title)))
+      fragment [
+        for entry in uncategorized do
+          let fileUrl = entry.file.Replace(".md", ".html")
+          h("li", h($"a[href={fileUrl}]", entry.title))
+        for (category, entries) in categorized do
+          h(
+            "li",
+            h($"h4", category),
+            h(
+              "ul",
+              fragment [
+                for entry in entries do
+                  let fileUrl = entry.file.Replace(".md", ".html")
+                  h("li", h($"a[href={fileUrl}]", entry.title))
+              ]
+            )
+          )
+
+      ]
     )
 
 type Layout =
@@ -40,6 +59,11 @@ type Layout =
         h $"meta[property=og:title][content={metadata.title}]",
         h $"meta[property=og:type][content=website]",
         h "link[rel=stylesheet][href=/assets/styles.css]",
+        h "link[rel=stylesheet][href=/assets/links.css]",
+        (if metadata.file = "index.md" then
+           h "link[rel=stylesheet][href=/assets/index.css]"
+         else
+           fragment []),
         h $"base[href={htmlBaseHref}]"
       ),
       h(
@@ -54,25 +78,28 @@ type Layout =
             h("li", h("a[href=/reference/nodes.html]", "Reference"))
           )
         ),
-        h("aside", Views.tableOfContents toc),
+        (if metadata.file = "index.md" then
+           fragment []
+         else
+           h("aside", Views.tableOfContents toc)),
         main(
-          h("link[rel=stylesheet][href=/assets/main.css]", h "slot"),
+          fragment(
+            h "link[rel=stylesheet][href=/assets/main.css]",
+            h "link[rel=stylesheet][href=/assets/links.css]",
+            h "link[rel=stylesheet][href=/assets/index.css]"
+          ),
           content
         ),
         footer(
-          h("link[rel=stylesheet][href=/assets/footer.css]", h "slot"),
+          fragment(
+            h "link[rel=stylesheet][href=/assets/footer.css]",
+            h "link[rel=stylesheet][href=/assets/links.css]"
+          ),
           h(
             "p",
             h("a[href=https://github.com/AngelMunoz/Hox]", "Hox"),
             text
               " is an F# library for rendering HTML documents asynchronously."
-          ),
-          h("p", "Licensed under the MIT License."),
-          h(
-            "p",
-            text "Documentation generated on ",
-            h("time", DateTime.UtcNow.ToString("yyyy-MM-dd")),
-            text "."
           )
         ),
         h(
