@@ -39,6 +39,24 @@ module Views =
       ]
     )
 
+  let importMap =
+    h(
+      "script[type=importmap]",
+      raw
+        """{
+  "imports": {
+    "hox": "/assets/script.js",
+    "highlight.js": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/index.js",
+    "highlight.js/lib/core": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/core.js",
+    "highlight.js/lib/languages/fsharp": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/fsharp.js",
+    "highlight.js/lib/languages/bash": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/bash.js",
+    "highlight.js/lib/languages/xml": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/xml.js",
+     "highlight.js/lib/languages/plaintext": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/plaintext.js"
+  }
+}"""
+    )
+
+
 type Layout =
 
   static member inline Default
@@ -64,7 +82,11 @@ type Layout =
            h "link[rel=stylesheet][href=/assets/index.css]"
          else
            fragment []),
-        h $"base[href={htmlBaseHref}]"
+        h $"base[href={htmlBaseHref}]",
+        h(
+          "script[async=][src=https://ga.jspm.io/npm:es-module-shims@1.6.2/dist/es-module-shims.js][crossorigin=anonymouys]"
+        ),
+        Views.importMap
       ),
       h(
         "body",
@@ -86,7 +108,8 @@ type Layout =
           fragment(
             h "link[rel=stylesheet][href=/assets/main.css]",
             h "link[rel=stylesheet][href=/assets/links.css]",
-            h "link[rel=stylesheet][href=/assets/index.css]"
+            h "link[rel=stylesheet][href=/assets/index.css]",
+            h "link[rel=stylesheet][href=/assets/highlight.css]"
           ),
           content
         ),
@@ -117,6 +140,15 @@ type Layout =
     });
   })(document);
 }"""
+        ),
+        h(
+          "script[type=module]",
+          raw
+            "import { highlightAll } from 'hox';
+
+    document.addEventListener('DOMContentLoaded', () => {
+        highlightAll();
+    });"
         )
       )
     )

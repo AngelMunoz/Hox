@@ -12,7 +12,7 @@ module private Pipeline =
     lazy
       (MarkdownPipelineBuilder()
         .UseAdvancedExtensions()
-        .UseYamlFrontMatter()
+        .UsePreciseSourceLocation()
         .Build())
 
 type Html =

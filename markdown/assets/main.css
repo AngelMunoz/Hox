@@ -9,6 +9,12 @@
   box-shadow: var(--hox-card-box-shadow);
   padding: 0.5em;
 }
+pre {
+  border-radius: var(--hox-code-border-radius);
+  box-shadow: var(--hox-code-box-shadow);
+  max-width: min-content;
+  font-size: 13px;
+}
 
 @media (max-width: 600px) {
   :host {
