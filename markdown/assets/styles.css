@@ -1,0 +1,46 @@
+:root {
+  --hox-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  --hox-font-size: 16px;
+  --hox-line-height: 1.5;
+}
+html {
+  margin: 0;
+  padding: 0;
+  font-size: var(--hox-font-size);
+  line-height: var(--hox-line-height);
+  font-family: var(--hox-font-family);
+}
+
+body {
+  padding: 0 1em;
+  height: 100dvh;
+  display: grid;
+  grid-template-areas:
+    "header header"
+    "aside main"
+    "footer footer";
+  grid-template-rows: auto 1fr auto;
+  grid-template-columns: 0.25fr auto;
+}
+
+nav {
+  grid-area: header;
+}
+nav > ul {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+main {
+  grid-area: main;
+}
+
+aside {
+  grid-area: aside;
+}
+
+footer {
+  grid-area: footer;
+}
