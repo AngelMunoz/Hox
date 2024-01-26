@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Markdown.fs" />
+    <Compile Include="Layout.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="IcedTasks" Version="0.10.0" />
+    <PackageReference Include="Markdig" Version="0.34.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Hox\Hox.fsproj" />
+  </ItemGroup>
+</Project>
