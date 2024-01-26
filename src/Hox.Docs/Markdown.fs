@@ -1,5 +1,6 @@
 module Hox.Markdown
 
+open System
 open System.IO
 
 open Markdig
@@ -22,6 +23,10 @@ type Html =
     ) =
     cancellableTask {
       let! token = CancellableTask.getCancellationToken()
-      let! markdown = File.ReadAllTextAsync(path, token)
-      return Html.ofMarkdown(markdown, ?pipeline = pipeline)
+
+      if token.IsCancellationRequested then
+        return String.Empty
+      else
+        let! markdown = File.ReadAllTextAsync(path, token)
+        return Html.ofMarkdown(markdown, ?pipeline = pipeline)
     }
