@@ -1,0 +1,296 @@
+<html lang="en"><head><title>Usage</title><meta name="viewport" content="width=device-width,initial-scale=1"><meta property="og:site_name" content="Hox Documentation"><meta name="og:description" content="How to use render and create Hox nodes to use in your application."><meta property="og:title" content="Usage"><meta property="og:type" content="website"><link href="/assets/styles.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><base href="/Hox/"><script async="" crossorigin="anonymouys" src="https://ga.jspm.io/npm:es-module-shims@1.6.2/dist/es-module-shims.js"></script><script type="importmap">{
+  "imports": {
+    "hox": "/assets/script.js",
+    "highlight.js": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/index.js",
+    "highlight.js/lib/core": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/core.js",
+    "highlight.js/lib/languages/fsharp": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/fsharp.js",
+    "highlight.js/lib/languages/csharp": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/csharp.js",
+    "highlight.js/lib/languages/vbnet": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/vbnet.js",
+    "highlight.js/lib/languages/xml": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/xml.js",
+     "highlight.js/lib/languages/plaintext": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/plaintext.js"
+  }
+}</script></head><body><nav><ul><li><a href="/">Home</a></li><li><a href="/about.html">About Hox</a></li><li><a href="/guides/general-usage.html">Documentation</a></li><li><a href="/reference/nodes.html">Reference</a></li></ul></nav><aside><ul><li><h4>Guide</h4><ul><li><a href="guides/general-usage.html">Usage</a></li><li><a href="guides/using-feliz.html">Using Feliz</a></li><li><a href="guides/declarative-shadow-dom.html">Declarative Shadow DOM</a></li><li><a href="guides/csharp-and-vb-usage.html">C# and VB.NET</a></li><li><a href="guides/write-your-own-dsl.html">Write Your Own DSL</a></li><li><a href="guides/render-other-dsls.html">Render Others With Hox</a></li></ul></li><li><h4>Reference</h4><ul><li><a href="reference/nodes.html">Nodes</a></li><li><a href="reference/rendering.html">Rendering</a></li></ul></li></ul></aside><main><template shadowrootmode="open"><link href="/assets/main.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><link href="/assets/index.css" rel="stylesheet"><link href="/assets/highlight.css" rel="stylesheet"><blockquote>
+<p>While not required, it is recommended to check out <a href="https://github.com/TheAngryByrd/IcedTasks">IcedTasks</a>, <a href="https://github.com/fsprojects/FSharp.Control.TaskSeq">FSharp.Control.TaskSeq</a>, to have some extra Computation Expressions that allow using tasks/async/valueTask and IAsyncEnumerable in simple ways.</p>
+</blockquote>
+<p>The library by itself is quite simple and can be reduced to a single type with helper functions.</p>
+<ul>
+<li><strong>Render.start</strong> - Produces an <code>IAsyncEnumerable&lt;string&gt;</code> from a <code>Node</code></li>
+<li><strong>Render.toStream</strong> - Takes a stream and uses the same mechanism as <code>Render.start</code> to write to it, it is merely a convenience function.</li>
+<li><strong>Render.asString</strong> - Renders a <code>Node</code> to a string asynchronously</li>
+<li><strong>Render.asStringAsync</strong> - Renders a <code>Node</code> using F#'s <code>Async</code> type</li>
+</ul>
+<h3 id="a-few-examples">A few examples</h3>
+<pre><code class="language-fsharp">open Hox.Rendering
+
+task {
+    // assuming token is a CancellationToken
+    // assuming Layout.Default() produces a `Node`
+    let node = Layout.Default()
+    let! result = Render.asString(node, token)
+    printfn $&quot;Produced:\n\n{result}&quot;
+}
+</code></pre>
+<p>Rendering to a string is the most basic use case, useful for small node trees.</p>
+<p>In case of larger trees or when you want to stream the result to a file or a network stream, you can use <code>Render.toStream</code>:</p>
+<pre><code class="language-fsharp">open Hox.Rendering
+
+task {
+    // assuming token is a CancellationToken
+    // assuming Layout.Default() produces a `Node`
+    let node = Layout.Default()
+    use file = File.OpenWrite(&quot;output.html&quot;)
+    do! Render.toStream(node, file, token)
+}
+</code></pre>
+<p>If you want more control over what to do with each chunk, you can use <code>Render.start</code>:</p>
+<pre><code class="language-fsharp">// using FSharp.Control.TaskSeq
+open FSharp.Control
+
+open Hox.Rendering
+
+task {
+    // assuming token is a CancellationToken
+    // assuming Layout.Default() produces a `Node`
+    let node = Layout.Default()
+    for chunk in Render.start(nod, tokene) do
+        printfn $&quot;Produced:\n\n{chunk}&quot;
+}
+</code></pre>
+<h2 id="how-to-create-nodes">How to create nodes</h2>
+<p>To create nodes manually you have to use the <code>Hox.Core</code> module, which contains the <code>Node</code> type</p>
+<pre><code class="language-fsharp">open Hox.Core
+
+let textNode = Node.Text &quot;Hello World&quot;
+let element = Node.Element { tag = &quot;div&quot;; attributes = []; children = [] }
+
+let fragment = Node.Fragment [ textNode; element ]
+
+let asyncNode = Node.AsyncNode(cancellableValueTask {
+    do! Async.Sleep 1000
+    return Node.Text &quot;Hello World&quot;
+})
+</code></pre>
+<p>However composing these nodes and appending them to each other can be quite tedious, we offer two DSLs out of the box a new alternative simplistic DSL or the more familiar flavor Feliz.</p>
+<h2 id="hox-dsl">Hox DSL</h2>
+<blockquote>
+<p>If you're looking for the Feliz Flavor, check out the <a href="using-feliz.html">Feliz DSL</a></p>
+</blockquote>
+<pre><code class="language-fsharp">open Hox
+
+let node = h &quot;div&quot;
+let text = text &quot;Hello World&quot;
+let fragment = fragment [ node; text ]
+let asyncNode = h(&quot;div&quot;, async { // or task {
+    do! Async.Sleep 1000
+    return text &quot;Hello World&quot;
+})
+</code></pre>
+<p>As you can see nodes are simpler to create this way, and composing them is also easier.
+each node accepts a variable number of children, or a sequence of nodes, the <code>h</code> overloads are thought to be as simple to use as possible.</p>
+<pre><code class="language-fsharp">open Hox
+let nodeWithChildren = h(&quot;div&quot;, h(&quot;span&quot;, &quot;Hello World&quot;))
+let children = [ h(&quot;span&quot;, &quot;Hello World&quot;); h(&quot;span&quot;, &quot;Hello World&quot;) ]
+let nodeWithChildren2 = h(&quot;div&quot;, children)
+let nodeWithChildren3 = h(&quot;div&quot;, fragment children)
+</code></pre>
+<p>Depending on how you're obtaining the child nodes, you can choose the overload that suits you best.</p>
+<h3 id="attributes">Attributes</h3>
+<p>Within the Hox DSL you can also specify attributes for element nodes, the attributes are specified as a css selector, speciall attributes such as class and id are also supported.</p>
+<pre><code class="language-fsharp">open Hox
+let node = h(&quot;div#main&quot;, h(&quot;span&quot;, &quot;Hello World&quot;))
+let node1 = h(&quot;div.main.is-primary&quot;, h(&quot;span&quot;, &quot;Hello World&quot;))
+let node2 = h(&quot;link[rel='stylesheet'][href=style.css]&quot;)
+let combined = h(&quot;div#main.is-primary[data-name=main]&quot;, h(&quot;span&quot;, &quot;Hello World&quot;))
+</code></pre>
+<p>The syntax is as follows:</p>
+<p><code>&lt;element-name&gt;&lt;#id&gt;&lt;.class&gt;&lt;[attribute=value]&gt;...</code></p>
+<p>Where:</p>
+<ul>
+<li><code>element-name</code> is the name of the element, element names should follow the HTML spec to define tag names.</li>
+<li><code>#id</code> is specified with a <code>#</code> followed by the value of said id, if more than one id attribute is present only the first one will be picked up.</li>
+<li><code>.class</code> is specified with a <code>.</code> followed by the value of said class.</li>
+<li><code>[attribute=value]</code> is specified with a <code>[</code> followed by the name of the attribute, followed by a required <code>=</code> even for no-value atributes (like <code>checked</code>), after te <code>=</code> symbol anything will be taken as the string until a <code>]</code> is found, even break line characters.</li>
+</ul>
+<p>You can specify attributes in any order or with spacess and break lines in between the attribute declarations, example:</p>
+<ul>
+<li><code>div#main.is-primary</code></li>
+<li><code>div.is-primary#main</code></li>
+</ul>
+<p>Those examples above are equivalent and will produce the following structure</p>
+<pre><code class="language-html">&lt;div id=&quot;main&quot; class=&quot;is-primary&quot;&gt;&lt;/div&gt;
+</code></pre>
+<p>Attributes will always render in the following order &quot;id&quot;, &quot;class&quot; and the rest in the order they were specified, as an example:</p>
+<pre><code class="language-fsharp">open Hox
+let node =
+    h(&quot;div#main
+          .is-primary.is-medium
+          [data-name=main]
+          [data-sample=anything here, even spaces! or &lt;symbols-&amp;&gt;]&quot;,
+      h(&quot;span&quot;, &quot;Hello World&quot;)
+    )
+</code></pre>
+<p>Will produce the following structure</p>
+<pre><code class="language-html">&lt;div
+  id=&quot;main&quot;
+  class=&quot;is-primary is-medium&quot;
+  data-name=&quot;main&quot;
+  data-sample=&quot;anything here, even spaces! or &amp;lt;symbols-&amp;amp;&amp;gt;&quot;
+&gt;&lt;/div&gt;
+</code></pre>
+<p>Attributes are also available via the <code>attr</code> function, which can be used to add attributes to any node, this is useful when you want to add attributes to a node that is being returned from a function.</p>
+<pre><code class="language-fsharp">open Hox
+
+let getAttributeValue() = async {
+    do! Async.Sleep 1000
+    return &quot;value&quot;
+}
+
+h(&quot;div&quot;, h(&quot;span&quot;, &quot;Hello World&quot;))
+    .attr(&quot;data-marker&quot;, getAttributeValue())
+    .attr(&quot;data-marker2&quot;, &quot;value&quot;)
+    // will be rendered as data-marker3=&quot;&quot;
+    .attr(&quot;data-marker3&quot;, true)
+    // will not be rendered
+    .attr(&quot;data-marker4&quot;, false)
+</code></pre>
+<h3 id="nodes-and-attribute-encoding">Nodes and Attribute encoding</h3>
+<p>By default every node and attribute is encoded to prevent XSS attacks, this means that any special character will be encoded to its HTML entity equivalent, this is done by default.</p>
+<p>For cases where you want to render raw HTML then you should use <code>raw</code></p>
+<pre><code class="language-fsharp">let rawNode = h(&quot;div&quot;, raw &quot;&lt;span data-random='my attribute'&gt;Hello World&lt;/span&gt;&quot;)
+</code></pre>
+<p>Raw nodes will not be encoded, and will be rendered as is, but BE CAREFUL, and please escape any HTML that you store in your database or comes from user input, otherwise you will be vulnerable to XSS attacks.</p>
+<p>For every other node where text is accepted, it will be encoded, this means that you can safely use <code>h</code> and <code>text</code> to render user input.</p>
+<h3 id="fragments">Fragments</h3>
+<p>These are special utility nodes that can be used to group nodes without a parent element, a good example would be rendering <code>li</code> elements in a function that returns a <code>Node</code> to be later used inside an <code>ul</code> or <code>ol</code> element.</p>
+<pre><code class="language-fsharp">open Hox
+
+let computeItems() =
+    // do something and return the computed items
+    [
+        h(&quot;li&quot;, &quot;Item 1&quot;)
+        h(&quot;li&quot;, &quot;Item 2&quot;)
+        h(&quot;li&quot;, &quot;Item 3&quot;)
+    ]
+
+let node = h(&quot;ul&quot;, h(&quot;li&quot;, &quot;content&quot;), fragment items)
+// or if the sequence is the only parameter
+let node = h(&quot;ul&quot;, items)
+</code></pre>
+<h3 id="asynchronous-nodes">Asynchronous nodes</h3>
+<p>One of the &quot;big deals&quot; is the ability to use asynchronous nodes, just like you would use synchrinous nodes, this bridges a gap between the two worlds and allows you to use the same mental model for both.</p>
+<p>Also, asynchronous nodes are cold (or also called lazy), this means that they will not be executed until they are requested to render.</p>
+<pre><code class="language-fsharp">open Hox
+
+let asyncNode = h(&quot;div&quot;, async {
+    do! Async.Sleep 1000
+    return h(&quot;span&quot;, &quot;Hello async World&quot;)
+})
+
+let syncNode = h(&quot;div&quot;, h(&quot;span&quot;, &quot;Hello sync World&quot;))
+
+h(&quot;article&quot;,
+    asyncNode,
+    syncNode
+)
+</code></pre>
+<p>A perhaps more useful example would be fetching the user profile from a database while structuring the whole page.</p>
+<pre><code class="language-fsharp">open Hox
+
+let fetchProfile userId = task {
+    let! profile = db.FetchProfileAsync userId
+    return h(&quot;section&quot;,
+        h(&quot;h1&quot;, profile.Name),
+        h(&quot;p&quot;, profile.Description)
+    )
+}
+
+let mainView() =
+    h(&quot;article&quot;,
+      h(&quot;header&quot;, h(&quot;h1&quot;, &quot;My Profile&quot;)),
+      h(&quot;aside&quot;, tableofContents()),
+      h(&quot;main&quot;, fetchProfile 1)
+      h(&quot;footer&quot;, h(&quot;p&quot;, &quot;This is my footer&quot;))
+    )
+</code></pre>
+<p>It is also possible to add children to asynchronous items, for example when you need to set certain well known items in a list but you need to fill the rest asynchronously.</p>
+<pre><code class="language-fsharp">open Hox
+
+let fetchItems() = task {
+    let! items = db.FetchItemsAsync()
+    return h(&quot;ul&quot;,
+        h(&quot;li&quot;, &quot;Item 1&quot;),
+        h(&quot;li&quot;, &quot;Item 2&quot;),
+        h(&quot;li&quot;, &quot;Item 3&quot;)
+    )
+}
+
+let fetchItem6() = task {
+    let! item = db.FetchItem6Async()
+    return h(&quot;li&quot;, item.Name)
+}
+
+h(&quot;ul&quot;,
+    h(fetchItems(),
+      h(&quot;li&quot;, &quot;Item 4&quot;),
+      h(&quot;li&quot;, &quot;Item 5&quot;),
+      fetchItem6()
+    )
+)
+</code></pre>
+<p>In the case above, <code>ul</code> will have a total of 6 items, 3 of them will be rendered from <code>fetchItems</code> asynchronously, the items 4 and 5 will be rendered synchronously and the sixth item will also be fetched asynchronously.</p>
+<h3 id="asynchronous-sequences">Asynchronous sequences</h3>
+<p>Asynchronous sequences are also supported, this can be useful when you're interoperating with external libraries that return <code>IAsyncEnumerable&lt;T&gt;</code> or you want to produce an <code>IAyncEnumerable&lt;Node&gt;</code> for your own purposes.</p>
+<pre><code class="language-fsharp">open Hox
+open Hox.Rendering
+
+let getitems(service, secondService) = taskSeq {
+    let! items = service.GetItemsAsync()
+    for item in items do
+        let! item = secondService.withExtendedInfo item
+        h(&quot;tr&quot;,
+            h(&quot;td&quot;, item.Id),
+            h(&quot;td&quot;, item.Name),
+            h(&quot;td&quot;, item.Description),
+            h(&quot;td&quot;, item.Price),
+            h(&quot;td&quot;, item.Quantity),
+            h(&quot;td&quot;, item.Total)
+        )
+}
+
+let mainView(container) =
+    h(&quot;table&quot;,
+        h(&quot;thead&quot;,
+            h(&quot;tr&quot;,
+                h(&quot;th&quot;, &quot;Id&quot;),
+                h(&quot;th&quot;, &quot;Name&quot;),
+                h(&quot;th&quot;, &quot;Description&quot;),
+                h(&quot;th&quot;, &quot;Price&quot;),
+                h(&quot;th&quot;, &quot;Quantity&quot;),
+                h(&quot;th&quot;, &quot;Total&quot;)
+            )
+        ),
+        h(&quot;tbody&quot;, getitems(container.GetService(), container.GetService()))
+    )
+
+// For example, in a web server you could do something like this
+let view ctx = task {
+    let view = Layout.Default(&quot;Hox&quot;, mainView(ctx.RequestServices))
+    do! Render.toStream(view, ctx.Response.Body, ctx.RequestAborted)
+}
+</code></pre>
+<p>All of the concepts above can be combined to produce complex views, without having to worry about when to put the asynchronous work where in the rendered tree.</p>
+</template></main><footer><template shadowrootmode="open"><link href="/assets/footer.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><p><a href="https://github.com/AngelMunoz/Hox">Hox</a> is an F# library for rendering HTML documents asynchronously.</p></template></footer><script>if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRootMode')) {
+  (function attachShadowRoots(root) {
+    root.querySelectorAll("template[shadowrootmode]").forEach(template => {
+      const mode = template.getAttribute("shadowrootmode");
+      const shadowRoot = template.parentNode.attachShadow({ mode });
+      shadowRoot.appendChild(template.content);
+      template.remove();
+      attachShadowRoots(shadowRoot);
+    });
+  })(document);
+}</script><script type="module">import { highlightAll } from 'hox';
+
+    document.addEventListener('DOMContentLoaded', () => {
+        highlightAll();
+    });</script></body></html>

@@ -1,0 +1,243 @@
+<html lang="en"><head><title>Write Your Own DSL</title><meta name="viewport" content="width=device-width,initial-scale=1"><meta property="og:site_name" content="Hox Documentation"><meta name="og:description" content="Hox is more than just an HTML DSL, it has a set of primitives that can be used to write your own DSL."><meta property="og:title" content="Write Your Own DSL"><meta property="og:type" content="website"><link href="/assets/styles.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><base href="/Hox/"><script async="" crossorigin="anonymouys" src="https://ga.jspm.io/npm:es-module-shims@1.6.2/dist/es-module-shims.js"></script><script type="importmap">{
+  "imports": {
+    "hox": "/assets/script.js",
+    "highlight.js": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/index.js",
+    "highlight.js/lib/core": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/core.js",
+    "highlight.js/lib/languages/fsharp": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/fsharp.js",
+    "highlight.js/lib/languages/csharp": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/csharp.js",
+    "highlight.js/lib/languages/vbnet": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/vbnet.js",
+    "highlight.js/lib/languages/xml": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/xml.js",
+     "highlight.js/lib/languages/plaintext": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/plaintext.js"
+  }
+}</script></head><body><nav><ul><li><a href="/">Home</a></li><li><a href="/about.html">About Hox</a></li><li><a href="/guides/general-usage.html">Documentation</a></li><li><a href="/reference/nodes.html">Reference</a></li></ul></nav><aside><ul><li><h4>Guide</h4><ul><li><a href="guides/general-usage.html">Usage</a></li><li><a href="guides/using-feliz.html">Using Feliz</a></li><li><a href="guides/declarative-shadow-dom.html">Declarative Shadow DOM</a></li><li><a href="guides/csharp-and-vb-usage.html">C# and VB.NET</a></li><li><a href="guides/write-your-own-dsl.html">Write Your Own DSL</a></li><li><a href="guides/render-other-dsls.html">Render Others With Hox</a></li></ul></li><li><h4>Reference</h4><ul><li><a href="reference/nodes.html">Nodes</a></li><li><a href="reference/rendering.html">Rendering</a></li></ul></li></ul></aside><main><template shadowrootmode="open"><link href="/assets/main.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><link href="/assets/index.css" rel="stylesheet"><link href="/assets/highlight.css" rel="stylesheet"><p>In case that neither Hox or Feliz fit your needs, you can always write your own DSL.</p>
+<p>This can be accomplished in any dotnet language using the functions in the <code>Hox.NodeOps</code> module.</p>
+<p>This module exposes two simple functions</p>
+<ul>
+<li><code>addToNode</code></li>
+<li><code>AddAttribute</code></li>
+</ul>
+<p>These functions already contain all the functionality required to compose nodes together, regardless of the underlyng type of node.</p>
+<p>The following example shows how to create a more traditiona F# DSL with the two list style.</p>
+<pre><code class="language-fsharp">open Hox
+open Hox.Core
+
+let createElement name attributes children =
+    Element {
+        tag = name
+        attributes = attributes
+        children = children
+    }
+
+let createAttribute name value =
+    Attribute {
+        name = name
+        value = value
+    }
+
+
+module Elem =
+    let inline html attributes children =
+        createElement &quot;html&quot; attributes children
+    let inline head attributes children =
+        createElement &quot;head&quot; attributes children
+    let inline body attributes children =
+    // the same can be done with Task&lt;Node&gt;
+    let inline async attributes (node: Async&lt;Node&gt;) =
+      AsyncNode(cancellableValueTask {
+        let! token = CancellableValueTask.getCancellationToken()
+        if token.IsCancellationRequested then
+          return Fragment []
+        else
+          let! node = node
+        return
+          attributes
+          |&gt; List.fold
+              (fun node attribute -&gt; addAttribute(node, attribute))
+              node
+      })
+
+module Attr =
+  let inline lang value =
+    createAttribute &quot;lang&quot; value
+
+  let inline title value =
+    createAttribute &quot;title&quot; value
+
+  let inline class' value =
+    createAttribute &quot;class&quot; value
+
+  let inline classAsync value =
+    AsyncAttribute(cancellableValueTask {
+      let! token = CancellableValueTask.getCancellationToken()
+      if token.IsCancellationRequested then
+        // attributes without a name are ignored
+        return createAttribute &quot;&quot; &quot;&quot;
+      else
+        return createAttribute &quot;class&quot; value
+    })
+
+
+Elem.html [ lang &quot;en&quot; ] [
+  Elem.head [] [
+    Elem.title [] [
+      Text &quot;Hello World&quot;
+    ]
+  ]
+  Elem.body [ class' &quot;container&quot; ] [
+    Elem.h1 [] [
+      Text &quot;Hello World&quot;
+    ]
+    Elem.p [] [
+      Text &quot;This is a paragraph&quot;
+    ]
+    Elem.async
+      [ classAsync(async {
+          do! Async.Sleep(1000)
+          return &quot;container&quot;
+        })
+      ]
+      (async {
+        do! Async.Sleep(1000)
+        return Elem.p [] [
+          Text &quot;This is a paragraph&quot;
+        ]
+      })
+  ]
+</code></pre>
+<p>For simplicity the operators <code>&lt;+</code> to add child nodes and <code>&lt;+.</code> to add attributes are available in the <code>Hox.NodeOps.Operators</code> module.</p>
+<h2 id="c-vb.net">C# &amp; VB.NET</h2>
+<p>C# users can leverage extension methods to create a more fluent DSL however, due to the differences in the type system with F#, the DSL will have to use the Hox DSL functions, instead of the core types. Also, keep in mind that the DSL's are often easier made in F# so you might want to consider using F# for your DSL, however if you identify an opportunity to improve the APIs for C# users, please feel free to raise an issue.</p>
+<p>Let's imagine we want a strongly typed DSL with a more C# feel or flavor.</p>
+<pre><code class="language-csharp">// our goal is to have something like this
+
+var content =
+  new Form()
+    .Class(&quot;container&quot;)
+    .Children(
+      new Input()
+        .Type(&quot;text&quot;)
+        .Placeholder(&quot;Type yuout name here&quot;),
+      h(&quot;br&quot;), // we can still use the existing functions
+      h(&quot;section.row.space-evenly&quot;, // in case we're consuming existing libraries
+        new Button() // or we're still working in the DSL
+          .Type(&quot;submit&quot;)
+          .Value(&quot;Submit&quot;),
+        new Button()
+          .Type(&quot;reset&quot;)
+          .Value(&quot;Submit&quot;)
+      )
+    );
+
+var result = await Render.AsString(content);
+</code></pre>
+<p>That looks quite C#'ish, but how do we get there?</p>
+<p>First we need to create a base class for all our elements Keep in mind that these BaseElement and derived types will be just wrappers to the Hox.Node type, so we might want to use structs instead of classes but I'll leave that for the performance experts to decide.</p>
+<pre><code class="language-csharp">public record BaseElement(Node Node)
+{
+  // And also let's define an implicit operator to convert our elements to nodes
+  // so we can call the Render functions on them like we did above
+  // keep in mind this is is not required but it is just more ergonomic and convenient.
+  public static implicit operator Node(BaseElement element) =&gt; element.Node;
+
+  // this implicit conversion will allows us to combine our existing h function
+  // with our new BaseElement type
+  public static implicit operator BaseElement(Node node) =&gt; new(node);
+
+}
+</code></pre>
+<p>Our records need to inherit from the BaseElement class so they can share common attributes and methods like Class, Id, Style, Children, etc.</p>
+<pre><code class="language-csharp">public record Input : BaseElement
+{
+  public Input() : base(h(&quot;input&quot;)) { }
+}
+
+public record Button : BaseElement
+{
+  public Button() : base(h(&quot;button&quot;)) { }
+}
+
+public record Div : BaseElement
+{
+  public Div() : base(h(&quot;div&quot;)) { }
+}
+</code></pre>
+<p>Noe we use extension methods with constrains to the BaseElement to add the required functionality please note that we're not modifying the original element but instead we're creating a new one with the updated node This can help us to keep our code safe from unexpected changes, it also signals to consumers that they should not modify the original element.</p>
+<pre><code class="language-csharp">public static class BaseElementExtensions
+{
+  public static T Class&lt;T&gt;(this T element, string className) where T : BaseElement =&gt;
+    element with { Node = NodeOps.addAttribute(element.Node, attribute(&quot;class&quot;, className)) };
+
+  public static T Id&lt;T&gt;(this T element, string id) where T : BaseElement =&gt;
+    // also keep in mind that we're mixing and matchin the existing functions within Hox and Hox.NodeOps
+    // so if you feel there's something missing to make your DSL more ergonomic, feel free
+    // to raise an issue to make sure it gets visibility.
+    element with { Node = NodeOps.addAttribute(element.Node, attribute(&quot;id&quot;, id)) };
+
+  public static T Style&lt;T&gt;(this T element, string style) where T : BaseElement =&gt;
+    element with { Node = NodeOps.addAttribute(element.Node, attribute(&quot;style&quot;, style)) };
+
+  public static T Children&lt;T&gt;(this T element, params BaseElement[] children) where T : BaseElement =&gt;
+    element with
+    {
+      Node = NodeOps.addToNode(
+        element.Node,
+        fragment(children.Select(el =&gt; el.Node))
+      )
+    };
+}
+
+static class InputExtensions
+{
+  public static T Type&lt;T&gt;(this T input, string type) where T : Input =&gt;
+    input with { Node = NodeOps.addAttribute(input.Node, attribute(&quot;type&quot;, type)) };
+
+  public static T Value&lt;T&gt;(this T input, string value) where T : Input =&gt;
+    input with { Node = NodeOps.addAttribute(input.Node, attribute(&quot;value&quot;, value)) };
+
+  public static T Placeholder&lt;T&gt;(this T input, string placeholder) where T : Input =&gt;
+    input with { Node = NodeOps.addAttribute(input.Node, attribute(&quot;placeholder&quot;, placeholder)) };
+
+}
+
+static class ButtonExtensions
+{
+  public static T Type&lt;T&gt;(this T button, string type) where T : Button =&gt;
+    button with { Node = NodeOps.addAttribute(button.Node, attribute(&quot;type&quot;, type)) };
+
+  public static T Value&lt;T&gt;(this T button, string value) where T : Button =&gt;
+    button with { Node = NodeOps.addAttribute(button.Node, attribute(&quot;value&quot;, value)) };
+
+  public static T Placeholder&lt;T&gt;(this T button, string placeholder) where T : Button =&gt;
+    button with { Node = NodeOps.addAttribute(button.Node, attribute(&quot;placeholder&quot;, placeholder)) };
+
+}
+</code></pre>
+<p>And that's how we can create a strongly typed, C# friendly DSL.</p>
+<p>Our C# DSL could also be improved upon by using strongly typed attributes rather than strings e.g.</p>
+<pre><code class="language-csharp">public enum InputType
+{
+  Text,
+  Number,
+  Email,
+  Password,
+  ...
+}
+
+public static T Type&lt;T&gt;(this T input, InputType type) where T : Input =&gt;
+  input with { Node = NodeOps.addAttribute(input.Node, attribute(&quot;type&quot;, type.ToString().ToLowerInvariant())) };
+</code></pre>
+</template></main><footer><template shadowrootmode="open"><link href="/assets/footer.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><p><a href="https://github.com/AngelMunoz/Hox">Hox</a> is an F# library for rendering HTML documents asynchronously.</p></template></footer><script>if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRootMode')) {
+  (function attachShadowRoots(root) {
+    root.querySelectorAll("template[shadowrootmode]").forEach(template => {
+      const mode = template.getAttribute("shadowrootmode");
+      const shadowRoot = template.parentNode.attachShadow({ mode });
+      shadowRoot.appendChild(template.content);
+      template.remove();
+      attachShadowRoots(shadowRoot);
+    });
+  })(document);
+}</script><script type="module">import { highlightAll } from 'hox';
+
+    document.addEventListener('DOMContentLoaded', () => {
+        highlightAll();
+    });</script></body></html>

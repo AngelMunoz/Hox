@@ -1,0 +1,45 @@
+<html lang="en"><head><title>Hox</title><meta name="viewport" content="width=device-width,initial-scale=1"><meta property="og:site_name" content="Hox Documentation"><meta name="og:description" content="Hox, An Async HTML Rendering Library for the .NET Ecosystem"><meta property="og:title" content="Hox"><meta property="og:type" content="website"><link href="/assets/styles.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><link href="/assets/index.css" rel="stylesheet"><base href="/Hox/"><script async="" crossorigin="anonymouys" src="https://ga.jspm.io/npm:es-module-shims@1.6.2/dist/es-module-shims.js"></script><script type="importmap">{
+  "imports": {
+    "hox": "/assets/script.js",
+    "highlight.js": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/index.js",
+    "highlight.js/lib/core": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/core.js",
+    "highlight.js/lib/languages/fsharp": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/fsharp.js",
+    "highlight.js/lib/languages/csharp": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/csharp.js",
+    "highlight.js/lib/languages/vbnet": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/vbnet.js",
+    "highlight.js/lib/languages/xml": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/xml.js",
+     "highlight.js/lib/languages/plaintext": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/plaintext.js"
+  }
+}</script></head><body><nav><ul><li><a href="/">Home</a></li><li><a href="/about.html">About Hox</a></li><li><a href="/guides/general-usage.html">Documentation</a></li><li><a href="/reference/nodes.html">Reference</a></li></ul></nav><main><template shadowrootmode="open"><link href="/assets/main.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><link href="/assets/index.css" rel="stylesheet"><link href="/assets/highlight.css" rel="stylesheet"><h1 id="hox-is-an-async-html-rendering-library-for-f">Hox is an async HTML rendering library for F#.</h1>
+<p>Hox is an extensible HTML rendering library, it provides a set of functions to work with <strong>Nodes</strong> and compose them together as well as a couple of async rendering functions that support cancellation.</p>
+<p>The core features are:</p>
+<ul>
+<li>A single core <code>Node</code> type that drives the whole rendering mechanism.</li>
+<li>Side-by-side Asynchronous Nodes, you can add sync or async nodes into sync/async parents/sibling nodes.</li>
+<li>Cancellable sync/async Rendering process that leverages ValueTasks.</li>
+<li>Render to a single string or <code>IAsyncEnumerable&lt;string&gt;</code>.</li>
+<li>A simplistic core DSL based on css selector parsing to generate nodes.</li>
+</ul>
+<p>A couple of opt-in extra supported features are:</p>
+<ul>
+<li>Declarative Shadow DOM support for built-in html elements (e.g. div, article, nav, etc.)</li>
+<li>Templating functions for Declarative Shadow DOM custom elements.</li>
+<li>C# and VB.NET compatibility out of the box for the core constructs.</li>
+<li>Feliz-like API thanks to Feliz.Engine for an F# flavored style.</li>
+</ul>
+<p>The core bits are somewhat low level building blocks to enable these kinds of features and possibly more in the future.</p>
+<h4 id="ready-lets-get-started">Ready? <a href="guides/general-usage.html">Let's get started!</a></h4>
+</template></main><footer><template shadowrootmode="open"><link href="/assets/footer.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><p><a href="https://github.com/AngelMunoz/Hox">Hox</a> is an F# library for rendering HTML documents asynchronously.</p></template></footer><script>if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRootMode')) {
+  (function attachShadowRoots(root) {
+    root.querySelectorAll("template[shadowrootmode]").forEach(template => {
+      const mode = template.getAttribute("shadowrootmode");
+      const shadowRoot = template.parentNode.attachShadow({ mode });
+      shadowRoot.appendChild(template.content);
+      template.remove();
+      attachShadowRoots(shadowRoot);
+    });
+  })(document);
+}</script><script type="module">import { highlightAll } from 'hox';
+
+    document.addEventListener('DOMContentLoaded', () => {
+        highlightAll();
+    });</script></body></html>

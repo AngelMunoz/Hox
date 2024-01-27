@@ -1,0 +1,31 @@
+:host {
+  overflow-y: auto;
+  display: block;
+  margin: 0 0.5em;
+  background-color: var(--hox-card-background-color);
+  color: var(--hox-card-color);
+
+  border-radius: var(--hox-card-border-radius);
+  box-shadow: var(--hox-card-box-shadow);
+  padding: 0.5em 1em;
+}
+pre {
+  border-radius: var(--hox-code-border-radius);
+  box-shadow: var(--hox-code-box-shadow);
+  max-width: min-content;
+  font-size: 13px;
+}
+
+blockquote {
+  border-radius: var(--hox-card-border-radius);
+  box-shadow: var(--hox-card-box-shadow);
+  padding-left: 0.5em;
+  margin-left: 0;
+  font-style: italic;
+}
+
+@media (max-width: 600px) {
+  :host {
+    overflow-y: auto;
+  }
+}

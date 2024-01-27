@@ -1,0 +1,98 @@
+<html lang="en"><head><title>Using Feliz</title><meta name="viewport" content="width=device-width,initial-scale=1"><meta property="og:site_name" content="Hox Documentation"><meta name="og:description" content="F# Users rejoice! Hox can be used with Feliz."><meta property="og:title" content="Using Feliz"><meta property="og:type" content="website"><link href="/assets/styles.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><base href="/Hox/"><script async="" crossorigin="anonymouys" src="https://ga.jspm.io/npm:es-module-shims@1.6.2/dist/es-module-shims.js"></script><script type="importmap">{
+  "imports": {
+    "hox": "/assets/script.js",
+    "highlight.js": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/index.js",
+    "highlight.js/lib/core": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/core.js",
+    "highlight.js/lib/languages/fsharp": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/fsharp.js",
+    "highlight.js/lib/languages/csharp": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/csharp.js",
+    "highlight.js/lib/languages/vbnet": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/vbnet.js",
+    "highlight.js/lib/languages/xml": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/xml.js",
+     "highlight.js/lib/languages/plaintext": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/plaintext.js"
+  }
+}</script></head><body><nav><ul><li><a href="/">Home</a></li><li><a href="/about.html">About Hox</a></li><li><a href="/guides/general-usage.html">Documentation</a></li><li><a href="/reference/nodes.html">Reference</a></li></ul></nav><aside><ul><li><h4>Guide</h4><ul><li><a href="guides/general-usage.html">Usage</a></li><li><a href="guides/using-feliz.html">Using Feliz</a></li><li><a href="guides/declarative-shadow-dom.html">Declarative Shadow DOM</a></li><li><a href="guides/csharp-and-vb-usage.html">C# and VB.NET</a></li><li><a href="guides/write-your-own-dsl.html">Write Your Own DSL</a></li><li><a href="guides/render-other-dsls.html">Render Others With Hox</a></li></ul></li><li><h4>Reference</h4><ul><li><a href="reference/nodes.html">Nodes</a></li><li><a href="reference/rendering.html">Rendering</a></li></ul></li></ul></aside><main><template shadowrootmode="open"><link href="/assets/main.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><link href="/assets/index.css" rel="stylesheet"><link href="/assets/highlight.css" rel="stylesheet"><p>While the <a href="general-usage.html#hox-dsl">Hox DSL</a> is the favored flavor for Hox, we understand that developers prefer the type safety of the F# language. For this reason, we've added a Feliz-flavored API to Hox.</p>
+<pre><code class="language-fsharp">open Hox.Feliz
+
+let view =
+    H.html [
+        H.head [
+            H.title &quot;Hello, world!&quot;
+        ]
+        H.body [
+            H.h1 &quot;Hello, world!&quot;
+            |&gt; Attr.set(A.id &quot;first-h1&quot;)
+            |&gt; Attr.set(A.className &quot;title&quot;)
+        ]
+    ]
+</code></pre>
+<p>For the most part, the Feliz DSL works as you would expectit excepto from attributes. In Hox, attributes are part of the element's children unlike the traditional Feliz DSL, where they are another Node in the tree. To make this work, we've added a <code>Attr</code> module which contains helper functions to deal with attributes.</p>
+<h3 id="main-differences-with-hox-dsl">Main differences with Hox DSL</h3>
+<p>First and foremost, the syntax is obviously different. However there are some other differences that are worth noting.</p>
+<ul>
+<li>Raw Nodes are not supported, because of how Feliz.Engine creates nodes. If you need to create a raw node, you can use the <code>raw</code> function within the <code>Hox</code> namespace.</li>
+<li>Attributes are not part of the element's children, but rather a separate list of attributes. This is because of how Feliz.Engine handles attributes.</li>
+<li>Nodes that support Declarative Shadow DOM are not in a separate type, they were included within the same HTML Engine type.</li>
+</ul>
+<h3 id="fragments">Fragments</h3>
+<p>Working with sequences of nodes is relatively simpler with the Feliz API, given that every function requires already a list of nodes, so you can use the <code>yield!</code> keyword to add a sequence of nodes, however the <code>fragment</code> function is still available if you need it.</p>
+<pre><code class="language-fsharp">open Hox.Feliz
+
+let computeItems() =
+    // compute items
+    [ H.li [ H.text &quot;Item 1&quot; ]
+      H.li [ H.text &quot;Item 2&quot; ]
+      H.li [ H.text &quot;Item 3&quot; ] ]
+
+let node =
+    H.div [
+        H.h1 &quot;Hello, world!&quot;
+        H.ul [
+            yield! computeItems()
+            // or
+            H.fragment (computeItems())
+        ]
+    ]
+</code></pre>
+<p>Fragments are still useful for <code>IAsyncEnumerable&lt;Node&gt;</code> though, so you don't need to resort to the Hox DSL.</p>
+<pre><code class="language-fsharp">// using FSharp.Control.TaskSeq
+open FSharp.Control
+open Hox.Feliz
+
+H.ul [
+    H.fragment(taskSeq {
+        for i in 1 .. 10 do
+            do! Task.Delay 5
+            H.li [ H.text (sprintf &quot;Item %d&quot; i) ]
+    })
+]
+</code></pre>
+<h3 id="asynchronous-nodes">Asynchronous nodes</h3>
+<p>Just because you're using the Feliz API doesn't mean you can't use asynchronous nodes. The <code>async</code> and <code>task</code> are available for you.</p>
+<pre><code class="language-fsharp">open Hox.Feliz
+
+H.div [
+    H.h1 &quot;Hello, world!&quot;
+    H.async(async {
+        do! Async.Sleep 50
+        return H.p [ H.text &quot;This is an async node&quot; ]
+    })
+    H.task(task {
+        do! Task.Delay 50
+        return H.p [ H.text &quot;This is a task node&quot; ]
+    })
+]
+</code></pre>
+</template></main><footer><template shadowrootmode="open"><link href="/assets/footer.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><p><a href="https://github.com/AngelMunoz/Hox">Hox</a> is an F# library for rendering HTML documents asynchronously.</p></template></footer><script>if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRootMode')) {
+  (function attachShadowRoots(root) {
+    root.querySelectorAll("template[shadowrootmode]").forEach(template => {
+      const mode = template.getAttribute("shadowrootmode");
+      const shadowRoot = template.parentNode.attachShadow({ mode });
+      shadowRoot.appendChild(template.content);
+      template.remove();
+      attachShadowRoots(shadowRoot);
+    });
+  })(document);
+}</script><script type="module">import { highlightAll } from 'hox';
+
+    document.addEventListener('DOMContentLoaded', () => {
+        highlightAll();
+    });</script></body></html>
