@@ -27,6 +27,7 @@ let copyAssets() =
           let finalDestination =
             Path
               .Combine(destination, file)
+              .Replace(Path.DirectorySeparatorChar, '/')
               .Replace("/markdown/assets/", "/")
               .Replace(".md", ".html")
 
