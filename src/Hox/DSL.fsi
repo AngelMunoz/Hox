@@ -721,9 +721,76 @@ type NodeDsl =
   /// </example>
   static member inline fragment: nodes: IAsyncEnumerable<Node> -> Node
 
+  /// <summary>
+  /// Creates a new attribute node, this is meant to be added to nodes using the
+  /// `NodeOps.addAttribute` function.
+  /// </summary>
+  /// <param name="name">The nodes to add to the fragment</param>
+  /// <param name="value">the value of the attribute</param>
+  /// <returns>A new AttributeNode</returns>
+  /// <example>
+  /// <code lang="fsharp">
+  /// attr("data-foo", "bar")
+  /// </code>
+  /// </example>
+  static member inline attribute: name: string * value: string -> AttributeNode
+
+  /// <summary>
+  /// Creates a new attribute node, this is meant to be added to nodes using the
+  /// `NodeOps.addAttribute` function.
+  /// </summary>
+  /// <param name="name">The nodes to add to the fragment</param>
+  /// <param name="value">the value of the attribute</param>
+  /// <returns>A new AttributeNode</returns>
+  /// <example>
+  /// <code lang="fsharp">
+  /// attr("data-foo", task {
+  ///   let! data = getData()
+  ///   return data
+  /// })
+  /// </code>
+  /// </example>
+  static member inline attribute:
+    name: string * value: string Task -> AttributeNode
+
+  /// <summary>
+  /// Creates a new attribute node, this is meant to be added to nodes using the
+  /// `NodeOps.addAttribute` function.
+  /// </summary>
+  /// <param name="name">The nodes to add to the fragment</param>
+  /// <param name="value">the value of the attribute</param>
+  /// <returns>A new AttributeNode</returns>
+  /// <example>
+  /// <code lang="fsharp">
+  /// attr("data-foo", async {
+  ///   let! data = getData()
+  ///   return data
+  /// })
+  /// </code>
+  /// </example>
+  static member inline attribute:
+    name: string * value: string Async -> AttributeNode
+
 /// This class contains extensions to add attributes to nodes post creation.
 [<Class; Extension>]
 type NodeExtensions =
+
+  /// <summary>
+  /// Adds an attribute to the 'target' node.
+  /// </summary>
+  /// <param name="node">The node to add the attribute to</param>
+  /// <param name="attribute">an existing attribute</param>
+  /// <returns>The target node with the attribute added to it</returns>
+  /// <remarks>
+  /// If the target node is not an element, then the attribute will be ignored.
+  /// </remarks>
+  /// <example>
+  /// <code lang="fsharp">
+  /// let dataFoo = attr("data-foo", "bar")
+  /// let node = h("div", text "Hello World").attr(dataFoo)
+  /// </code>
+  /// </example>
+  static member inline attr: node: Node * attribute: AttributeNode -> Node
 
   /// <summary>
   /// Adds an attribute to the 'target' node.

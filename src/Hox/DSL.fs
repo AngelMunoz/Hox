@@ -523,8 +523,46 @@ type NodeDsl =
   static member inline fragment(nodes: IAsyncEnumerable<Node>) =
     AsyncSeqNode nodes
 
+  static member inline attribute(name: string, value: string) =
+    Attribute { name = name; value = value }
+
+  static member inline attribute(name: string, value: string Task) =
+    AsyncAttribute(
+      cancellableValueTask {
+        let! token = CancellableValueTask.getCancellationToken()
+
+        if token.IsCancellationRequested then
+          return {
+            name = String.Empty
+            value = String.Empty
+          }
+        else
+          let! value = value
+          return { name = name; value = value }
+      }
+    )
+  static member inline attribute(name: string, value: string Async) =
+      AsyncAttribute(
+        cancellableValueTask {
+          let! token = CancellableValueTask.getCancellationToken()
+  
+          if token.IsCancellationRequested then
+            return {
+              name = String.Empty
+              value = String.Empty
+            }
+          else
+            let! value = value
+            return { name = name; value = value }
+        }
+      )
+
 [<Extension>]
 type NodeExtensions =
+
+  [<Extension>]
+  static member inline attr(node: Node, attribute: AttributeNode) =
+    node <+. attribute
 
   [<Extension>]
   static member inline attr(node: Node, name: string, ?value: string) =
