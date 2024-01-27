@@ -1,6 +1,6 @@
 Imports FSharp.Control
 Imports Hox.Core
-Imports Hox.NodeBuilder
+Imports Hox.NodeDsl
 Imports Microsoft.AspNetCore.Builder
 Imports Microsoft.AspNetCore.Http
 Imports Microsoft.Extensions.DependencyInjection

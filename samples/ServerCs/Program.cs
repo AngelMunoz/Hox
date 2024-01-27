@@ -1,6 +1,5 @@
 using Hox.Core;
-
-using static Hox.NodeBuilder;
+using static Hox.NodeDsl;
 using static Hox.Rendering;
 
 
@@ -21,12 +20,12 @@ app.MapGet("/", () =>
 
 app.MapGet("/string", () =>
 {
-    var node =
-      Layout.Default(
-        h("h1", text("Hello World!")),
-        h("p", text("This is a paragraph."))
-      );
-    return AppResults.HoxString(node);
+  var node =
+    Layout.Default(
+      h("h1", text("Hello World!")),
+      h("p", text("This is a paragraph."))
+    );
+  return AppResults.HoxString(node);
 });
 
 app.Run();
