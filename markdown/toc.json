@@ -2,91 +2,101 @@
     {
         "title": "Hox",
         "file": "index.md",
-        "created": "2019-01-01",
+        "created": "2024-01-26",
         "updated": null,
         "author": "Hox Team",
         "contributors": [],
-        "summary": "Hox is a DSL for writing HTML in F#.",
+        "summary": "Hox, An Async HTML Rendering Library for the .NET Ecosystem",
         "category": null
     },
     {
         "title": "About Hox",
         "file": "about.md",
-        "created": "2019-01-01",
+        "created": "2024-01-26",
         "updated": null,
         "author": "Hox Team",
         "contributors": [],
-        "summary": "Hox is a DSL for writing HTML in F#.",
+        "summary": "Hox was inspired by the JS ecosystem, here's a short text explaining the motivation behind Hox.",
         "category": null
     },
     {
         "title": "Usage",
         "file": "guides/general-usage.md",
-        "created": "2019-01-01",
+        "created": "2024-01-26",
         "updated": null,
         "author": "Hox Team",
         "contributors": [],
-        "summary": "Hox is a DSL for writing HTML in F#.",
+        "summary": "How to use render and create Hox nodes to use in your application.",
         "category": "Guide"
     },
     {
         "title": "Using Feliz",
         "file": "guides/using-feliz.md",
-        "created": "2019-01-01",
+        "created": "2024-01-26",
         "updated": null,
         "author": "Hox Team",
         "contributors": [],
-        "summary": "Hox is a DSL for writing HTML in F#.",
+        "summary": "F# Users rejoice! Hox can be used with Feliz.",
+        "category": "Guide"
+    },
+    {
+        "title": "Declarative Shadow DOM",
+        "file": "guides/declarative-shadow-dom.md",
+        "created": "2024-01-26",
+        "updated": null,
+        "author": "Hox Team",
+        "contributors": [],
+        "summary": "How to render declarative shadow DOM with Hox and the built-ins for that.",
+        "category": "Guide"
+    },
+    {
+        "title": "C# and VB.NET",
+        "file": "guides/csharp-and-vb-usage.md",
+        "created": "2024-01-26",
+        "updated": null,
+        "author": "Hox Team",
+        "contributors": [],
+        "summary": "Hox can be used from C# and VB.NET.",
         "category": "Guide"
     },
     {
         "title": "Write Your Own DSL",
         "file": "guides/write-your-own-dsl.md",
-        "created": "2019-01-01",
+        "created": "2024-01-26",
         "updated": null,
         "author": "Hox Team",
         "contributors": [],
-        "summary": "Hox is a DSL for writing HTML in F#.",
+        "summary": "Hox is more than just an HTML DSL, it has a set of primitives that can be used to write your own DSL.",
         "category": "Guide"
     },
     {
         "title": "Render Others With Hox",
         "file": "guides/render-other-dsls.md",
-        "created": "2019-01-01",
+        "created": "2024-01-26",
         "updated": null,
         "author": "Hox Team",
         "contributors": [],
-        "summary": "Hox is a DSL for writing HTML in F#.",
+        "summary": "How to write a small interop layer to render other DSLs with Hox.",
         "category": "Guide"
     },
     {
         "title": "Nodes",
         "file": "reference/nodes.md",
-        "created": "2019-01-01",
+        "created": "2024-01-26",
         "updated": null,
         "author": "Hox Team",
         "contributors": [],
-        "summary": "Hox is a DSL for writing HTML in F#.",
-        "category": "Reference"
-    },
-    {
-        "title": "DSL",
-        "file": "reference/dsl.md",
-        "created": "2019-01-01",
-        "updated": null,
-        "author": "Hox Team",
-        "contributors": [],
-        "summary": "Hox is a DSL for writing HTML in F#.",
+        "summary": "Let's talk about nodes, part of the Hox's core.",
         "category": "Reference"
     },
     {
         "title": "Rendering",
         "file": "reference/rendering.md",
-        "created": "2019-01-01",
+        "created": "2024-01-26",
         "updated": null,
         "author": "Hox Team",
         "contributors": [],
-        "summary": "Hox is a DSL for writing HTML in F#.",
+        "summary": "Let's talk in detail about Hox's rendering.",
         "category": "Reference"
     }
 ]
