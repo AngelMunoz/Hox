@@ -36,59 +36,59 @@ module Engine =
 
     member inline _.fragment(nodes: Node IAsyncEnumerable) = AsyncSeqNode nodes
 
-    member inline _.sArticle(styles: Node, content: Node list) =
-      ScopableElements.article(styles, content |> Array.ofList)
+    member inline _.sArticle(content: Node list) =
+      ScopableElements.article(content |> List.toArray)
 
-    member inline _.sAside(styles: Node, content: Node list) =
-      ScopableElements.aside(styles, content |> Array.ofList)
+    member inline _.sAside(content: Node list) =
+      ScopableElements.aside(content |> List.toArray)
 
-    member inline _.sBlockquote(styles: Node, content: Node list) =
-      ScopableElements.blockquote(styles, content |> Array.ofList)
+    member inline _.sBlockquote(content: Node list) =
+      ScopableElements.blockquote(content |> List.toArray)
 
-    member inline _.sBody(styles: Node, content: Node list) =
-      ScopableElements.body(styles, content |> Array.ofList)
+    member inline _.sBody(content: Node list) =
+      ScopableElements.body(content |> List.toArray)
 
-    member inline _.sDiv(styles: Node, content: Node list) =
-      ScopableElements.div(styles, content |> Array.ofList)
+    member inline _.sDiv(content: Node list) =
+      ScopableElements.div(content |> List.toArray)
 
-    member inline _.sFooter(styles: Node, content: Node list) =
-      ScopableElements.footer(styles, content |> Array.ofList)
+    member inline _.sFooter(content: Node list) =
+      ScopableElements.footer(content |> List.toArray)
 
-    member inline _.sH1(styles: Node, content: Node list) =
-      ScopableElements.h1(styles, content |> Array.ofList)
+    member inline _.sH1(content: Node list) =
+      ScopableElements.h1(content |> List.toArray)
 
-    member inline _.sH2(styles: Node, content: Node list) =
-      ScopableElements.h2(styles, content |> Array.ofList)
+    member inline _.sH2(content: Node list) =
+      ScopableElements.h2(content |> List.toArray)
 
-    member inline _.sH3(styles: Node, content: Node list) =
-      ScopableElements.h3(styles, content |> Array.ofList)
+    member inline _.sH3(content: Node list) =
+      ScopableElements.h3(content |> List.toArray)
 
-    member inline _.sH4(styles: Node, content: Node list) =
-      ScopableElements.h4(styles, content |> Array.ofList)
+    member inline _.sH4(content: Node list) =
+      ScopableElements.h4(content |> List.toArray)
 
-    member inline _.sH5(styles: Node, content: Node list) =
-      ScopableElements.h5(styles, content |> Array.ofList)
+    member inline _.sH5(content: Node list) =
+      ScopableElements.h5(content |> List.toArray)
 
-    member inline _.sH6(styles: Node, content: Node list) =
-      ScopableElements.h6(styles, content |> Array.ofList)
+    member inline _.sH6(content: Node list) =
+      ScopableElements.h6(content |> List.toArray)
 
-    member inline _.sHeader(styles: Node, content: Node list) =
-      ScopableElements.header(styles, content |> Array.ofList)
+    member inline _.sHeader(content: Node list) =
+      ScopableElements.header(content |> List.toArray)
 
-    member inline _.sMain(styles: Node, content: Node list) =
-      ScopableElements.main(styles, content |> Array.ofList)
+    member inline _.sMain(content: Node list) =
+      ScopableElements.main(content |> List.toArray)
 
-    member inline _.sNav(styles: Node, content: Node list) =
-      ScopableElements.nav(styles, content |> Array.ofList)
+    member inline _.sNav(content: Node list) =
+      ScopableElements.nav(content |> List.toArray)
 
-    member inline _.sP(styles: Node, content: Node list) =
-      ScopableElements.p(styles, content |> Array.ofList)
+    member inline _.sP(content: Node list) =
+      ScopableElements.p(content |> List.toArray)
 
-    member inline _.sSection(styles: Node, content: Node list) =
-      ScopableElements.section(styles, content |> Array.ofList)
+    member inline _.sSection(content: Node list) =
+      ScopableElements.section(content |> List.toArray)
 
-    member inline _.sSpan(styles: Node, content: Node list) =
-      ScopableElements.span(styles, content |> Array.ofList)
+    member inline _.sSpan(content: Node list) =
+      ScopableElements.span(content |> List.toArray)
 
 
   let H =

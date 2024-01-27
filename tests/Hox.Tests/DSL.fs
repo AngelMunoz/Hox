@@ -963,7 +963,7 @@ module DSD =
 
   [<Fact>]
   let ``sh can produce a function that will create a template``() =
-    let template = sh("x-my-tag", h "slot")
+    let template = sh("x-my-tag", h "slot", h "slot[name=second]")
 
     let templatedResult = template(text "Hello, World!")
 
@@ -981,6 +981,14 @@ module DSD =
                                                               tag = "slot"
                                                               children = []
                                                               attributes = []
+                                                            }
+                                                    Element {
+                                                              tag = "slot"
+                                                              attributes = [ Attribute {
+                                                                                         name = "name"
+                                                                                         value = "second"
+                                                                                       } ]
+                                                              children = []
                                                             } ]
                                      }
                              Text "Hello, World!" ]
@@ -1035,16 +1043,16 @@ module DSD =
                                                                   name = "shadowrootmode"
                                                                   value = "open"
                                                                 } ]
-                                       children = [ Element {
-                                                              tag = "link"
-                                                              attributes = [ Attribute {
-                                                                                         name = "href"
-                                                                                         value = "https://some-css-file"
-                                                                                       } ]
-                                                              children = []
-                                                            } ]
-                                     }
-                             Fragment [ Text "Hello, World!" ] ]
+                                       children = [ Fragment [ Element {
+                                                                         tag = "link"
+                                                                         attributes = [ Attribute {
+                                                                                                    name = "href"
+                                                                                                    value = "https://some-css-file"
+                                                                                                  } ]
+                                                                         children = []
+                                                                       }
+                                                               Text "Hello, World!" ] ]
+                                     } ]
               } -> ()
     | other ->
       Assert.Fail
