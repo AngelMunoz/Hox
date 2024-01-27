@@ -83,13 +83,7 @@ let Main argv =
               )
               |> ignore
 
-              let isGhPages =
-                argv |> Array.exists(fun arg -> arg.StartsWith("--is-gh-pages"))
-
-              let htmlBaseHref = if isGhPages then "/Hox/" else "/"
-
-              let layout =
-                Layout.Default(toc, metadata, htmlBaseHref, raw content)
+              let layout = Layout.Default(toc, metadata, "/", raw content)
 
               let path =
                 Path.Combine("docs", metadata.file.Replace(".md", ".html"))
