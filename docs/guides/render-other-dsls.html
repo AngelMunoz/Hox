@@ -1,4 +1,4 @@
-<html lang="en"><head><title>Render Others With Hox</title><meta name="viewport" content="width=device-width,initial-scale=1"><meta property="og:site_name" content="Hox Documentation"><meta name="og:description" content="How to write a small interop layer to render other DSLs with Hox."><meta property="og:title" content="Render Others With Hox"><meta property="og:type" content="website"><link href="/assets/styles.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><base href="/"><script src="https://ga.jspm.io/npm:es-module-shims@1.6.2/dist/es-module-shims.js" async="" crossorigin="anonymouys"></script><script type="importmap">{
+<html lang="en"><head><title>Render Others With Hox</title><meta name="viewport" content="width=device-width,initial-scale=1"><meta content="Hox Documentation" property="og:site_name"><meta name="og:description" content="How to write a small interop layer to render other DSLs with Hox."><meta content="Render Others With Hox" property="og:title"><meta content="website" property="og:type"><link rel="stylesheet" href="/assets/styles.css"><link rel="stylesheet" href="/assets/links.css"><base href="/"><script crossorigin="anonymouys" src="https://ga.jspm.io/npm:es-module-shims@1.6.2/dist/es-module-shims.js" async=""></script><script type="importmap">{
   "imports": {
     "hox": "/assets/script.js",
     "highlight.js": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/index.js",
@@ -9,8 +9,189 @@
     "highlight.js/lib/languages/xml": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/xml.js",
      "highlight.js/lib/languages/plaintext": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/plaintext.js"
   }
-}</script></head><body><nav><ul><li><a href="/">Home</a></li><li><a href="/about.html">About Hox</a></li><li><a href="/guides/general-usage.html">Documentation</a></li><li><a href="/reference/nodes.html">Reference</a></li></ul></nav><aside><ul><li><h4>Guide</h4><ul><li><a href="guides/general-usage.html">Usage</a></li><li><a href="guides/using-feliz.html">Using Feliz</a></li><li><a href="guides/declarative-shadow-dom.html">Declarative Shadow DOM</a></li><li><a href="guides/csharp-and-vb-usage.html">C# and VB.NET</a></li><li><a href="guides/write-your-own-dsl.html">Write Your Own DSL</a></li><li><a href="guides/render-other-dsls.html">Render Others With Hox</a></li></ul></li><li><h4>Reference</h4><ul><li><a href="reference/nodes.html">Nodes</a></li><li><a href="reference/rendering.html">Rendering</a></li></ul></li></ul></aside><main><template shadowrootmode="open"><link href="/assets/main.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><link href="/assets/index.css" rel="stylesheet"><link href="/assets/highlight.css" rel="stylesheet"><h1 id="wip">WIP</h1>
-</template></main><footer><template shadowrootmode="open"><link href="/assets/footer.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><p><a href="https://github.com/AngelMunoz/Hox">Hox</a> is an F# library for rendering HTML documents asynchronously.</p></template></footer><script>if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRootMode')) {
+}</script></head><body><nav><ul><li><a href="/">Home</a></li><li><a href="/about.html">About Hox</a></li><li><a href="/guides/general-usage.html">Documentation</a></li><li><a href="/reference/nodes.html">Reference</a></li></ul></nav><aside><ul><li><h4>Guide</h4><ul><li><a href="guides/general-usage.html">Usage</a></li><li><a href="guides/using-feliz.html">Using Feliz</a></li><li><a href="guides/declarative-shadow-dom.html">Declarative Shadow DOM</a></li><li><a href="guides/csharp-and-vb-usage.html">C# and VB.NET</a></li><li><a href="guides/write-your-own-dsl.html">Write Your Own DSL</a></li><li><a href="guides/render-other-dsls.html">Render Others With Hox</a></li></ul></li><li><h4>Reference</h4><ul><li><a href="reference/nodes.html">Nodes</a></li><li><a href="reference/rendering.html">Rendering</a></li></ul></li></ul></aside><main><template shadowrootmode="open"><link rel="stylesheet" href="/assets/main.css"><link rel="stylesheet" href="/assets/links.css"><link rel="stylesheet" href="/assets/index.css"><link rel="stylesheet" href="/assets/highlight.css"><p>Sometimes you may already have a big codebase written in another DSL, if you want to leverage their DSL and slowly migrate to Hox or a Hox based alternative writing an adapter is not a complex task.</p>
+<h3 id="falco.markup">Falco.Markup</h3>
+<p>For example, if you want to use <a href="https://www.falcoframework.com/docs/markup.html">Falco.Markup</a> we already have a sample in our <a href="https://github.com/AngelMunoz/Hox/tree/bd1fdb82de26389d4ebfd49f65b58b2340cb8999/samples/Falco">samples</a> directory.</p>
+<pre><code class="language-fsharp">open Falco.Markup
+
+open Hox
+open Hox.Core
+open Hox.Rendering
+
+// take their DSL attributes and convert them to Hox attributes
+let inline xmlAttrToHtmelo(attr: XmlAttribute) : AttributeNode =
+  match attr with
+  | KeyValueAttr(key, value) -&gt; Attribute { name = key; value = value }
+  | NonValueAttr key -&gt; Attribute { name = key; value = &quot;&quot; }
+
+// folding function to use further below, we're basically
+// just adding all of the found attributes to the specified node
+let inline foldAttributes (node: Node) (attr: XmlAttribute) : Node =
+  match attr with
+  | KeyValueAttr(key, value) -&gt;
+    NodeOps.addAttribute(node, Attribute { name = key; value = value })
+  | NonValueAttr key -&gt;
+    NodeOps.addAttribute(node, Attribute { name = key; value = &quot;&quot; })
+
+// Falco.Markup's DSL uses XmlNodes as their core type, so
+// as long as we can convert an XmlNode to a Hox Node we're good
+let rec xmlNodeToHtmelo(fmNode: XmlNode) : Node =
+  match fmNode with
+  | ParentNode((tagName, attributes), children) -&gt;
+    attributes
+    |&gt; List.fold
+      foldAttributes
+      (h(tagName, children |&gt; List.map xmlNodeToHtmelo))
+  | TextNode text -&gt; Text text
+  | SelfClosingNode((tagName, attributes)) -&gt;
+    attributes |&gt; List.fold foldAttributes (h tagName)
+</code></pre>
+<p>In the code above we're just converting Falco.Markup's DSL to Hox's DSL, we're using the <code>h</code> function to create a node and then we're adding all of the attributes to it.</p>
+<p>To render it later on we just need to call this newly created function</p>
+<pre><code class="language-fsharp">let render (fmNode: XmlNode) =
+  let convertedNode = fmNode |&gt; xmlNodeToHtmelo
+
+  Render.asString(convertedNode)
+</code></pre>
+<h3 id="giraffe.viewengine">Giraffe.ViewEngine</h3>
+<p>Giraffe's engine is in a similar situation, you can find a <a href="https://github.com/AngelMunoz/Hox/tree/bd1fdb82de26389d4ebfd49f65b58b2340cb8999/samples/Giraffe">samples</a> in our repository as well.</p>
+<pre><code class="language-fsharp">open Giraffe.ViewEngine
+
+open Hox
+open Hox.Core
+open Hox.Rendering
+
+// in a similar fashion to Falco.Markup we're just
+// converting Giraffe.ViewEngine's DSL to Hox's DSL
+let inline xmlAttrToHtmelo(attr: XmlAttribute) : AttributeNode =
+  match attr with
+  | KeyValue(key, value) -&gt; Attribute { name = key; value = value }
+  | Boolean key -&gt; Attribute { name = key; value = &quot;&quot; }
+
+let inline foldAttributes (node: Node) (attr: XmlAttribute) : Node =
+  match attr with
+  | KeyValue(key, value) -&gt;
+    NodeOps.addAttribute(node, Attribute { name = key; value = value })
+  | Boolean key -&gt;
+    NodeOps.addAttribute(node, Attribute { name = key; value = &quot;&quot; })
+
+// Giraffe ViewEngine also uses a type called XmlNode, but
+// it's different from Falco.Markup's XmlNode, so we need
+// to convert it to Hox as well
+let rec xmlNodeToHoxNode(fmNode: XmlNode) : Node =
+  match fmNode with
+  | ParentNode((tagName, attributes), children) -&gt;
+    attributes
+    |&gt; Array.fold
+      foldAttributes
+      (h(tagName, children |&gt; List.map xmlNodeToHoxNode))
+  | HtmlElements.Text text -&gt; Core.Text text
+  | VoidElement((tagName, attributes)) -&gt;
+    attributes |&gt; Array.fold foldAttributes (h tagName)
+</code></pre>
+<p>Once we have this small interop layer we can render it as well</p>
+<pre><code class="language-fsharp">let render (fmNode: XmlNode) =
+  let convertedNode = fmNode |&gt; xmlNodeToHoxNode
+
+  Render.asString(convertedNode)
+</code></pre>
+<h3 id="a-word-on-moving-to-hox">A word on moving to Hox</h3>
+<p>Keep in mind that their DSL doesn't support asynchronous nodes, so think of these solutions as a way to either interop or migrate to Hox.</p>
+<p>Me as the Hox author I'd rather urge you to help them and find a way to add support for asynchronous nodes and rendering to their DSL, to keep pushing the boundaries of what's possible in F#.</p>
+<h1 id="moving-out-of-hox">Moving out of Hox</h1>
+<p>If you want to move out of Hox enable Hox nodes in your DSL and then use the <code>Hox.Core</code> module to convert them to your DSL's nodes.</p>
+<pre><code class="language-fsharp">open System
+open System.Web
+// IAsyncEnumerable Support
+open FSharp.Control
+// Cancellable Tasks and ValueTasks
+open IcedTasks
+
+open Falco.Markup
+
+open Hox
+open Hox.Core
+open Hox.Rendering
+
+
+let rec hoxNodeToXmlNode(node: Node) = cancellableValueTask {
+  let! token = CancellableValueTask.getCancellationToken()
+
+  // Usually we would take the cancellation process
+  // within our own rendering engine, but since we're
+  // creating an adapter most likely we need handle cancellation
+  // in the adapter itself.
+  // since this function is recursive and cancellbleValueTask
+  // cooperatively binds the cancellation token, we can be sure that
+  // if the token is cancelled, the whole tree will be cancelled.
+  token.ThrowIfCancellationRequested()
+
+  match node with
+  | Text text -&gt; return TextNode (HttpUtility.HtmlEncode text)
+  | Raw raw -&gt; return TextNode raw
+  | Comment comment -&gt;
+    return TextNode (&quot;&lt;!-- &quot; + HttpUtility.HtmlEncode comment + &quot; --&gt;&quot;)
+  | Element {
+              tag = tag
+              attributes = attributes
+              children = children
+            } -&gt;
+    let attrBag = ResizeArray&lt;XmlAttribute&gt;()
+    let childrenBag = ResizeArray&lt;XmlNode&gt;()
+
+    for attr in attributes do
+      let! attr = hoxAttrToXmlAttr attr
+      attrBag.Add(attr)
+
+
+    for child in children do
+      let! child = hoxNodeToXmlNode child
+      childrenBag.Add(child)
+
+    return ParentNode((tag, attrBag |&gt; List.ofSeq), childrenBag |&gt; List.ofSeq)
+  // Falco.Markup doesn't support fragments, we'll add a parent node
+  // but this is not the right semantic.
+  | AsyncSeqNode nodes -&gt;
+    let bag = ResizeArray&lt;XmlNode&gt;()
+
+    for node in nodes do
+      // A word of caution, recursion is not well supported
+      // in Computation Expressions, if the tree is really deep
+      // this will likely end up in a stack overflow.
+      // so an alternative approach needs to be taken.
+      let! node = hoxNodeToXmlNode node
+      bag.Add(node)
+
+    return ParentNode((&quot;&quot;, []), bag |&gt; List.ofSeq)
+
+  // Falco.Markup doesn't support fragments, we'll add a parent node
+  // but this is not the right semantic.
+  | Fragment nodes -&gt;
+    let bag = ResizeArray&lt;XmlNode&gt;()
+
+    for node in nodes do
+      // similarly as above, if the tree is really deep
+      // this will likely end up in a stack overflow.
+      let! node = hoxNodeToXmlNode node
+      bag.Add(node)
+
+    return ParentNode((&quot;&quot;, []), bag |&gt; List.ofSeq)
+  | AsyncNode op -&gt;
+    let! node = op
+    return! hoxNodeToXmlNode node
+}
+</code></pre>
+<p>Once we're done with the conversion functions we can render it in the usual means.</p>
+<p>Hox Nodes by nature will always be cancellableValueTasks as we support cancellation as well, so to interact with other DSLs we first need to resolve the node tree before passing it onto their rendering engine unless they support async rendering in some way.</p>
+<pre><code class="language-fsharp">let view (): Task&lt;string&gt; =  task {
+  let node = h(&quot;p&quot;, &quot;Hello World&quot;)
+  // conver it to an XML node
+  let! node = node |&gt; hoxNodeToXmlNode
+  return! XmlNodeRenderer.renderNode node
+}
+</code></pre>
+<p>Hox is meant to be a building block for HTML rendering so, it is extensible enough to either migrate to it or away from it.</p>
+</template></main><footer><template shadowrootmode="open"><link rel="stylesheet" href="/assets/footer.css"><link rel="stylesheet" href="/assets/links.css"><p><a href="https://github.com/AngelMunoz/Hox">Hox</a> is an F# library for rendering HTML documents asynchronously.</p></template></footer><script>if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRootMode')) {
   (function attachShadowRoots(root) {
     root.querySelectorAll("template[shadowrootmode]").forEach(template => {
       const mode = template.getAttribute("shadowrootmode");
