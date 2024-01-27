@@ -1041,8 +1041,42 @@ type NodeExtensions =
 type DeclarativeShadowDom =
 
   /// <summary>
+  /// Produces a function that will create a Declarative Shadow DOM element.
+  /// This function only creates the template content. If you need to use Slots, please
+  /// use the overload that takes a template definition and returns a factory function instead.
+  /// </summary>
+  /// <param name="tagName">The tag name of the element</param>
+  /// <param name="templateDefinition">
+  /// This content is going to
+  /// be added inside the `&lt;template&gt;` tag that is part of the declarative shadow DOM
+  /// </param>
+  /// <returns>A declarative shadow dom enabled node</returns>
+  /// <remarks>
+  /// This function is meant to be consumed by the F# folks, if you are using C# then you should
+  /// use the `shcs` function instead.
+  /// </remarks>
+  /// <example>
+  /// <code lang="fsharp">
+  /// let myShadowDiv =
+  ///   sh("div", el("header", text "Hello World"),el("footer", text "Bye World"))
+  ///
+  /// let node = myShadowDiv
+  /// // produces
+  /// // &lt;div&gt;
+  /// //   &lt;template shadowroot="open"&gt;
+  /// //    &lt;header&gt;Hello World&lt;/header&gt;
+  /// //    &lt;footer&gt;Bye World&lt;/footer&gt;
+  /// //   &lt;/template&gt;
+  /// // &lt;/div&gt;
+  /// </code>
+  /// </example>
+  static member inline sh: tagName: string * templateDefinition: Node -> Node
+
+  /// <summary>
   /// Produces a function that will create an HTML tag with a template tag enabled with declarative shadow DOM.
   /// The resulting function will take a child node and append it to the final template.
+  /// This function is particularly useful when you're using slots, otherwise you can use the overload
+  /// that takes a single node.
   /// </summary>
   /// <param name="tagName">The tag name of the element</param>
   /// <param name="templateDefinition">
@@ -1148,7 +1182,6 @@ type ScopableElements =
   /// <summary>
   /// Creates a new article element with declarative shadow DOM enabled.
   /// </summary>
-  /// <param name="styles">A style tag or link tag to use for this scoped element</param>
   /// <param name="content">The content to add to the article</param>
   /// <returns>A new node</returns>
   /// <remarks>
@@ -1158,13 +1191,11 @@ type ScopableElements =
   /// <remarks>
   /// The styles node will be added into the template tag with declarative shadow dom
   /// </remarks>
-  static member inline article:
-    styles: Node * [<ParamArray>] content: Node array -> Node
+  static member inline article: [<ParamArray>] content: Node array -> Node
 
   /// <summary>
   /// Creates a new blockquote element with declarative shadow DOM enabled.
   /// </summary>
-  /// <param name="styles">A style tag or link tag to use for this scoped element</param>
   /// <param name="content">The content to add to the blockquote</param>
   /// <returns>A new node</returns>
   /// <remarks>
@@ -1174,13 +1205,11 @@ type ScopableElements =
   /// <remarks>
   /// The styles node will be added into the template tag with declarative shadow dom
   /// </remarks>
-  static member inline aside:
-    styles: Node * [<ParamArray>] content: Node array -> Node
+  static member inline aside: [<ParamArray>] content: Node array -> Node
 
   /// <summary>
   /// Creates a new blockquote element with declarative shadow DOM enabled.
   /// </summary>
-  /// <param name="styles">A style tag or link tag to use for this scoped element</param>
   /// <param name="content">The content to add to the blockquote</param>
   /// <returns>A new node</returns>
   /// <remarks>
@@ -1190,13 +1219,11 @@ type ScopableElements =
   /// <remarks>
   /// The styles node will be added into the template tag with declarative shadow dom
   /// </remarks>
-  static member inline blockquote:
-    styles: Node * [<ParamArray>] content: Node array -> Node
+  static member inline blockquote: [<ParamArray>] content: Node array -> Node
 
   /// <summary>
   /// Creates a new body element with declarative shadow DOM enabled.
   /// </summary>
-  /// <param name="styles">A style tag or link tag to use for this scoped element</param>
   /// <param name="content">The content to add to the body</param>
   /// <returns>A new node</returns>
   /// <remarks>
@@ -1206,13 +1233,11 @@ type ScopableElements =
   /// <remarks>
   /// The styles node will be added into the template tag with declarative shadow dom
   /// </remarks>
-  static member inline body:
-    styles: Node * [<ParamArray>] content: Node array -> Node
+  static member inline body: [<ParamArray>] content: Node array -> Node
 
   /// <summary>
   /// Creates a new div element with declarative shadow DOM enabled.
   /// </summary>
-  /// <param name="styles">A style tag or link tag to use for this scoped element</param>
   /// <param name="content">The content to add to the div</param>
   /// <returns>A new node</returns>
   /// <remarks>
@@ -1222,13 +1247,11 @@ type ScopableElements =
   /// <remarks>
   /// The styles node will be added into the template tag with declarative shadow dom
   /// </remarks>
-  static member inline div:
-    styles: Node * [<ParamArray>] content: Node array -> Node
+  static member inline div: [<ParamArray>] content: Node array -> Node
 
   /// <summary>
   /// Creates a new footer element with declarative shadow DOM enabled.
   /// </summary>
-  /// <param name="styles">A style tag or link tag to use for this scoped element</param>
   /// <param name="content">The content to add to the footer</param>
   /// <returns>A new node</returns>
   /// <remarks>
@@ -1238,13 +1261,11 @@ type ScopableElements =
   /// <remarks>
   /// The styles node will be added into the template tag with declarative shadow dom
   /// </remarks>
-  static member inline footer:
-    styles: Node * [<ParamArray>] content: Node array -> Node
+  static member inline footer: [<ParamArray>] content: Node array -> Node
 
   /// <summary>
   /// Creates a new h1 element with declarative shadow DOM enabled.
   /// </summary>
-  /// <param name="styles">A style tag or link tag to use for this scoped element</param>
   /// <param name="content">The content to add to the h1</param>
   /// <returns>A new node</returns>
   /// <remarks>
@@ -1254,13 +1275,11 @@ type ScopableElements =
   /// <remarks>
   /// The styles node will be added into the template tag with declarative shadow dom
   /// </remarks>
-  static member inline h1:
-    styles: Node * [<ParamArray>] content: Node array -> Node
+  static member inline h1: [<ParamArray>] content: Node array -> Node
 
   /// <summary>
   /// Creates a new h2 element with declarative shadow DOM enabled.
   /// </summary>
-  /// <param name="styles">A style tag or link tag to use for this scoped element</param>
   /// <param name="content">The content to add to the h2</param>
   /// <returns>A new node</returns>
   /// <remarks>
@@ -1270,13 +1289,11 @@ type ScopableElements =
   /// <remarks>
   /// The styles node will be added into the template tag with declarative shadow dom
   /// </remarks>
-  static member inline h2:
-    styles: Node * [<ParamArray>] content: Node array -> Node
+  static member inline h2: [<ParamArray>] content: Node array -> Node
 
   /// <summary>
   /// Creates a new h3 element with declarative shadow DOM enabled.
   /// </summary>
-  /// <param name="styles">A style tag or link tag to use for this scoped element</param>
   /// <param name="content">The content to add to the h3</param>
   /// <returns>A new node</returns>
   /// <remarks>
@@ -1286,13 +1303,11 @@ type ScopableElements =
   /// <remarks>
   /// The styles node will be added into the template tag with declarative shadow dom
   /// </remarks>
-  static member inline h3:
-    styles: Node * [<ParamArray>] content: Node array -> Node
+  static member inline h3: [<ParamArray>] content: Node array -> Node
 
   /// <summary>
   /// Creates a new h4 element with declarative shadow DOM enabled.
   /// </summary>
-  /// <param name="styles">A style tag or link tag to use for this scoped element</param>
   /// <param name="content">The content to add to the h4</param>
   /// <returns>A new node</returns>
   /// <remarks>
@@ -1302,13 +1317,11 @@ type ScopableElements =
   /// <remarks>
   /// The styles node will be added into the template tag with declarative shadow dom
   /// </remarks>
-  static member inline h4:
-    styles: Node * [<ParamArray>] content: Node array -> Node
+  static member inline h4: [<ParamArray>] content: Node array -> Node
 
   /// <summary>
   /// Creates a new h5 element with declarative shadow DOM enabled.
   /// </summary>
-  /// <param name="styles">A style tag or link tag to use for this scoped element</param>
   /// <param name="content">The content to add to the h5</param>
   /// <returns>A new node</returns>
   /// <remarks>
@@ -1318,13 +1331,11 @@ type ScopableElements =
   /// <remarks>
   /// The styles node will be added into the template tag with declarative shadow dom
   /// </remarks>
-  static member inline h5:
-    styles: Node * [<ParamArray>] content: Node array -> Node
+  static member inline h5: [<ParamArray>] content: Node array -> Node
 
   /// <summary>
   /// Creates a new h6 element with declarative shadow DOM enabled.
   /// </summary>
-  /// <param name="styles">A style tag or link tag to use for this scoped element</param>
   /// <param name="content">The content to add to the h6</param>
   /// <returns>A new node</returns>
   /// <remarks>
@@ -1334,13 +1345,11 @@ type ScopableElements =
   /// <remarks>
   /// The styles node will be added into the template tag with declarative shadow dom
   /// </remarks>
-  static member inline h6:
-    styles: Node * [<ParamArray>] content: Node array -> Node
+  static member inline h6: [<ParamArray>] content: Node array -> Node
 
   /// <summary>
   /// Creates a new header element with declarative shadow DOM enabled.
   /// </summary>
-  /// <param name="styles">A style tag or link tag to use for this scoped element</param>
   /// <param name="content">The content to add to the header</param>
   /// <returns>A new node</returns>
   /// <remarks>
@@ -1352,13 +1361,11 @@ type ScopableElements =
   /// <remarks>
   /// The styles node will be added into the template tag with declarative shadow dom
   /// </remarks>
-  static member inline header:
-    styles: Node * [<ParamArray>] content: Node array -> Node
+  static member inline header: [<ParamArray>] content: Node array -> Node
 
   /// <summary>
   /// Creates a new main element with declarative shadow DOM enabled.
   /// </summary>
-  /// <param name="styles">A style tag or link tag to use for this scoped element</param>
   /// <param name="content">The content to add to the main</param>
   /// <returns>A new node</returns>
   /// <remarks>
@@ -1370,13 +1377,11 @@ type ScopableElements =
   /// <remarks>
   /// The styles node will be added into the template tag with declarative shadow dom
   /// </remarks>
-  static member inline main:
-    styles: Node * [<ParamArray>] content: Node array -> Node
+  static member inline main: [<ParamArray>] content: Node array -> Node
 
   /// <summary>
   /// Creates a new nav element with declarative shadow DOM enabled.
   /// </summary>
-  /// <param name="styles">A style tag or link tag to use for this scoped element</param>
   /// <param name="content">The content to add to the nav</param>
   /// <returns>A new node</returns>
   /// <remarks>
@@ -1388,13 +1393,11 @@ type ScopableElements =
   /// <remarks>
   /// The styles node will be added into the template tag with declarative shadow dom
   /// </remarks>
-  static member inline nav:
-    styles: Node * [<ParamArray>] content: Node array -> Node
+  static member inline nav: [<ParamArray>] content: Node array -> Node
 
   /// <summary>
   /// Creates a new p element with declarative shadow DOM enabled.
   /// </summary>
-  /// <param name="styles">A style tag or link tag to use for this scoped element</param>
   /// <param name="content">The content to add to the p</param>
   /// <returns>A new node</returns>
   /// <remarks>
@@ -1406,13 +1409,11 @@ type ScopableElements =
   /// <remarks>
   /// The styles node will be added into the template tag with declarative shadow dom
   /// </remarks>
-  static member inline p:
-    styles: Node * [<ParamArray>] content: Node array -> Node
+  static member inline p: [<ParamArray>] content: Node array -> Node
 
   /// <summary>
   /// Creates a new section element with declarative shadow DOM enabled.
   /// </summary>
-  /// <param name="styles">A style tag or link tag to use for this scoped element</param>
   /// <param name="content">The content to add to the section</param>
   /// <returns>A new node</returns>
   /// <remarks>
@@ -1424,13 +1425,11 @@ type ScopableElements =
   /// <remarks>
   /// The styles node will be added into the template tag with declarative shadow dom
   /// </remarks>
-  static member inline section:
-    styles: Node * [<ParamArray>] content: Node array -> Node
+  static member inline section: [<ParamArray>] content: Node array -> Node
 
   /// <summary>
   /// Creates a new span element with declarative shadow DOM enabled.
   /// </summary>
-  /// <param name="styles">A style tag or link tag to use for this scoped element</param>
   /// <param name="content">The content to add to the span</param>
   /// <returns>A new node</returns>
   /// <remarks>
@@ -1442,5 +1441,4 @@ type ScopableElements =
   /// <remarks>
   /// The styles node will be added into the template tag with declarative shadow dom
   /// </remarks>
-  static member inline span:
-    styles: Node * [<ParamArray>] content: Node array -> Node
+  static member inline span: [<ParamArray>] content: Node array -> Node

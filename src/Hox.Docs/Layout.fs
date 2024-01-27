@@ -57,7 +57,6 @@ module Views =
 }"""
     )
 
-
 type Layout =
 
   static member inline Default
@@ -106,13 +105,11 @@ type Layout =
          else
            h("aside", Views.tableOfContents toc)),
         main(
-          fragment(
-            h "link[rel=stylesheet][href=/assets/main.css]",
-            h "link[rel=stylesheet][href=/assets/links.css]",
-            h "link[rel=stylesheet][href=/assets/index.css]",
-            h "link[rel=stylesheet][href=/assets/highlight.css]"
-          ),
-          content
+          h "link[rel=stylesheet][href=/assets/main.css]",
+          h "link[rel=stylesheet][href=/assets/links.css]",
+          h "link[rel=stylesheet][href=/assets/index.css]",
+          h "link[rel=stylesheet][href=/assets/highlight.css]",
+          fragment content
         ),
         footer(
           fragment(

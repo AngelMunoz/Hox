@@ -6,6 +6,7 @@
   --hox-font-color: #504c4c;
   --hox-background-color: #fffdf6;
 
+  --hox-blockquote-bg-color: #eae6d6;
   --hox-card-background-color: var(--hox-background-color, #fff);
   --hox-card-color: var(--hox-font-color, #0f0f0f);
 
@@ -101,7 +102,7 @@ footer {
   :root {
     --hox-font-color: #e8e6e3;
     --hox-background-color: #2c1d04;
-
+    --hox-blockquote-bg-color: #2c1d04;
     --hox-card-background-color: var(--hox-background-color, #0f0f0f);
     --hox-card-color: var(--hox-font-color, #e8e6e3);
 

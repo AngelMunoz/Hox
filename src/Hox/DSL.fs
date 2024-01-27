@@ -541,21 +541,22 @@ type NodeDsl =
           return { name = name; value = value }
       }
     )
+
   static member inline attribute(name: string, value: string Async) =
-      AsyncAttribute(
-        cancellableValueTask {
-          let! token = CancellableValueTask.getCancellationToken()
-  
-          if token.IsCancellationRequested then
-            return {
-              name = String.Empty
-              value = String.Empty
-            }
-          else
-            let! value = value
-            return { name = name; value = value }
-        }
-      )
+    AsyncAttribute(
+      cancellableValueTask {
+        let! token = CancellableValueTask.getCancellationToken()
+
+        if token.IsCancellationRequested then
+          return {
+            name = String.Empty
+            value = String.Empty
+          }
+        else
+          let! value = value
+          return { name = name; value = value }
+      }
+    )
 
 [<Extension>]
 type NodeExtensions =
@@ -754,6 +755,9 @@ type NodeExtensions =
 [<AutoOpen>]
 type DeclarativeShadowDom =
 
+  static member inline sh(tagName: string, templateDefinition: Node) =
+    h(tagName, h("template[shadowrootmode=open]", templateDefinition))
+
   static member inline sh
     (
       tagName: string,
@@ -774,60 +778,56 @@ type DeclarativeShadowDom =
 
 type ScopableElements =
 
-  static member inline article(styles: Node, [<ParamArray>] content: _ array) =
-    sh ("article", styles, fragment content) (fragment [])
+  static member inline article([<ParamArray>] content: _ array) =
+    sh("article", fragment content)
 
-  static member inline aside(styles: Node, [<ParamArray>] content: _ array) =
-    sh ("aside", styles, fragment content) (fragment [])
+  static member inline aside([<ParamArray>] content: _ array) =
+    sh("aside", fragment content)
 
-  static member inline blockquote
-    (
-      styles: Node,
-      [<ParamArray>] content: _ array
-    ) =
-    sh ("blockquote", styles, fragment content) (fragment [])
+  static member inline blockquote([<ParamArray>] content: _ array) =
+    sh("blockquote", fragment content)
 
-  static member inline body(styles: Node, [<ParamArray>] content: _ array) =
-    sh ("body", styles, fragment content) (fragment [])
+  static member inline body([<ParamArray>] content: _ array) =
+    sh("body", fragment content)
 
-  static member inline div(styles: Node, [<ParamArray>] content: _ array) =
-    sh ("div", styles, fragment content) (fragment [])
+  static member inline div([<ParamArray>] content: _ array) =
+    sh("div", fragment content)
 
-  static member inline footer(styles: Node, [<ParamArray>] content: _ array) =
-    sh ("footer", styles, fragment content) (fragment [])
+  static member inline footer([<ParamArray>] content: _ array) =
+    sh("footer", fragment content)
 
-  static member inline h1(styles: Node, [<ParamArray>] content: _ array) =
-    sh ("h1", styles, fragment content) (fragment [])
+  static member inline h1([<ParamArray>] content: _ array) =
+    sh("h1", fragment content)
 
-  static member inline h2(styles: Node, [<ParamArray>] content: _ array) =
-    sh ("h2", styles, fragment content) (fragment [])
+  static member inline h2([<ParamArray>] content: _ array) =
+    sh("h2", fragment content)
 
-  static member inline h3(styles: Node, [<ParamArray>] content: _ array) =
-    sh ("h3", styles, fragment content) (fragment [])
+  static member inline h3([<ParamArray>] content: _ array) =
+    sh("h3", fragment content)
 
-  static member inline h4(styles: Node, [<ParamArray>] content: _ array) =
-    sh ("h4", styles, fragment content) (fragment [])
+  static member inline h4([<ParamArray>] content: _ array) =
+    sh("h4", fragment content)
 
-  static member inline h5(styles: Node, [<ParamArray>] content: _ array) =
-    sh ("h5", styles, fragment content) (fragment [])
+  static member inline h5([<ParamArray>] content: _ array) =
+    sh("h5", fragment content)
 
-  static member inline h6(styles: Node, [<ParamArray>] content: _ array) =
-    sh ("h6", styles, fragment content) (fragment [])
+  static member inline h6([<ParamArray>] content: _ array) =
+    sh("h6", fragment content)
 
-  static member inline header(styles: Node, [<ParamArray>] content: _ array) =
-    sh ("header", styles, fragment content) (fragment [])
+  static member inline header([<ParamArray>] content: _ array) =
+    sh("header", fragment content)
 
-  static member inline main(styles: Node, [<ParamArray>] content: _ array) =
-    sh ("main", styles, fragment content) (fragment [])
+  static member inline main([<ParamArray>] content: _ array) =
+    sh("main", fragment content)
 
-  static member inline nav(styles: Node, [<ParamArray>] content: _ array) =
-    sh ("nav", styles, fragment content) (fragment [])
+  static member inline nav([<ParamArray>] content: _ array) =
+    sh("nav", fragment content)
 
-  static member inline p(styles: Node, [<ParamArray>] content: _ array) =
-    sh ("p", styles, fragment content) (fragment [])
+  static member inline p([<ParamArray>] content: _ array) =
+    sh("p", fragment content)
 
-  static member inline section(styles: Node, [<ParamArray>] content: _ array) =
-    sh ("section", styles, fragment content) (fragment [])
+  static member inline section([<ParamArray>] content: _ array) =
+    sh("section", fragment content)
 
-  static member inline span(styles: Node, [<ParamArray>] content: _ array) =
-    sh ("span", styles, fragment content) (fragment [])
+  static member inline span([<ParamArray>] content: _ array) =
+    sh("span", fragment content)
