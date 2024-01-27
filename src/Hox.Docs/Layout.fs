@@ -49,7 +49,8 @@ module Views =
     "highlight.js": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/index.js",
     "highlight.js/lib/core": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/core.js",
     "highlight.js/lib/languages/fsharp": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/fsharp.js",
-    "highlight.js/lib/languages/bash": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/bash.js",
+    "highlight.js/lib/languages/csharp": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/csharp.js",
+    "highlight.js/lib/languages/vbnet": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/vbnet.js",
     "highlight.js/lib/languages/xml": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/xml.js",
      "highlight.js/lib/languages/plaintext": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/plaintext.js"
   }
