@@ -1,4 +1,4 @@
-While the [Hox DSL](general-usage.html#hox-dsl) is the favored flavor for Hox, we understand that developers prefer the type safety of the F# language. For this reason, we've added a Feliz-flavored API to Hox.
+While the [Hox DSL](./general-usage.html#hox-dsl) is the favored flavor for Hox, we understand that developers prefer the type safety of the F# language. For this reason, we've added a Feliz-flavored API to Hox.
 
 ```fsharp
 open Hox.Feliz
