@@ -76,6 +76,49 @@ type Layout =
         h $"meta[name=og:description][content={metadata.summary}]",
         h $"meta[property=og:title][content={metadata.title}]",
         h $"meta[property=og:type][content=website]",
+        h(
+          "style",
+          raw
+            """:root {
+  --hox-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  --hox-font-size: 16px;
+  --hox-line-height: 1.5;
+  --hox-font-color: #504c4c;
+  --hox-background-color: #fffdf6;
+
+  --hox-blockquote-bg-color: #eae6d6;
+  --hox-card-background-color: var(--hox-background-color, #fff);
+  --hox-card-color: var(--hox-font-color, #0f0f0f);
+
+  --hox-card-border-radius: 0.25rem;
+  --hox-card-box-shadow: 0 5px 5px 2px rgba(0, 0, 0, 0.2),
+    0 4px 3px 0 rgba(0, 0, 0, 0.15);
+
+  --anchor-color: #c79c4c;
+  --anchor-color-hover: #ffdd9d;
+  --anchor-color-visited: #946713;
+  --anchor-color-active: #c79c4c;
+  --anchor-color-focus: #966405;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --hox-font-color: #e8e6e3;
+    --hox-background-color: #312614;
+    --hox-blockquote-bg-color: #2c1d04;
+    --hox-card-background-color: var(--hox-background-color, #0f0f0f);
+    --hox-card-color: var(--hox-font-color, #e8e6e3);
+
+    --anchor-color: #f0bf63;
+    --anchor-color-hover: #ffdd9d;
+    --anchor-color-visited: #be8315;
+    --anchor-color-active: #e9bd6b;
+    --anchor-color-focus: #df9f29;
+    --hox-card-box-shadow: 0 5px 5px 4px rgba(199, 156, 76, 0.5),
+      0 4px 4px 0 rgba(199, 156, 76, 0.4);
+  }
+}"""
+        ),
         h "link[rel=stylesheet][href=/assets/styles.css]",
         h "link[rel=stylesheet][href=/assets/links.css]",
         (if metadata.file = "index.md" then
