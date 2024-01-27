@@ -76,7 +76,7 @@ However composing these nodes and appending them to each other can be quite tedi
 
 ## Hox DSL
 
-> If you're looking for the Feliz Flavor, check out the [Feliz DSL](using-feliz.html)
+> If you're looking for the Feliz Flavor, check out the [Feliz DSL](guides/using-feliz.html)
 
 ```fsharp
 open Hox
