@@ -1,4 +1,4 @@
-<html lang="en"><head><title>Rendering</title><meta name="viewport" content="width=device-width,initial-scale=1"><meta property="og:site_name" content="Hox Documentation"><meta name="og:description" content="Let&#39;s talk in detail about Hox&#39;s rendering."><meta property="og:title" content="Rendering"><meta property="og:type" content="website"><style>:root {
+<html lang="en"><head><title>Rendering</title><meta content="width=device-width,initial-scale=1" name="viewport"><meta content="Hox Documentation" property="og:site_name"><meta content="Let&#39;s talk in detail about Hox&#39;s rendering." name="og:description"><meta content="Rendering" property="og:title"><meta content="website" property="og:type"><style>:root {
   --hox-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
   --hox-font-size: 16px;
@@ -36,7 +36,7 @@
     --hox-card-box-shadow: 0 5px 5px 4px rgba(199, 156, 76, 0.5),
       0 4px 4px 0 rgba(199, 156, 76, 0.4);
   }
-}</style><link href="/assets/styles.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><base href="/"><script src="https://ga.jspm.io/npm:es-module-shims@1.6.2/dist/es-module-shims.js" crossorigin="anonymouys" async=""></script><script type="importmap">{
+}</style><link rel="stylesheet" href="/assets/styles.css"><link rel="stylesheet" href="/assets/links.css"><base href="/"><script src="https://ga.jspm.io/npm:es-module-shims@1.6.2/dist/es-module-shims.js" crossorigin="anonymouys" async=""></script><script type="importmap">{
   "imports": {
     "hox": "/assets/script.js",
     "highlight.js": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/index.js",
@@ -47,8 +47,101 @@
     "highlight.js/lib/languages/xml": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/xml.js",
      "highlight.js/lib/languages/plaintext": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/plaintext.js"
   }
-}</script></head><body><nav><ul><li><a href="/">Home</a></li><li><a href="/about.html">About Hox</a></li><li><a href="/guides/general-usage.html">Documentation</a></li><li><a href="/reference/nodes.html">Reference</a></li></ul></nav><aside><ul><li><h4>Guide</h4><ul><li><a href="guides/general-usage.html">Usage</a></li><li><a href="guides/using-feliz.html">Using Feliz</a></li><li><a href="guides/declarative-shadow-dom.html">Declarative Shadow DOM</a></li><li><a href="guides/csharp-and-vb-usage.html">C# and VB.NET</a></li><li><a href="guides/write-your-own-dsl.html">Write Your Own DSL</a></li><li><a href="guides/render-other-dsls.html">Render Others With Hox</a></li></ul></li><li><h4>Reference</h4><ul><li><a href="reference/nodes.html">Nodes</a></li><li><a href="reference/rendering.html">Rendering</a></li></ul></li></ul></aside><main><template shadowrootmode="open"><link href="/assets/main.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><link href="/assets/index.css" rel="stylesheet"><link href="/assets/highlight.css" rel="stylesheet"><h1 id="wip">WIP</h1>
-</template></main><footer><template shadowrootmode="open"><link href="/assets/footer.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><p><a href="https://github.com/AngelMunoz/Hox">Hox</a> is an F# library for rendering HTML documents asynchronously.</p></template></footer><script>if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRootMode')) {
+}</script></head><body><nav><ul><li><a href="/">Home</a></li><li><a href="/about.html">About Hox</a></li><li><a href="/guides/general-usage.html">Documentation</a></li><li><a href="/reference/nodes.html">Reference</a></li></ul></nav><aside><ul><li><h4>Guide</h4><ul><li><a href="guides/general-usage.html">Usage</a></li><li><a href="guides/using-feliz.html">Using Feliz</a></li><li><a href="guides/declarative-shadow-dom.html">Declarative Shadow DOM</a></li><li><a href="guides/csharp-and-vb-usage.html">C# and VB.NET</a></li><li><a href="guides/write-your-own-dsl.html">Write Your Own DSL</a></li><li><a href="guides/render-other-dsls.html">Render Others With Hox</a></li></ul></li><li><h4>Reference</h4><ul><li><a href="reference/nodes.html">Nodes</a></li><li><a href="reference/rendering.html">Rendering</a></li></ul></li></ul></aside><main><template shadowrootmode="open"><link rel="stylesheet" href="/assets/main.css"><link rel="stylesheet" href="/assets/links.css"><link rel="stylesheet" href="/assets/index.css"><link rel="stylesheet" href="/assets/highlight.css"><p>There are two core rendering mechanisms included in Hox, both are stack based.</p>
+<blockquote>
+<p><strong><em>Note</em></strong>: Given our use of Cancellable Value Tasks, we are limited in the recursive department. This require compiler support which is being tracked in this issue <a href="https://github.com/fsharp/fslang-suggestions/issues/1006">https://github.com/fsharp/fslang-suggestions/issues/1006</a></p>
+</blockquote>
+<h2 id="asstring">AsString</h2>
+<p>The <code>renderNode</code> function in the <code>Rendering</code> module is itself a cancellable value task and it looks as follows:</p>
+<pre><code class="language-fsharp">let renderNode(node: Node) = cancellableValueTask {
+  let! token = CancellableValueTask.getCancellationToken()
+    let sb = StringBuilder()
+    let stack = Stack&lt;struct (Node * bool)&gt;()
+    stack.Push(node, false)
+
+    while stack.Count &gt; 0 do
+      token.ThrowIfCancellationRequested()
+      let struct (node, closing) = stack.Pop()
+      // rendering logic
+      match node with
+      // ...
+}
+</code></pre>
+<p>It keeps a stack of nodes to render and a boolean flag indicating whether the node is closing it's tag on the next pass.</p>
+<p>Our rendering algorithm not really optimized for speed or anything but contributions are welcome.</p>
+<p>Considerations when you use this approach is that you will have to keep the string in memory before sending it to the client. While I don't expect you to send a 1GB HTML file, it's still something to keep in mind.</p>
+<p>This approach works best for small to medium sized documents but leaves HTML streaming (a browser feature) out of the window that improves certain metrics like time to first byte and time to first meaningful paint. If that is not a concern, meaning that you may not be in a web server environment, this approach is perfectly fine.</p>
+<h2 id="iasyncenumerablenode"><code>IAsyncEnumerable&lt;Node&gt;</code></h2>
+<p>The second approach is to use an <code>IAsyncEnumerable&lt;Node&gt;</code> sequence and it is meant to be used where sending the HTML content to a consumer is the most important thing. This can be hooked up easily with <code>System.IO.Stream</code> objects and the like.</p>
+<p>The <code>renderNode</code> function is slightly different in this case because here we support partial recursive ness:</p>
+<pre><code class="language-fsharp">let rec renderNode(
+    stack: Stack&lt;struct(Node * bool * int)&gt;,
+    cancellationToken: CancellationToken
+  ) =
+  taskSeq {
+    while stack.Count &gt; 0 do
+      cancellationToken.ThrowIfCancellationRequested()
+      let struct (node, closing, depth) = stack.Pop()
+      // rendering logic
+      match node with
+      // ...
+  }
+</code></pre>
+<p>In this case we are passing the same stack around and we're keeping tabs of the node depth. This is very important as it will allows us to decide to render between a recursive approach or a buffered approach.</p>
+<p>Due the limitations noted in a quote above, we can't do a full recursive approach. When we're around 235 nodes deep we will switch to a buffered approach. This is a bit of a magic number as I haven't run true science on this but it seems to work well enough.</p>
+<p>You can see the full implementation of this in the <code>Rendering.Chunked</code> module.</p>
+<h2 id="render-class">Render class</h2>
+<p>The render class is the public face of the rendering inner mechanisms described above. It's a thin wrapper around the <code>renderNode</code> function and it looks as follows:</p>
+<pre><code class="language-fsharp">
+[&lt;Class&gt;]
+type Render =
+  [&lt;CompiledName &quot;Start&quot;&gt;]
+  static member start:
+    node: Node * [&lt;OptionalAttribute&gt;] ?cancellationToken: CancellationToken -&gt;
+      string IAsyncEnumerable
+
+  [&lt;CompiledName &quot;ToStream&quot;&gt;]
+  static member toStream:
+    node: Node *
+    stream: System.IO.Stream *
+    [&lt;OptionalAttribute&gt;] ?cancellationToken: CancellationToken -&gt;
+      Task
+
+  [&lt;CompiledName &quot;AsString&quot;&gt;]
+  static member asString:
+    node: Node * [&lt;OptionalAttribute&gt;] ?cancellationToken: CancellationToken -&gt;
+      string ValueTask
+
+  static member asStringAsync: node: Node -&gt; string Async
+</code></pre>
+<p>From these methods, <code>ToStream</code> is worth sharing as it is kind of the built-in streaming mechanism. It looks as follows:</p>
+<pre><code class="language-fsharp">  [&lt;CompiledName &quot;ToStream&quot;&gt;]
+  static member toStream
+    (
+      node: Node,
+      stream: IO.Stream,
+      [&lt;Runtime.InteropServices.OptionalAttribute&gt;] ?cancellationToken:
+        CancellationToken
+    ) =
+    taskUnit {
+      let cancellationToken =
+        defaultArg cancellationToken CancellationToken.None
+
+      let operation =
+        Chunked.renderNode(
+          Stack([ struct (node, false, 0) ]),
+          cancellationToken
+        )
+        |&gt; TaskSeq.map(System.Text.Encoding.UTF8.GetBytes)
+
+      for chunk in operation do
+        do! stream.WriteAsync(ReadOnlyMemory(chunk), cancellationToken)
+        do! stream.FlushAsync()
+    }
+</code></pre>
+<p>Our <code>toStream</code> is not optimized in any way, it simply takes a stream and as soon as we have information written to it, we flush it. There might be better approaches with <code>BufferedStream</code> play with buffer sizes. I'd love the performance folks to chime in on this and help us improve it where possible.</p>
+<p>The main reason I share this is to show you that the building blocks are there and you can take it really far if that's what you need.</p>
+</template></main><footer><template shadowrootmode="open"><link rel="stylesheet" href="/assets/footer.css"><link rel="stylesheet" href="/assets/links.css"><p><a href="https://github.com/AngelMunoz/Hox">Hox</a> is an F# library for rendering HTML documents asynchronously.</p></template></footer><script>if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRootMode')) {
   (function attachShadowRoots(root) {
     root.querySelectorAll("template[shadowrootmode]").forEach(template => {
       const mode = template.getAttribute("shadowrootmode");

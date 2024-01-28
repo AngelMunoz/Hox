@@ -1,4 +1,4 @@
-<html lang="en"><head><title>Nodes</title><meta name="viewport" content="width=device-width,initial-scale=1"><meta property="og:site_name" content="Hox Documentation"><meta name="og:description" content="Let&#39;s talk about nodes, part of the Hox&#39;s core."><meta property="og:title" content="Nodes"><meta property="og:type" content="website"><style>:root {
+<html lang="en"><head><title>Nodes</title><meta content="width=device-width,initial-scale=1" name="viewport"><meta content="Hox Documentation" property="og:site_name"><meta content="Let&#39;s talk about nodes, part of the Hox&#39;s core." name="og:description"><meta content="Nodes" property="og:title"><meta content="website" property="og:type"><style>:root {
   --hox-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
   --hox-font-size: 16px;
@@ -36,7 +36,7 @@
     --hox-card-box-shadow: 0 5px 5px 4px rgba(199, 156, 76, 0.5),
       0 4px 4px 0 rgba(199, 156, 76, 0.4);
   }
-}</style><link href="/assets/styles.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><base href="/"><script src="https://ga.jspm.io/npm:es-module-shims@1.6.2/dist/es-module-shims.js" crossorigin="anonymouys" async=""></script><script type="importmap">{
+}</style><link rel="stylesheet" href="/assets/styles.css"><link rel="stylesheet" href="/assets/links.css"><base href="/"><script src="https://ga.jspm.io/npm:es-module-shims@1.6.2/dist/es-module-shims.js" crossorigin="anonymouys" async=""></script><script type="importmap">{
   "imports": {
     "hox": "/assets/script.js",
     "highlight.js": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/index.js",
@@ -47,8 +47,71 @@
     "highlight.js/lib/languages/xml": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/xml.js",
      "highlight.js/lib/languages/plaintext": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/plaintext.js"
   }
-}</script></head><body><nav><ul><li><a href="/">Home</a></li><li><a href="/about.html">About Hox</a></li><li><a href="/guides/general-usage.html">Documentation</a></li><li><a href="/reference/nodes.html">Reference</a></li></ul></nav><aside><ul><li><h4>Guide</h4><ul><li><a href="guides/general-usage.html">Usage</a></li><li><a href="guides/using-feliz.html">Using Feliz</a></li><li><a href="guides/declarative-shadow-dom.html">Declarative Shadow DOM</a></li><li><a href="guides/csharp-and-vb-usage.html">C# and VB.NET</a></li><li><a href="guides/write-your-own-dsl.html">Write Your Own DSL</a></li><li><a href="guides/render-other-dsls.html">Render Others With Hox</a></li></ul></li><li><h4>Reference</h4><ul><li><a href="reference/nodes.html">Nodes</a></li><li><a href="reference/rendering.html">Rendering</a></li></ul></li></ul></aside><main><template shadowrootmode="open"><link href="/assets/main.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><link href="/assets/index.css" rel="stylesheet"><link href="/assets/highlight.css" rel="stylesheet"><h1 id="wip">WIP</h1>
-</template></main><footer><template shadowrootmode="open"><link href="/assets/footer.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><p><a href="https://github.com/AngelMunoz/Hox">Hox</a> is an F# library for rendering HTML documents asynchronously.</p></template></footer><script>if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRootMode')) {
+}</script></head><body><nav><ul><li><a href="/">Home</a></li><li><a href="/about.html">About Hox</a></li><li><a href="/guides/general-usage.html">Documentation</a></li><li><a href="/reference/nodes.html">Reference</a></li></ul></nav><aside><ul><li><h4>Guide</h4><ul><li><a href="guides/general-usage.html">Usage</a></li><li><a href="guides/using-feliz.html">Using Feliz</a></li><li><a href="guides/declarative-shadow-dom.html">Declarative Shadow DOM</a></li><li><a href="guides/csharp-and-vb-usage.html">C# and VB.NET</a></li><li><a href="guides/write-your-own-dsl.html">Write Your Own DSL</a></li><li><a href="guides/render-other-dsls.html">Render Others With Hox</a></li></ul></li><li><h4>Reference</h4><ul><li><a href="reference/nodes.html">Nodes</a></li><li><a href="reference/rendering.html">Rendering</a></li></ul></li></ul></aside><main><template shadowrootmode="open"><link rel="stylesheet" href="/assets/main.css"><link rel="stylesheet" href="/assets/links.css"><link rel="stylesheet" href="/assets/index.css"><link rel="stylesheet" href="/assets/highlight.css"><p>Nodes are the core of the Hox library. They allow you to represent HTML as a tree of nodes.</p>
+<p>While most nodes are not interesting by themselves (e.g Text, Raw, Fragment), asynchronous ones are, and they are the reason why Hox exists.</p>
+<blockquote>
+<p><strong><em>Node</em></strong>: Given the limitations of the type system and the incompatibilities between F# and C# records, lack of discriminated uninions and other things. This reference guide is meant for F# users, while C#/VB.NET folks can still use Hox, to manipulate the core library requires using F#.</p>
+</blockquote>
+<pre><code class="language-fsharp">[&lt;Struct&gt;]
+type HAttribute = { name: string; value: string }
+
+[&lt;Struct; NoComparison; NoEquality&gt;]
+type AttributeNode =
+  | Attribute of attribute: HAttribute
+  | AsyncAttribute of asyncAttribute: HAttribute CancellableValueTask
+
+[&lt;NoComparison; NoEquality&gt;]
+type Node =
+  | Element of element: Element
+  | Text of text: string
+  | Raw of raw: string
+  | Comment of comment: string
+  | Fragment of nodes: Node list
+  | AsyncNode of node: Node CancellableValueTask
+  | AsyncSeqNode of nodes: Node IAsyncEnumerable
+
+and [&lt;NoComparison; NoEquality&gt;] Element = {
+  tag: string
+  attributes: AttributeNode list
+  children: Node list
+}
+</code></pre>
+<h2 id="attributenode">AttributeNode</h2>
+<p>One of the design choices that might be a little questionable is that attributes are embeded into the Element type, rather than defined as part of a Node, this is intentional.</p>
+<p>There are two types of nodes synchronous and asynchronous. The reason they are separated rather than <code>ValueTask&lt;HAttribute&gt;</code> is to have them co-exist side by side with synchronous nodes. The goal is to blur the lines between synchronous and asynchronous code, and make it easy to mix and match. and this enable DSL authors to create their own attributes that can be used in both synchronous and asynchronous contexts.</p>
+<h2 id="element">Element</h2>
+<p>Elements represent HTML tags, they have a tag name, a list of attributes and a list of children. As you can read from the type definition, Attributes and Nodes are one dimensional lists, once again bluring the lines bwteen synchronous and asynchronous code.</p>
+<h2 id="node">Node</h2>
+<p>The Node contains the possible representations of work that can co-exist to generate an HTML tree. In the future someone might come up with a new type of node worth of it's own type, which ultimately should be able to resolve to a normal node. In the meantime we'll dive into the existing types.</p>
+<blockquote>
+<p><strong><em>Note</em></strong>: Unless specified by the <code>Raw</code> node, every other part where a string is expected, it is expected to be HTML encoded. This includes attributes, text nodes, and comments.</p>
+</blockquote>
+<h3 id="fragments">Fragments</h3>
+<p>These represent a &quot;<em>parentless</em>&quot; list of nodes. A concept that is not precisely present in HTML but it is quite popular in frontend frameworks by its versatility when composing nodes together, specially when you have a list of children that may agnostic to parent elements.</p>
+<h3 id="asyncnodes">AsyncNodes</h3>
+<p>The async node is the asynchronous version of the node, it is a wrapper around a <code>CancellableValueTask&lt;Node&gt;</code>. This is the type of node that is returned by asynchronous attributes.</p>
+<p>When you create an async node it is very important that you add cancellation semantics. <code>CancellableValueTask&lt;T&gt;</code> is a type alias to <code>CancellationToken -&gt; ValueTask&lt;T&gt;</code>, so this means that any potential asynchronous work is lazily evaluated, and it is only executed when we're resolving the node to be rendered or added to the render pending stack.</p>
+<p>For Example the Nodes created by the <code>h</code> function have the following pattern:</p>
+<pre><code class="language-fsharp">// `work` can be either `Task&lt;Node&gt;` or F#'s `Async&lt;Node&gt;`
+// It could also be a `CancellableValueTask&lt;Node&gt;` however, it makes
+// little sense for users as they are already doing sync or async work.
+let asyncNode work =
+    AsyncNode(cancellableValueTask {
+        // tokens are cooperative, so whoever the parent is, it will pass
+        // and bind the token to the child computation as well.
+        let! token = CancellableValueTask.getCancellationToken()
+        if token.IsCancellationRequested then
+            return Node.Fragment []
+        else
+            let! node = work
+            return node
+    })
+</code></pre>
+<p>So if you're taking asynchronous work in a DSL, in a library, or another context it is here where you could implement cancellation semantics to avoid performing work. cancellableValueTask will bind async, task and value tasks in the workflow so regardless of the type it will be able to handle it.</p>
+<h3 id="asyncseqnode">AsyncSeqNode</h3>
+<p>These nodes were included to support <code>IAsyncEnumerable&lt;T&gt;</code> which is a type that is not supported by F# in a normal setting, however <code>FSharp.Control.TaskSeq</code> provides the <code>taskSeq</code> computation expression that allows to create, and consume <code>IAsyncEnumerable&lt;T&gt;</code>.</p>
+<p><code>taskSeq</code> at the time of writing does not support a simple way to streamline cancellation semantics, so it is up to the user to implement them.</p>
+</template></main><footer><template shadowrootmode="open"><link rel="stylesheet" href="/assets/footer.css"><link rel="stylesheet" href="/assets/links.css"><p><a href="https://github.com/AngelMunoz/Hox">Hox</a> is an F# library for rendering HTML documents asynchronously.</p></template></footer><script>if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRootMode')) {
   (function attachShadowRoots(root) {
     root.querySelectorAll("template[shadowrootmode]").forEach(template => {
       const mode = template.getAttribute("shadowrootmode");
