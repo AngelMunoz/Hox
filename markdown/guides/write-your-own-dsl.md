@@ -9,7 +9,7 @@ This module exposes two simple functions
 
 These functions already contain all the functionality required to compose nodes together, regardless of the underlyng type of node.
 
-The following example shows how to create a more traditiona F# DSL with the two list style.
+The following example shows how to create a more traditional F# DSL with the two list style.
 
 ```fsharp
 open Hox
@@ -99,7 +99,7 @@ Elem.html [ lang "en" ] [
   ]
 ```
 
-For simplicity the operators `<+` to add child nodes and `<+.` to add attributes are available in the `Hox.NodeOps.Operators` module.
+For simplicity, the operators `<+` to add child nodes and `<+.` to add attributes are available in the `Hox.NodeOps.Operators` module.
 
 ## C# & VB.NET
 

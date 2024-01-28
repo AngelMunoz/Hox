@@ -1,4 +1,4 @@
-Hox can also be used in C# and VB.NET projects. Part of the side effect of looking for a simple and and easy DSL is that Hox can be used in any .NET language.
+Hox can also be used in C# and VB.NET projects. Part of the side effect of looking for a simple and easy DSL is that Hox can be used in any .NET language.
 
 ## C# Usage
 
@@ -61,4 +61,4 @@ Sub Async Sub DoWork()
 End Sub
 ```
 
-In general, both languages can use Hox up to the same extent as F# except by the Feliz API which uses specific F# types so, you can following the rest of the guides and reference will be useful for you as well.
+In general, both languages can use Hox up to the same extent as F# except by the Feliz API which uses specific F# types so, you can follow the rest of the guides and reference will be useful for you as well.

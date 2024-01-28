@@ -12,7 +12,7 @@ open Hox.Core
 open Hox.Rendering
 
 // take their DSL attributes and convert them to Hox attributes
-let inline xmlAttrToHtmelo(attr: XmlAttribute) : AttributeNode =
+let inline xmlAttrToHox(attr: XmlAttribute) : AttributeNode =
   match attr with
   | KeyValueAttr(key, value) -> Attribute { name = key; value = value }
   | NonValueAttr key -> Attribute { name = key; value = "" }
@@ -28,13 +28,13 @@ let inline foldAttributes (node: Node) (attr: XmlAttribute) : Node =
 
 // Falco.Markup's DSL uses XmlNodes as their core type, so
 // as long as we can convert an XmlNode to a Hox Node we're good
-let rec xmlNodeToHtmelo(fmNode: XmlNode) : Node =
+let rec xmlNodeToHox(fmNode: XmlNode) : Node =
   match fmNode with
   | ParentNode((tagName, attributes), children) ->
     attributes
     |> List.fold
       foldAttributes
-      (h(tagName, children |> List.map xmlNodeToHtmelo))
+      (h(tagName, children |> List.map xmlNodeToHox))
   | TextNode text -> Text text
   | SelfClosingNode((tagName, attributes)) ->
     attributes |> List.fold foldAttributes (h tagName)
@@ -46,7 +46,7 @@ To render it later on we just need to call this newly created function
 
 ```fsharp
 let render (fmNode: XmlNode) =
-  let convertedNode = fmNode |> xmlNodeToHtmelo
+  let convertedNode = fmNode |> xmlNodeToHox
 
   Render.asString(convertedNode)
 ```
@@ -64,7 +64,7 @@ open Hox.Rendering
 
 // in a similar fashion to Falco.Markup we're just
 // converting Giraffe.ViewEngine's DSL to Hox's DSL
-let inline xmlAttrToHtmelo(attr: XmlAttribute) : AttributeNode =
+let inline xmlAttrToHox(attr: XmlAttribute) : AttributeNode =
   match attr with
   | KeyValue(key, value) -> Attribute { name = key; value = value }
   | Boolean key -> Attribute { name = key; value = "" }

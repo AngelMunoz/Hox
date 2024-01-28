@@ -1,4 +1,4 @@
-<html lang="en"><head><title>Declarative Shadow DOM</title><meta content="width=device-width,initial-scale=1" name="viewport"><meta content="Hox Documentation" property="og:site_name"><meta content="How to render declarative shadow DOM with Hox and the built-ins for that." name="og:description"><meta content="Declarative Shadow DOM" property="og:title"><meta content="website" property="og:type"><style>:root {
+<html lang="en"><head><title>Declarative Shadow DOM</title><meta name="viewport" content="width=device-width,initial-scale=1"><meta property="og:site_name" content="Hox Documentation"><meta name="og:description" content="How to render declarative shadow DOM with Hox and the built-ins for that."><meta property="og:title" content="Declarative Shadow DOM"><meta property="og:type" content="website"><style>:root {
   --hox-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
   --hox-font-size: 16px;
@@ -36,7 +36,7 @@
     --hox-card-box-shadow: 0 5px 5px 4px rgba(199, 156, 76, 0.5),
       0 4px 4px 0 rgba(199, 156, 76, 0.4);
   }
-}</style><link rel="stylesheet" href="/assets/styles.css"><link rel="stylesheet" href="/assets/links.css"><base href="/"><script async="" src="https://ga.jspm.io/npm:es-module-shims@1.6.2/dist/es-module-shims.js" crossorigin="anonymouys"></script><script type="importmap">{
+}</style><link href="/assets/styles.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><base href="/"><script src="https://ga.jspm.io/npm:es-module-shims@1.6.2/dist/es-module-shims.js" crossorigin="anonymouys" async=""></script><script type="importmap">{
   "imports": {
     "hox": "/assets/script.js",
     "highlight.js": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/index.js",
@@ -47,13 +47,13 @@
     "highlight.js/lib/languages/xml": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/xml.js",
      "highlight.js/lib/languages/plaintext": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/plaintext.js"
   }
-}</script></head><body><nav><ul><li><a href="/">Home</a></li><li><a href="/about.html">About Hox</a></li><li><a href="/guides/general-usage.html">Documentation</a></li><li><a href="/reference/nodes.html">Reference</a></li></ul></nav><aside><ul><li><h4>Guide</h4><ul><li><a href="guides/general-usage.html">Usage</a></li><li><a href="guides/using-feliz.html">Using Feliz</a></li><li><a href="guides/declarative-shadow-dom.html">Declarative Shadow DOM</a></li><li><a href="guides/csharp-and-vb-usage.html">C# and VB.NET</a></li><li><a href="guides/write-your-own-dsl.html">Write Your Own DSL</a></li><li><a href="guides/render-other-dsls.html">Render Others With Hox</a></li></ul></li><li><h4>Reference</h4><ul><li><a href="reference/nodes.html">Nodes</a></li><li><a href="reference/rendering.html">Rendering</a></li></ul></li></ul></aside><main><template shadowrootmode="open"><link rel="stylesheet" href="/assets/main.css"><link rel="stylesheet" href="/assets/links.css"><link rel="stylesheet" href="/assets/index.css"><link rel="stylesheet" href="/assets/highlight.css"><p>The Shadow DOM is a feature that isolates its own DOM tree from the main document DOM, often used with Javascript and custom elements to create what is known as Web Components.
+}</script></head><body><nav><ul><li><a href="/">Home</a></li><li><a href="/about.html">About Hox</a></li><li><a href="/guides/general-usage.html">Documentation</a></li><li><a href="/reference/nodes.html">Reference</a></li></ul></nav><aside><ul><li><h4>Guide</h4><ul><li><a href="guides/general-usage.html">Usage</a></li><li><a href="guides/using-feliz.html">Using Feliz</a></li><li><a href="guides/declarative-shadow-dom.html">Declarative Shadow DOM</a></li><li><a href="guides/csharp-and-vb-usage.html">C# and VB.NET</a></li><li><a href="guides/write-your-own-dsl.html">Write Your Own DSL</a></li><li><a href="guides/render-other-dsls.html">Render Others With Hox</a></li></ul></li><li><h4>Reference</h4><ul><li><a href="reference/nodes.html">Nodes</a></li><li><a href="reference/rendering.html">Rendering</a></li></ul></li></ul></aside><main><template shadowrootmode="open"><link href="/assets/main.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><link href="/assets/index.css" rel="stylesheet"><link href="/assets/highlight.css" rel="stylesheet"><p>The Shadow DOM is a feature that isolates its own DOM tree from the main document DOM, often used with Javascript and custom elements to create what is known as Web Components.
 Of course this is a simplification but it gives the general idea.</p>
-<p>While Shadow DOM and it's styling isolation features is a great thing, it didn't play well with server side rendering as you'd render the custom element tag but the enhancing of the tag would happen on the client side, which would cause a flash of unstyled content (FOUC).</p>
+<p>While Shadow DOM and its styling isolation features is a great thing, it didn't play well with server side rendering as you'd render the custom element tag but the enhancing of the tag would happen on the client side, which would cause a flash of unstyled content (FOUC).</p>
 <p>Declarative Shadow DOM allows you to create these DOM boundaries in a declarative way, which means that the browser can render the content in the right order and you don't have to worry about the FOUC.</p>
 <p>Clients can still enhance the elements produced with Declarative Shadow DOM, but it is not required. From a backend's perspective, it is just a DOM tree with scoped styling.</p>
 <p>You can learn more about Declarative Shadow DOM in this piece from the Chrome for Developers website: <a href="https://developer.chrome.com/docs/css-ui/declarative-shadow-dom">https://developer.chrome.com/docs/css-ui/declarative-shadow-dom</a></p>
-<p>An elemnt with Declarative Shadow DOM looks like the following</p>
+<p>An element with Declarative Shadow DOM looks like the following</p>
 <pre><code class="language-html">&lt;tag-name&gt;
   &lt;template shadowrootmode=&quot;open&quot;&gt;
     &lt;style&gt;
@@ -119,7 +119,7 @@ let myElement =
   &lt;/template&gt;
 &lt;/my-element&gt;
 </code></pre>
-<p>For cases where you want to use slots, things are sliglty more complicated, as you have to create the template with slots and then assign the new content outside the template tag, whis can be cumbersome, so Hox provides an overload that takes the initial template and then gets you a factory to enable shared content.</p>
+<p>For cases where you want to use slots, things are slightly more complicated, as you have to create the template with slots and then assign the new content outside the template tag, which can be cumbersome, so Hox provides an overload that takes the initial template and then gets you a factory to enable shared content.</p>
 <pre><code class="language-fsharp">let myPanel =
     sh(&quot;my-panel&quot;,
        fragment(
@@ -175,7 +175,7 @@ let secondPanel = myPanel(
   &lt;p&gt;I'm on the section of the panel&lt;/p&gt;
 &lt;/my-panel&gt;
 </code></pre>
-<p>Traditionally F# devs would archive this kind of composition by using functions that take the content as parameters and fill the wholes defined in the templates they produce, however this approach is not friendly to scoping or requires complicated setups to enable scoping, here we're leveraging the browser's built-in support for Declarative Shadow DOM to enable this kind of composition.</p>
+<p>Traditionally F# devs would achieve this kind of composition by using functions that take the content as parameters and fill the wholes defined in the templates they produce, however this approach is not friendly to scoping or requires complicated setups to enable scoping, here we're leveraging the browser's built-in support for Declarative Shadow DOM to enable this kind of composition.</p>
 <p>For the C#/VB devs, the story is quite similar</p>
 <pre><code class="language-csharp">var myElement =
     shcs(&quot;my-element&quot;,
@@ -217,7 +217,7 @@ var element = myElement(
 <li>section</li>
 <li>span</li>
 </ul>
-<p>To create an scoped <code>article</code> element you can do the following</p>
+<p>To create a scoped <code>article</code> element you can do the following</p>
 <pre><code class="language-fsharp">open type ScopableElements
 
 
@@ -232,7 +232,7 @@ h(&quot;body&quot;,
 <blockquote>
 <p><strong><em>Note</em></strong>: If you need to create a built-in element that supports slots, then you have to use the <code>sh</code> function factory instead.</p>
 </blockquote>
-</template></main><footer><template shadowrootmode="open"><link rel="stylesheet" href="/assets/footer.css"><link rel="stylesheet" href="/assets/links.css"><p><a href="https://github.com/AngelMunoz/Hox">Hox</a> is an F# library for rendering HTML documents asynchronously.</p></template></footer><script>if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRootMode')) {
+</template></main><footer><template shadowrootmode="open"><link href="/assets/footer.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><p><a href="https://github.com/AngelMunoz/Hox">Hox</a> is an F# library for rendering HTML documents asynchronously.</p></template></footer><script>if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRootMode')) {
   (function attachShadowRoots(root) {
     root.querySelectorAll("template[shadowrootmode]").forEach(template => {
       const mode = template.getAttribute("shadowrootmode");

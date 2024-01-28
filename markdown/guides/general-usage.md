@@ -49,7 +49,7 @@ task {
     // assuming token is a CancellationToken
     // assuming Layout.Default() produces a `Node`
     let node = Layout.Default()
-    for chunk in Render.start(nod, tokene) do
+    for chunk in Render.start(nod, token) do
         printfn $"Produced:\n\n{chunk}"
 }
 ```
@@ -126,7 +126,7 @@ Where:
 - `.class` is specified with a `.` followed by the value of said class.
 - `[attribute=value]` is specified with a `[` followed by the name of the attribute, followed by a required `=` even for no-value atributes (like `checked`), after te `=` symbol anything will be taken as the string until a `]` is found, even break line characters.
 
-You can specify attributes in any order or with spacess and break lines in between the attribute declarations, example:
+You can specify attributes in any order or with spaces and break lines in between the attribute declarations, example:
 
 - `div#main.is-primary`
 - `div.is-primary#main`
@@ -184,7 +184,7 @@ h("div", h("span", "Hello World"))
 
 By default every node and attribute is encoded to prevent XSS attacks, this means that any special character will be encoded to its HTML entity equivalent, this is done by default.
 
-For cases where you want to render raw HTML then you should use `raw`
+For cases where you want to render raw HTML, then you should use `raw`
 
 ```fsharp
 let rawNode = h("div", raw "<span data-random='my attribute'>Hello World</span>")
@@ -216,7 +216,7 @@ let node = h("ul", items)
 
 ### Asynchronous nodes
 
-One of the "big deals" is the ability to use asynchronous nodes, just like you would use synchrinous nodes, this bridges a gap between the two worlds and allows you to use the same mental model for both.
+One of the "big deals" is the ability to use asynchronous nodes, just like you would use synchronous nodes, this bridges a gap between the two worlds and allows you to use the same mental model for both.
 
 Also, asynchronous nodes are cold (or also called lazy), this means that they will not be executed until they are requested to render.
 

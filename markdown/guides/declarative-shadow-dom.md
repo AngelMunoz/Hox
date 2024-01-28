@@ -1,7 +1,7 @@
 The Shadow DOM is a feature that isolates its own DOM tree from the main document DOM, often used with Javascript and custom elements to create what is known as Web Components.
 Of course this is a simplification but it gives the general idea.
 
-While Shadow DOM and it's styling isolation features is a great thing, it didn't play well with server side rendering as you'd render the custom element tag but the enhancing of the tag would happen on the client side, which would cause a flash of unstyled content (FOUC).
+While Shadow DOM and its styling isolation features is a great thing, it didn't play well with server side rendering as you'd render the custom element tag but the enhancing of the tag would happen on the client side, which would cause a flash of unstyled content (FOUC).
 
 Declarative Shadow DOM allows you to create these DOM boundaries in a declarative way, which means that the browser can render the content in the right order and you don't have to worry about the FOUC.
 
@@ -9,7 +9,7 @@ Clients can still enhance the elements produced with Declarative Shadow DOM, but
 
 You can learn more about Declarative Shadow DOM in this piece from the Chrome for Developers website: https://developer.chrome.com/docs/css-ui/declarative-shadow-dom
 
-An elemnt with Declarative Shadow DOM looks like the following
+An element with Declarative Shadow DOM looks like the following
 
 ```html
 <tag-name>
@@ -91,7 +91,7 @@ That will produce the following html
 </my-element>
 ```
 
-For cases where you want to use slots, things are sliglty more complicated, as you have to create the template with slots and then assign the new content outside the template tag, whis can be cumbersome, so Hox provides an overload that takes the initial template and then gets you a factory to enable shared content.
+For cases where you want to use slots, things are slightly more complicated, as you have to create the template with slots and then assign the new content outside the template tag, which can be cumbersome, so Hox provides an overload that takes the initial template and then gets you a factory to enable shared content.
 
 ```fsharp
 let myPanel =
@@ -153,7 +153,7 @@ That will produce the following html
 </my-panel>
 ```
 
-Traditionally F# devs would archive this kind of composition by using functions that take the content as parameters and fill the wholes defined in the templates they produce, however this approach is not friendly to scoping or requires complicated setups to enable scoping, here we're leveraging the browser's built-in support for Declarative Shadow DOM to enable this kind of composition.
+Traditionally F# devs would achieve this kind of composition by using functions that take the content as parameters and fill the wholes defined in the templates they produce, however this approach is not friendly to scoping or requires complicated setups to enable scoping, here we're leveraging the browser's built-in support for Declarative Shadow DOM to enable this kind of composition.
 
 For the C#/VB devs, the story is quite similar
 
@@ -202,7 +202,7 @@ A list of such functions is the following:
 - section
 - span
 
-To create an scoped `article` element you can do the following
+To create a scoped `article` element you can do the following
 
 ```fsharp
 open type ScopableElements

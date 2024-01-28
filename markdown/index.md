@@ -8,7 +8,7 @@ The core features are:
 - Side-by-side Asynchronous Nodes, you can add sync or async nodes into sync/async parents/sibling nodes.
 - Cancellable sync/async Rendering process that leverages ValueTasks.
 - Render to a single string or `IAsyncEnumerable<string>`.
-- A simplistic core DSL based on css selector parsing to generate nodes.
+- A simplistic core DSL based on CSS selector parsing to generate nodes.
 
 A couple of opt-in extra supported features are:
 

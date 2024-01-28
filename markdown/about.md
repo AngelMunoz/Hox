@@ -6,11 +6,11 @@ In server environments, it improves the so called DX (developer experience) as y
 
 The rendering process is also cancellable unlike previous approaches where you'd pass a token to each coordinated function to avoid overworking before having the data to render the document in a single pass.
 
-In Hox, every asynchronous node node is backed by a `CancellableValueTask<T>` which is just an alias for `CancellationToken -> ValueTask<T>`, this also means that every asynchronous node is aware of the main cancellation token, and when a rendering process is cancelled, rather than starting the asynchronous work, it will just return an empty node. The rest of the rendering process is stopped when processing the next node in the internal stack.
+In Hox, every asynchronous node is backed by a `CancellableValueTask<T>` which is just an alias for `CancellationToken -> ValueTask<T>`, this also means that every asynchronous node is aware of the main cancellation token, and when a rendering process is cancelled, rather than starting the asynchronous work, it will just return an empty node. The rest of the rendering process is stopped when processing the next node in the internal stack.
 
 This also highlights the fact that Hox, more than a templating library is a rendering library, so you can build other kinds of templating/domain specific languages libraries on top of it, that's how we provide the Feliz API for example.
 
-For cases where every node of the document is synchronous, the rendering process is backed by `ValueTask<T>` so synchronous work will be executed synchronously as usual.
+For cases where every node of the document is synchronous, the rendering process is backed by `ValueTask<T>` so synchronous work will be executed as usual.
 
 In any case, this is a small library that hopes to push the web dev ecosystem in F# forward and spark some ideas in the community.
 

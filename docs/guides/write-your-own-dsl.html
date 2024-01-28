@@ -1,4 +1,4 @@
-<html lang="en"><head><title>Write Your Own DSL</title><meta content="width=device-width,initial-scale=1" name="viewport"><meta content="Hox Documentation" property="og:site_name"><meta content="Hox is more than just an HTML DSL, it has a set of primitives that can be used to write your own DSL." name="og:description"><meta content="Write Your Own DSL" property="og:title"><meta content="website" property="og:type"><style>:root {
+<html lang="en"><head><title>Write Your Own DSL</title><meta name="viewport" content="width=device-width,initial-scale=1"><meta property="og:site_name" content="Hox Documentation"><meta name="og:description" content="Hox is more than just an HTML DSL, it has a set of primitives that can be used to write your own DSL."><meta property="og:title" content="Write Your Own DSL"><meta property="og:type" content="website"><style>:root {
   --hox-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
   --hox-font-size: 16px;
@@ -36,7 +36,7 @@
     --hox-card-box-shadow: 0 5px 5px 4px rgba(199, 156, 76, 0.5),
       0 4px 4px 0 rgba(199, 156, 76, 0.4);
   }
-}</style><link rel="stylesheet" href="/assets/styles.css"><link rel="stylesheet" href="/assets/links.css"><base href="/"><script async="" src="https://ga.jspm.io/npm:es-module-shims@1.6.2/dist/es-module-shims.js" crossorigin="anonymouys"></script><script type="importmap">{
+}</style><link href="/assets/styles.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><base href="/"><script src="https://ga.jspm.io/npm:es-module-shims@1.6.2/dist/es-module-shims.js" crossorigin="anonymouys" async=""></script><script type="importmap">{
   "imports": {
     "hox": "/assets/script.js",
     "highlight.js": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/index.js",
@@ -47,7 +47,7 @@
     "highlight.js/lib/languages/xml": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/xml.js",
      "highlight.js/lib/languages/plaintext": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/plaintext.js"
   }
-}</script></head><body><nav><ul><li><a href="/">Home</a></li><li><a href="/about.html">About Hox</a></li><li><a href="/guides/general-usage.html">Documentation</a></li><li><a href="/reference/nodes.html">Reference</a></li></ul></nav><aside><ul><li><h4>Guide</h4><ul><li><a href="guides/general-usage.html">Usage</a></li><li><a href="guides/using-feliz.html">Using Feliz</a></li><li><a href="guides/declarative-shadow-dom.html">Declarative Shadow DOM</a></li><li><a href="guides/csharp-and-vb-usage.html">C# and VB.NET</a></li><li><a href="guides/write-your-own-dsl.html">Write Your Own DSL</a></li><li><a href="guides/render-other-dsls.html">Render Others With Hox</a></li></ul></li><li><h4>Reference</h4><ul><li><a href="reference/nodes.html">Nodes</a></li><li><a href="reference/rendering.html">Rendering</a></li></ul></li></ul></aside><main><template shadowrootmode="open"><link rel="stylesheet" href="/assets/main.css"><link rel="stylesheet" href="/assets/links.css"><link rel="stylesheet" href="/assets/index.css"><link rel="stylesheet" href="/assets/highlight.css"><p>In case that neither Hox or Feliz fit your needs, you can always write your own DSL.</p>
+}</script></head><body><nav><ul><li><a href="/">Home</a></li><li><a href="/about.html">About Hox</a></li><li><a href="/guides/general-usage.html">Documentation</a></li><li><a href="/reference/nodes.html">Reference</a></li></ul></nav><aside><ul><li><h4>Guide</h4><ul><li><a href="guides/general-usage.html">Usage</a></li><li><a href="guides/using-feliz.html">Using Feliz</a></li><li><a href="guides/declarative-shadow-dom.html">Declarative Shadow DOM</a></li><li><a href="guides/csharp-and-vb-usage.html">C# and VB.NET</a></li><li><a href="guides/write-your-own-dsl.html">Write Your Own DSL</a></li><li><a href="guides/render-other-dsls.html">Render Others With Hox</a></li></ul></li><li><h4>Reference</h4><ul><li><a href="reference/nodes.html">Nodes</a></li><li><a href="reference/rendering.html">Rendering</a></li></ul></li></ul></aside><main><template shadowrootmode="open"><link href="/assets/main.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><link href="/assets/index.css" rel="stylesheet"><link href="/assets/highlight.css" rel="stylesheet"><p>In case that neither Hox or Feliz fit your needs, you can always write your own DSL.</p>
 <p>This can be accomplished in any dotnet language using the functions in the <code>Hox.NodeOps</code> module.</p>
 <p>This module exposes two simple functions</p>
 <ul>
@@ -55,7 +55,7 @@
 <li><code>AddAttribute</code></li>
 </ul>
 <p>These functions already contain all the functionality required to compose nodes together, regardless of the underlyng type of node.</p>
-<p>The following example shows how to create a more traditiona F# DSL with the two list style.</p>
+<p>The following example shows how to create a more traditional F# DSL with the two list style.</p>
 <pre><code class="language-fsharp">open Hox
 open Hox.Core
 
@@ -142,7 +142,7 @@ Elem.html [ lang &quot;en&quot; ] [
       })
   ]
 </code></pre>
-<p>For simplicity the operators <code>&lt;+</code> to add child nodes and <code>&lt;+.</code> to add attributes are available in the <code>Hox.NodeOps.Operators</code> module.</p>
+<p>For simplicity, the operators <code>&lt;+</code> to add child nodes and <code>&lt;+.</code> to add attributes are available in the <code>Hox.NodeOps.Operators</code> module.</p>
 <h2 id="c-vb.net">C# &amp; VB.NET</h2>
 <p>C# users can leverage extension methods to create a more fluent DSL however, due to the differences in the type system with F#, the DSL will have to use the Hox DSL functions, instead of the core types. Also, keep in mind that the DSL's are often easier made in F# so you might want to consider using F# for your DSL, however if you identify an opportunity to improve the APIs for C# users, please feel free to raise an issue.</p>
 <p>Let's imagine we want a strongly typed DSL with a more C# feel or flavor.</p>
@@ -264,7 +264,7 @@ static class ButtonExtensions
 public static T Type&lt;T&gt;(this T input, InputType type) where T : Input =&gt;
   input with { Node = NodeOps.addAttribute(input.Node, attribute(&quot;type&quot;, type.ToString().ToLowerInvariant())) };
 </code></pre>
-</template></main><footer><template shadowrootmode="open"><link rel="stylesheet" href="/assets/footer.css"><link rel="stylesheet" href="/assets/links.css"><p><a href="https://github.com/AngelMunoz/Hox">Hox</a> is an F# library for rendering HTML documents asynchronously.</p></template></footer><script>if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRootMode')) {
+</template></main><footer><template shadowrootmode="open"><link href="/assets/footer.css" rel="stylesheet"><link href="/assets/links.css" rel="stylesheet"><p><a href="https://github.com/AngelMunoz/Hox">Hox</a> is an F# library for rendering HTML documents asynchronously.</p></template></footer><script>if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRootMode')) {
   (function attachShadowRoots(root) {
     root.querySelectorAll("template[shadowrootmode]").forEach(template => {
       const mode = template.getAttribute("shadowrootmode");

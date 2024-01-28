@@ -16,7 +16,7 @@ let view =
     ]
 ```
 
-For the most part, the Feliz DSL works as you would expectit excepto from attributes. In Hox, attributes are part of the element's children unlike the traditional Feliz DSL, where they are another Node in the tree. To make this work, we've added a `Attr` module which contains helper functions to deal with attributes.
+For the most part, the Feliz DSL works as you would expect it except for attributes. In Hox, attributes are part of the element's children unlike the traditional Feliz DSL, where they are another Node in the tree. To make this work, we've added a `Attr` module which contains helper functions to deal with attributes.
 
 ### Main differences with Hox DSL
 
