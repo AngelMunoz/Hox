@@ -6,6 +6,7 @@ open Fun.Build
 
 let version = "1.0.0"
 
+
 let build name = stage $"Build {name}" { run $"dotnet build src/{name}" }
 
 let test shouldRebuild = stage "Test" {
@@ -63,6 +64,14 @@ pipeline "nuget:local" {
   test false
   pack "Hox"
   pack "Hox.Feliz"
+  runIfOnlySpecified true
+}
+
+pipeline "build:docs" {
+  stage "Build docs" {
+    run $"dotnet run --project src/Hox.Docs -- --is-gh-pages"
+  }
+
   runIfOnlySpecified true
 }
 
