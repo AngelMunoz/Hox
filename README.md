@@ -1,5 +1,7 @@
 # Hox
 
+> Check the documentation at [hox's website'](https://hox.tunaxor.me) for more details.
+
 Hox is an extensible HTML rendering library, it provides a set of functions to work with **Nodes** and compose them together as well as a couple of async rendering functions that support cancellation.
 
 The core features are:
@@ -20,4 +22,3 @@ A couple of opt-in extra supported features are:
 The core bits are somewhat low level building blocks to enable these kinds of features and possibly more in the future.
 Feel free to chime in if you have a use case that could be solved by this library!
 
-Check the documentation at [hox's website'](https://hox.tunaxor.me) for more details.
