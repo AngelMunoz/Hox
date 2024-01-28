@@ -322,13 +322,15 @@ type Render =
       let cancellationToken =
         defaultArg cancellationToken CancellationToken.None
 
-      for chunk in
+      let operation =
         Chunked.renderNode(
           Stack([ struct (node, false, 0) ]),
           cancellationToken
-        ) do
-        let bytes = System.Text.Encoding.UTF8.GetBytes(chunk)
-        do! stream.WriteAsync(ReadOnlyMemory(bytes), cancellationToken)
+        )
+        |> TaskSeq.map(System.Text.Encoding.UTF8.GetBytes >> ReadOnlyMemory)
+
+      for chunk in operation do
+        do! stream.WriteAsync(chunk, cancellationToken)
         do! stream.FlushAsync()
     }
 
