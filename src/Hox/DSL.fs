@@ -480,7 +480,7 @@ type NodeDsl =
   static member inline fragment(nodes: IAsyncEnumerable<Node>) =
     AsyncSeqNode nodes
 
-  static member inline empty = Fragment(LinkedList())
+  static member empty = Fragment(LinkedList())
 
   static member inline attribute(name: string, value: string) =
     Attribute { name = name; value = value }

@@ -725,7 +725,7 @@ type NodeDsl =
   /// Creates an empty node (shorthand for `fragment []`)
   /// </summary>
   /// <returns>A new node</returns>
-  static member inline empty: Node
+  static member empty: Node
 
   /// <summary>
   /// Creates a new attribute node, this is meant to be added to nodes using the
