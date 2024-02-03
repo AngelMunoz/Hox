@@ -17,7 +17,10 @@ type EscapeMode =
   | Html
   | Attribute
 
-let getEncodedCache escapeMode (encodedCache: Dictionary<string, string>) =
+let inline getEncodedCache
+  escapeMode
+  (encodedCache: Dictionary<string, string>)
+  =
   let cachedHtmlEncode(s: string) =
     match encodedCache.TryGetValue(s) with
     | true, encoded -> encoded
@@ -96,7 +99,7 @@ let renderAttr(node: AttributeNode) = cancellableValueTask {
 
 let voidTags =
   lazy
-    (HashSet<string>(
+    (HashSet(
       [
         "area"
         "base"
