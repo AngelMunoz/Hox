@@ -52,7 +52,9 @@ let getAttributes(attributes: AttributeNode LinkedList) = cancellableValueTask {
     | AttributeNode.Attribute { name = "class"; value = value } ->
       clsSeq.Add(value |> cachedHtmlEncode)
     | AttributeNode.Attribute { name = "id"; value = value } ->
-      id <- id |> ValueOption.orElse(ValueSome(value |> cachedHtmlEncode))
+      id <-
+        id
+        |> ValueOption.orElseWith(fun _ -> ValueSome(value |> cachedHtmlEncode))
     | AttributeNode.Attribute attribute -> attrSeq.Add(attribute)
     | AttributeNode.AsyncAttribute asyncAttribute ->
       let! { name = name; value = value } = asyncAttribute
@@ -60,7 +62,10 @@ let getAttributes(attributes: AttributeNode LinkedList) = cancellableValueTask {
       if name = String.Empty then
         ()
       elif name = "id" then
-        id <- id |> ValueOption.orElse(ValueSome(value |> cachedHtmlEncode))
+        id <-
+          id
+          |> ValueOption.orElseWith(fun _ ->
+            ValueSome(value |> cachedHtmlEncode))
       elif name = "class" then
         clsSeq.Add(value |> cachedHtmlEncode)
       else
@@ -74,6 +79,10 @@ let getAttributes(attributes: AttributeNode LinkedList) = cancellableValueTask {
 let renderAttr(node: AttributeNode) = cancellableValueTask {
 
   match node with
+  | AttributeNode.Attribute { name = name; value = value } when
+    String.IsNullOrWhiteSpace name
+    ->
+    return String.Empty
   | AttributeNode.Attribute { name = name; value = value } ->
     return $" %s{name}=\"%s{value}\""
   | AsyncAttribute asyncAttribute ->
@@ -106,7 +115,7 @@ let voidTags =
         "track"
         "wbr"
       ],
-      StringComparer.OrdinalIgnoreCase
+      StringComparer.InvariantCultureIgnoreCase
     ))
 
 /// This module contains functions that are used to render a node to a string
@@ -151,21 +160,17 @@ module Builder =
         | classes ->
           sb.Append(" class=\"").AppendJoin(' ', classes).Append("\"") |> ignore
 
-        let operations =
-          attributes
-          |> Seq.map(fun ha -> async {
-            return!
-              renderAttr(
-                AttributeNode.Attribute {
-                  ha with
-                      value = cachedAttrEncode ha.value
-                      name = cachedAttrEncode ha.name
-                }
-              )
-          })
+        for attribute in attributes do
+          let! attribute =
+            renderAttr(
+              AttributeNode.Attribute {
+                attribute with
+                    value = cachedAttrEncode attribute.value
+                    name = cachedAttrEncode attribute.name
+              }
+            )
 
-        let! rendered = Async.Parallel operations
-        sb.AppendJoin(' ', rendered) |> ignore
+          sb.Append(attribute) |> ignore
 
         sb.Append(">") |> ignore
 
@@ -201,7 +206,7 @@ module Builder =
 
         if nodes.Length > 0 then
           for child = nodes.Length - 1 downto 0 do
-            stack.Push((nodes[child], false))
+            stack.Push(nodes[child], false)
 
     return sb.ToString()
   }
