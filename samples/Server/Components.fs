@@ -16,7 +16,7 @@ module private TemplateDefinitions =
 
   let cardHeader = sh("x-card-header[slot=header]", Styles.CardHeader, h "slot")
 
-  let cardContent = sh("x-card-content", h "slot")
+  let cardContent = sh("x-card-content", empty, h "slot")
 
   let cardFooter = sh("x-card-footer[slot=footer]", Styles.CardFooter, h "slot")
 
