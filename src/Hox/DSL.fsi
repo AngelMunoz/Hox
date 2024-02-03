@@ -722,6 +722,12 @@ type NodeDsl =
   static member inline fragment: nodes: IAsyncEnumerable<Node> -> Node
 
   /// <summary>
+  /// Creates an empty node (shorthand for `fragment []`)
+  /// </summary>
+  /// <returns>A new node</returns>
+  static member inline empty: Node
+
+  /// <summary>
   /// Creates a new attribute node, this is meant to be added to nodes using the
   /// `NodeOps.addAttribute` function.
   /// </summary>

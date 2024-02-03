@@ -9,6 +9,7 @@ open IcedTasks
 
 open Hox.Rendering
 open Hox.Core
+open System.Collections.Generic
 
 [<Fact>]
 let ``Render can render an element``() = taskUnit {
@@ -19,8 +20,8 @@ let ``Render can render an element``() = taskUnit {
     Render.start(
       Element {
         tag = "div"
-        attributes = []
-        children = []
+        attributes = LinkedList()
+        children = LinkedList()
       }
     ) do
     actual.Add(chunk)
@@ -40,8 +41,8 @@ let ``Render can render an element with attributes``() = taskUnit {
     Render.start(
       Element {
         tag = "div"
-        attributes = [ Attribute { name = "class"; value = "foo" } ]
-        children = []
+        attributes = LinkedList([ Attribute { name = "class"; value = "foo" } ])
+        children = LinkedList()
       }
     ) do
     actual.Add(chunk)
@@ -61,14 +62,17 @@ let ``Render can render an element with children``() = taskUnit {
     Render.start(
       Element {
         tag = "div"
-        attributes = []
-        children = [
-          Element {
-            tag = "span"
-            attributes = []
-            children = []
-          }
-        ]
+        attributes = LinkedList()
+        children =
+          LinkedList(
+            [
+              Element {
+                tag = "span"
+                attributes = LinkedList()
+                children = LinkedList()
+              }
+            ]
+          )
       }
     ) do
     actual.Add(chunk)
@@ -88,14 +92,17 @@ let ``Render can render an element with children and attributes``() = taskUnit {
     Render.start(
       Element {
         tag = "div"
-        attributes = [ Attribute { name = "class"; value = "foo" } ]
-        children = [
-          Element {
-            tag = "span"
-            attributes = []
-            children = []
-          }
-        ]
+        attributes = LinkedList([ Attribute { name = "class"; value = "foo" } ])
+        children =
+          LinkedList(
+            [
+              Element {
+                tag = "span"
+                attributes = LinkedList()
+                children = LinkedList()
+              }
+            ]
+          )
       }
     ) do
     actual.Add(chunk)
@@ -125,14 +132,17 @@ let ``Render can render an element with children and attributes and text``() = t
     Render.start(
       Element {
         tag = "div"
-        attributes = [ Attribute { name = "class"; value = "foo" } ]
-        children = [
-          Element {
-            tag = "span"
-            attributes = []
-            children = [ Text "Hello" ]
-          }
-        ]
+        attributes = LinkedList([ Attribute { name = "class"; value = "foo" } ])
+        children =
+          LinkedList(
+            [
+              Element {
+                tag = "span"
+                attributes = LinkedList()
+                children = LinkedList([ Text "Hello" ])
+              }
+            ]
+          )
       }
     ) do
     actual.Add(chunk)
@@ -166,21 +176,28 @@ let ``Render can render an element with children and attributes and text and a f
       Render.start(
         Element {
           tag = "div"
-          attributes = [ Attribute { name = "class"; value = "foo" } ]
-          children = [
-            Element {
-              tag = "span"
-              attributes = []
-              children = [ Text "Hello" ]
-            }
-            Fragment [
+          attributes =
+            LinkedList([ Attribute { name = "class"; value = "foo" } ])
+          children =
+            LinkedList [
               Element {
                 tag = "span"
-                attributes = []
-                children = [ Text "World" ]
+                attributes = LinkedList()
+                children = LinkedList [ Text "Hello" ]
               }
+
+              Fragment(
+                LinkedList(
+                  [
+                    Element {
+                      tag = "span"
+                      attributes = LinkedList()
+                      children = LinkedList [ Text "World" ]
+                    }
+                  ]
+                )
+              )
             ]
-          ]
         }
       ) do
       actual.Add(chunk)
@@ -214,26 +231,28 @@ let ``Render can render an element with async nodes and async attributes``() = t
     Render.start(
       Element {
         tag = "div"
-        attributes = [
-          AsyncAttribute(
-            cancellableValueTask { return { name = "class"; value = "foo" } }
-          )
-          AsyncAttribute(
-            cancellableValueTask { return { name = "class"; value = "fa" } }
-          )
-        ]
-        children = [
-          AsyncNode(
-            cancellableValueTask {
-              return
-                Element {
-                  tag = "span"
-                  attributes = []
-                  children = []
-                }
-            }
-          )
-        ]
+        attributes =
+          LinkedList [
+            AsyncAttribute(
+              cancellableValueTask { return { name = "class"; value = "foo" } }
+            )
+            AsyncAttribute(
+              cancellableValueTask { return { name = "class"; value = "fa" } }
+            )
+          ]
+        children =
+          LinkedList [
+            AsyncNode(
+              cancellableValueTask {
+                return
+                  Element {
+                    tag = "span"
+                    attributes = LinkedList()
+                    children = LinkedList()
+                  }
+              }
+            )
+          ]
       }
     ) do
     actual.Add(chunk)
@@ -261,16 +280,17 @@ let ``Render can respect id, class, attribute order``() = taskUnit {
     Render.start(
       Element {
         tag = "div"
-        attributes = [
-          Attribute { name = "id"; value = "foo" }
-          Attribute { name = "class"; value = "bar" }
-          Attribute { name = "class"; value = "baz" }
-          Attribute { name = "class"; value = "qux" }
-          Attribute { name = "class"; value = "quux" }
-          Attribute { name = "data-foo"; value = "bar" }
-          Attribute { name = "data-bar"; value = "baz" }
-        ]
-        children = []
+        attributes =
+          LinkedList [
+            Attribute { name = "id"; value = "foo" }
+            Attribute { name = "class"; value = "bar" }
+            Attribute { name = "class"; value = "baz" }
+            Attribute { name = "class"; value = "qux" }
+            Attribute { name = "class"; value = "quux" }
+            Attribute { name = "data-foo"; value = "bar" }
+            Attribute { name = "data-bar"; value = "baz" }
+          ]
+        children = LinkedList()
       }
     ) do
     actual.Add(chunk)
@@ -303,45 +323,51 @@ let ``Render can render an element with children and attributes and text and a f
       Render.start(
         Element {
           tag = "div"
-          attributes = [
-            Attribute { name = "id"; value = "foo" }
-            Attribute { name = "class"; value = "bar" }
-            Attribute { name = "class"; value = "baz" }
-            Attribute { name = "class"; value = "qux" }
-            Attribute { name = "class"; value = "quux" }
-            Attribute { name = "data-foo"; value = "bar" }
-            Attribute { name = "data-bar"; value = "baz" }
-            AsyncAttribute(
-              cancellableValueTask { return { name = "class"; value = "foo" } }
-            )
-            AsyncAttribute(
-              cancellableValueTask { return { name = "class"; value = "fa" } }
-            )
-          ]
-          children = [
-            Element {
-              tag = "span"
-              attributes = []
-              children = [ Text "Hello" ]
-            }
-            Fragment [
+          attributes =
+            LinkedList [
+              Attribute { name = "id"; value = "foo" }
+              Attribute { name = "class"; value = "bar" }
+              Attribute { name = "class"; value = "baz" }
+              Attribute { name = "class"; value = "qux" }
+              Attribute { name = "class"; value = "quux" }
+              Attribute { name = "data-foo"; value = "bar" }
+              Attribute { name = "data-bar"; value = "baz" }
+              AsyncAttribute(
+                cancellableValueTask {
+                  return { name = "class"; value = "foo" }
+                }
+              )
+              AsyncAttribute(
+                cancellableValueTask { return { name = "class"; value = "fa" } }
+              )
+            ]
+          children =
+            LinkedList [
               Element {
                 tag = "span"
-                attributes = []
-                children = [ Text "World" ]
+                attributes = LinkedList()
+                children = LinkedList [ Text "Hello" ]
               }
-            ]
-            AsyncNode(
-              cancellableValueTask {
-                return
+              Fragment(
+                LinkedList [
                   Element {
                     tag = "span"
-                    attributes = []
-                    children = [ Text "Hello" ]
+                    attributes = LinkedList()
+                    children = LinkedList [ Text "World" ]
                   }
-              }
-            )
-          ]
+                ]
+              )
+              AsyncNode(
+                cancellableValueTask {
+                  return
+                    Element {
+                      tag = "span"
+                      attributes = LinkedList()
+                      children = LinkedList [ Text "Hello" ]
+                    }
+                }
+              )
+            ]
         }
       ) do
       actual.Add(chunk)
@@ -382,11 +408,12 @@ let ``Render discards any "id" attribute after the first``() = taskUnit {
     Render.start(
       Element {
         tag = "div"
-        attributes = [
-          Attribute { name = "id"; value = "foo" }
-          Attribute { name = "id"; value = "bar" }
-        ]
-        children = []
+        attributes =
+          LinkedList [
+            Attribute { name = "id"; value = "foo" }
+            Attribute { name = "id"; value = "bar" }
+          ]
+        children = LinkedList()
       }
     ) do
     actual.Add(chunk)
@@ -404,13 +431,14 @@ let ``Render discards any async "id" after the first``() = taskUnit {
     Render.start(
       Element {
         tag = "div"
-        attributes = [
-          Attribute { name = "id"; value = "foo" }
-          AsyncAttribute(
-            cancellableValueTask { return { name = "id"; value = "bar" } }
-          )
-        ]
-        children = []
+        attributes =
+          LinkedList [
+            Attribute { name = "id"; value = "foo" }
+            AsyncAttribute(
+              cancellableValueTask { return { name = "id"; value = "bar" } }
+            )
+          ]
+        children = LinkedList()
       }
     ) do
     actual.Add(chunk)
@@ -428,13 +456,14 @@ let ``Render discards any "id" after the first async attribute``() = taskUnit {
     Render.start(
       Element {
         tag = "div"
-        attributes = [
-          AsyncAttribute(
-            cancellableValueTask { return { name = "id"; value = "foo" } }
-          )
-          Attribute { name = "id"; value = "bar" }
-        ]
-        children = []
+        attributes =
+          LinkedList [
+            AsyncAttribute(
+              cancellableValueTask { return { name = "id"; value = "foo" } }
+            )
+            Attribute { name = "id"; value = "bar" }
+          ]
+        children = LinkedList()
       }
     ) do
     actual.Add(chunk)
@@ -496,7 +525,8 @@ let ``Render can render a comment node``() = taskUnit {
 let ``Render can render a fragment node``() = taskUnit {
   let actual = ResizeArray()
 
-  for chunk in Render.start(Fragment [ Text "Hello, "; Text "world!" ]) do
+  for chunk in
+    Render.start(Fragment(LinkedList [ Text "Hello, "; Text "world!" ])) do
     actual.Add(chunk)
 
   let expected = [ "Hello, "; "world!" ]
@@ -559,7 +589,7 @@ let ``Render can render an Async Seq Node with a fragment``() = taskUnit {
           do! Task.Delay(5)
           Text "world!"
           do! Task.Delay(5)
-          Fragment [ Text "Hello, "; Text "world!" ]
+          Fragment(LinkedList [ Text "Hello, "; Text "world!" ])
         }
       )
     ) do
@@ -587,7 +617,7 @@ let ``Render can render an Async Seq Node with a fragment and an async node``
             do! Task.Delay(5)
             Text "world!"
             do! Task.Delay(5)
-            Fragment [ Text "Hello, "; Text "world!" ]
+            Fragment(LinkedList [ Text "Hello, "; Text "world!" ])
             do! Task.Delay(5)
 
             AsyncNode(
@@ -613,15 +643,18 @@ let ``Render can render a mix of sync/async nodes``() = taskUnit {
 
   for chunk in
     Render.start(
-      Fragment [
-        Text "Hello, "
-        AsyncNode(
-          cancellableValueTask {
-            do! Task.Delay(5)
-            return Text "world!"
-          }
-        )
-      ]
+      Fragment(
+        LinkedList [
+          Text "Hello, "
+
+          AsyncNode(
+            cancellableValueTask {
+              do! Task.Delay(5)
+              return Text "world!"
+            }
+          )
+        ]
+      )
     ) do
     actual.Add(chunk)
 
@@ -636,16 +669,18 @@ let ``Render can render a mix of sync/async nodes with a fragment``() = taskUnit
 
   for chunk in
     Render.start(
-      Fragment [
-        Text "Hello, "
-        AsyncNode(
-          cancellableValueTask {
-            do! Task.Delay(5)
-            return Text "world!"
-          }
-        )
-        Fragment [ Text "Hello, "; Text "world!" ]
-      ]
+      Fragment(
+        LinkedList [
+          Text "Hello, "
+          AsyncNode(
+            cancellableValueTask {
+              do! Task.Delay(5)
+              return Text "world!"
+            }
+          )
+          Fragment(LinkedList [ Text "Hello, "; Text "world!" ])
+        ]
+      )
     ) do
     actual.Add(chunk)
 
@@ -663,34 +698,38 @@ let ``Render can render a mix of sync/async nodes with a mix of sync/async attri
 
     for chunk in
       Render.start(
-        Fragment [
-          AsyncNode(
-            cancellableValueTask {
-              do! Task.Delay(5)
-              return Text "Hello, "
+        Fragment(
+          LinkedList [
+            AsyncNode(
+              cancellableValueTask {
+                do! Task.Delay(5)
+                return Text "Hello, "
+              }
+            )
+            Element {
+              tag = "div"
+              attributes =
+                LinkedList [
+                  Attribute { name = "class"; value = "foo" }
+                  AsyncAttribute(
+                    cancellableValueTask {
+                      do! Task.Delay(5)
+                      return { name = "id"; value = "bar" }
+                    }
+                  )
+                ]
+              children =
+                LinkedList [
+                  AsyncNode(
+                    cancellableValueTask {
+                      do! Task.Delay(5)
+                      return Text "world!"
+                    }
+                  )
+                ]
             }
-          )
-          Element {
-            tag = "div"
-            attributes = [
-              Attribute { name = "class"; value = "foo" }
-              AsyncAttribute(
-                cancellableValueTask {
-                  do! Task.Delay(5)
-                  return { name = "id"; value = "bar" }
-                }
-              )
-            ]
-            children = [
-              AsyncNode(
-                cancellableValueTask {
-                  do! Task.Delay(5)
-                  return Text "world!"
-                }
-              )
-            ]
-          }
-        ]
+          ]
+        )
       ) do
       actual.Add(chunk)
 

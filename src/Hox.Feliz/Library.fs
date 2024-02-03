@@ -32,7 +32,7 @@ module Engine =
 
       AsyncNode tsk
 
-    member inline _.fragment(nodes: Node seq) = Fragment(nodes |> List.ofSeq)
+    member inline _.fragment(nodes: Node seq) = Fragment(LinkedList(nodes))
 
     member inline _.fragment(nodes: Node IAsyncEnumerable) = AsyncSeqNode nodes
 
@@ -92,7 +92,11 @@ module Engine =
 
 
   let H =
-    HtmlEngine((fun tag nodes -> h(tag, nodes)), Text, (fun () -> Fragment []))
+    HtmlEngine(
+      (fun tag nodes -> h(tag, nodes)),
+      Text,
+      (fun () -> Fragment(LinkedList()))
+    )
 
   let A =
     AttrEngine(

@@ -2,7 +2,7 @@ module Hox.Rendering
 
 open System
 open System.Collections.Generic
-open System.Diagnostics
+open System.Threading.Tasks
 
 open System.Web
 
@@ -12,7 +12,34 @@ open IcedTasks
 open Hox.Core
 open System.Threading
 
-let getAttributes(attributes: AttributeNode list) = cancellableValueTask {
+[<Struct; RequireQualifiedAccess>]
+type EscapeMode =
+  | Html
+  | Attribute
+
+let inline getEncodedCache
+  escapeMode
+  (encodedCache: Dictionary<string, string>)
+  =
+  let cachedHtmlEncode(s: string) =
+    match encodedCache.TryGetValue(s) with
+    | true, encoded -> encoded
+    | false, _ ->
+      let encoded =
+        match escapeMode with
+        | EscapeMode.Html -> HttpUtility.HtmlEncode(s)
+        | EscapeMode.Attribute -> HttpUtility.HtmlAttributeEncode(s)
+
+      encodedCache.[s] <- encoded
+      encoded
+
+  cachedHtmlEncode
+
+
+let getAttributes(attributes: AttributeNode LinkedList) = cancellableValueTask {
+  let cachedHtmlEncode =
+    getEncodedCache EscapeMode.Attribute (Dictionary<string, string>())
+
   let clsSeq = ResizeArray()
   let attrSeq = ResizeArray()
   let mutable id = ValueNone
@@ -20,17 +47,17 @@ let getAttributes(attributes: AttributeNode list) = cancellableValueTask {
   // ids and classes have to be HtmlAttributeEncode'ed because we're
   // handling them separately, attributes are handled by the renderAttr function
   // which will HtmlAttributeEncode them.
-  for attribute in attributes do
-    match attribute with
-    | AttributeNode.Attribute { name = ""; value = value } -> ()
+  let mutable node = attributes.First
+
+  while node <> null do
+    match node.Value with
+    | AttributeNode.Attribute { name = ""; value = _ } -> ()
     | AttributeNode.Attribute { name = "class"; value = value } ->
-      clsSeq.Add(value |> HttpUtility.HtmlAttributeEncode)
+      clsSeq.Add(value |> cachedHtmlEncode)
     | AttributeNode.Attribute { name = "id"; value = value } ->
       id <-
         id
-        |> ValueOption.orElse(
-          ValueSome(value |> HttpUtility.HtmlAttributeEncode)
-        )
+        |> ValueOption.orElseWith(fun _ -> ValueSome(value |> cachedHtmlEncode))
     | AttributeNode.Attribute attribute -> attrSeq.Add(attribute)
     | AttributeNode.AsyncAttribute asyncAttribute ->
       let! { name = name; value = value } = asyncAttribute
@@ -40,39 +67,76 @@ let getAttributes(attributes: AttributeNode list) = cancellableValueTask {
       elif name = "id" then
         id <-
           id
-          |> ValueOption.orElse(
-            ValueSome(value |> HttpUtility.HtmlAttributeEncode)
-          )
+          |> ValueOption.orElseWith(fun _ ->
+            ValueSome(value |> cachedHtmlEncode))
       elif name = "class" then
-        clsSeq.Add(value |> HttpUtility.HtmlAttributeEncode)
+        clsSeq.Add(value |> cachedHtmlEncode)
       else
         attrSeq.Add({ name = name; value = value })
+
+    node <- node.Next
 
   return id, clsSeq, attrSeq
 }
 
 let renderAttr(node: AttributeNode) = cancellableValueTask {
+
   match node with
+  | AttributeNode.Attribute { name = name; value = value } when
+    String.IsNullOrWhiteSpace name
+    ->
+    return String.Empty
   | AttributeNode.Attribute { name = name; value = value } ->
-    return
-      $" %s{HttpUtility.HtmlAttributeEncode name}=\"%s{HttpUtility.HtmlAttributeEncode value}\""
+    return $" %s{name}=\"%s{value}\""
   | AsyncAttribute asyncAttribute ->
     let! { name = name; value = value } = asyncAttribute
 
     if name = String.Empty then
       return String.Empty
     else
-      return
-        $" %s{HttpUtility.HtmlAttributeEncode name}=\"%s{HttpUtility.HtmlAttributeEncode value}\""
+      return $" %s{name}=\"%s{value}\""
 }
+
+let voidTags =
+  lazy
+    (HashSet(
+      [
+        "area"
+        "base"
+        "br"
+        "col"
+        "command"
+        "embed"
+        "hr"
+        "img"
+        "input"
+        "keygen"
+        "link"
+        "meta"
+        "param"
+        "source"
+        "track"
+        "wbr"
+      ],
+      StringComparer.InvariantCultureIgnoreCase
+    ))
 
 /// This module contains functions that are used to render a node to a string
 /// It is backed by a StringBuilder.
 module Builder =
   open System.Text
 
+
+
   let renderNode(node: Node) : CancellableValueTask<string> = cancellableValueTask {
     let! token = CancellableValueTask.getCancellationToken()
+
+    let cachedAttrEncode =
+      getEncodedCache EscapeMode.Attribute (Dictionary<string, string>())
+
+    let cachedHtmlEncode =
+      getEncodedCache EscapeMode.Html (Dictionary<string, string>())
+
     let sb = StringBuilder()
     let stack = Stack<struct (Node * bool)>()
     stack.Push(node, false)
@@ -91,7 +155,7 @@ module Builder =
         let! id, classes, attributes = getAttributes element.attributes
 
         match id with
-        | ValueSome id -> sb.Append($" id=\"%s{id}\"") |> ignore
+        | ValueSome id -> sb.Append(" id=\"").Append(id).Append("\"") |> ignore
         | ValueNone -> ()
 
         match classes with
@@ -100,44 +164,38 @@ module Builder =
           sb.Append(" class=\"").AppendJoin(' ', classes).Append("\"") |> ignore
 
         for attribute in attributes do
-          let! attribute = renderAttr(AttributeNode.Attribute attribute)
+          let! attribute =
+            renderAttr(
+              AttributeNode.Attribute {
+                attribute with
+                    value = cachedAttrEncode attribute.value
+                    name = cachedAttrEncode attribute.name
+              }
+            )
+
           sb.Append(attribute) |> ignore
 
         sb.Append(">") |> ignore
 
-        match element.tag.ToLowerInvariant() with
-        | "area"
-        | "base"
-        | "br"
-        | "col"
-        | "command"
-        | "embed"
-        | "hr"
-        | "img"
-        | "input"
-        | "keygen"
-        | "link"
-        | "meta"
-        | "param"
-        | "source"
-        | "track"
-        | "wbr" -> ()
-        | _ ->
+        if not(voidTags.Value.Contains(element.tag)) then
           stack.Push(Element element, true)
+          let mutable node = element.children.Last
 
-          if element.children.Length > 0 then
-            for child in element.children.Length - 1 .. -1 .. 0 do
-              stack.Push((element.children[child], false))
+          while node <> null do
+            stack.Push(node.Value, false)
+            node <- node.Previous
 
-      | Text text -> sb.Append(HttpUtility.HtmlEncode text) |> ignore
+      | Text text -> sb.Append(cachedHtmlEncode text) |> ignore
       | Raw raw -> sb.Append(raw) |> ignore
       | Comment comment ->
-        sb.Append($"<!--%s{HttpUtility.HtmlEncode comment}-->") |> ignore
+        sb.Append("<!--").Append(cachedHtmlEncode comment).Append("-->")
+        |> ignore
       | Fragment nodes ->
-        if nodes.Length > 0 then
-          for child in nodes.Length - 1 .. -1 .. 0 do
-            stack.Push((nodes[child], false))
+        let mutable node = nodes.Last
 
+        while node <> null do
+          stack.Push(node.Value, false)
+          node <- node.Previous
       | AsyncNode node ->
         // These nodes are already handling cancellation semantics
         // when they're added to the parent node, so we don't need to
@@ -147,13 +205,11 @@ module Builder =
       | AsyncSeqNode nodes ->
         // This is a complicated case, we need to handle cancellation
         // but TaskSeq.toListAsync doesn't support cancellation
-        let! nodes = nodes |> TaskSeq.toListAsync
+        let! nodes = nodes |> TaskSeq.toArrayAsync
 
         if nodes.Length > 0 then
-          for child in nodes.Length - 1 .. -1 .. 0 do
-            token.ThrowIfCancellationRequested()
-
-            stack.Push((nodes[child], false))
+          for child = nodes.Length - 1 downto 0 do
+            stack.Push(nodes[child], false)
 
     return sb.ToString()
   }
@@ -182,6 +238,12 @@ module Chunked =
       cancellationToken: CancellationToken
     ) : IAsyncEnumerable<string> =
     taskSeq {
+      let cachedHtmlEncode =
+        getEncodedCache EscapeMode.Html (Dictionary<string, string>())
+
+      let cachedAttrEncode =
+        getEncodedCache EscapeMode.Attribute (Dictionary<string, string>())
+
       while stack.Count > 0 do
         cancellationToken.ThrowIfCancellationRequested()
 
@@ -208,44 +270,39 @@ module Chunked =
 
           for attribute in attributes do
             let! attribute =
-              renderAttr (AttributeNode.Attribute attribute) cancellationToken
+              renderAttr
+                (AttributeNode.Attribute {
+                  attribute with
+                      value = cachedAttrEncode attribute.value
+                      name = cachedAttrEncode attribute.name
+                })
+                cancellationToken
 
             attribute
 
           ">"
 
-          match element.tag with
-          | "area"
-          | "base"
-          | "br"
-          | "col"
-          | "command"
-          | "embed"
-          | "hr"
-          | "img"
-          | "input"
-          | "keygen"
-          | "link"
-          | "meta"
-          | "param"
-          | "source"
-          | "track"
-          | "wbr" -> ()
-          | _ ->
+          // Only non-void tags have children
+          // if the element is not a void tag also close it
+          if not(voidTags.Value.Contains(element.tag)) then
             stack.Push(Element element, true, depth)
 
-            if element.children.Length > 0 then
-              for child in element.children.Length - 1 .. -1 .. 0 do
-                stack.Push((element.children[child], false, depth + 1))
+            let mutable node = element.children.Last
 
-        | Text text -> HttpUtility.HtmlEncode text
+            while node <> null do
+              stack.Push(node.Value, false, depth)
+              node <- node.Previous
+
+        | Text text -> cachedHtmlEncode text
         | Raw raw -> raw
-        | Comment comment -> $"<!--%s{HttpUtility.HtmlEncode comment}-->"
+        | Comment comment -> $"<!--%s{cachedHtmlEncode comment}-->"
         | Fragment nodes ->
-          if nodes.Length > 0 then
-            for child in nodes.Length - 1 .. -1 .. 0 do
-              stack.Push((nodes[child], false, depth))
 
+          let mutable node = nodes.Last
+
+          while node <> null do
+            stack.Push(node.Value, false, depth)
+            node <- node.Previous
         | AsyncNode node ->
           // These nodes are already handling cancellation semantics
           // when they're added to the parent node, so we don't need to
@@ -261,13 +318,11 @@ module Chunked =
             // Similarly to the Builder module, we can't cancell this operation
             // as it doesn't support cancellation, so we'll just have to wait
             // for it to finish.
-            let! nodes = nodes |> TaskSeq.toListAsync
+            let! nodes = nodes |> TaskSeq.toArrayAsync
 
             if nodes.Length > 0 then
-              for child in nodes.Length - 1 .. -1 .. 0 do
-                cancellationToken.ThrowIfCancellationRequested()
-
-                stack.Push((nodes[child], false, depth))
+              for child = nodes.Length - 1 downto 0 do
+                stack.Push(nodes[child], false, depth)
 
           else
             // This part makes me a bit sad, since we can't reverse the sequence
@@ -283,18 +338,16 @@ module Chunked =
             // that or we could use async computations to attempt a recursive solution
             // but that would potentially make ValueTasks Hot which we'd like to avoid untill
             // we know the ValueTask is actually an async operation (see the cases above).
-            let items = ResizeArray()
+            let items = LinkedList()
 
             for node in nodes do
-              items.Add node
+              items.AddFirst(node) |> ignore
 
-            for i in items.Count - 1 .. -1 .. 0 do
-              cancellationToken.ThrowIfCancellationRequested()
-              stack.Push((items.[i], false, depth))
+            for item in items do
+              stack.Push(item, false, depth)
             // The next renderNode call will check it's own
             // cancellation token and throw if needed.
             yield! renderNode(stack, cancellationToken)
-
     }
 
 type Render =

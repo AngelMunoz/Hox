@@ -56,8 +56,8 @@ module Results =
 
 type Layout =
   static member inline Default(content: Node, ?head: Node, ?scripts: Node) =
-    let head = defaultArg head (Fragment [])
-    let scripts = defaultArg scripts (Fragment [])
+    let head = defaultArg head (empty)
+    let scripts = defaultArg scripts (empty)
 
     h(
       "html[lang=en].sl-theme-light",

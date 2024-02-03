@@ -1,6 +1,8 @@
 module RenderAsyncString
 
 open System
+open System.Collections.Generic
+open System.Threading
 open Xunit
 
 open IcedTasks
@@ -9,15 +11,14 @@ open Hox.Core
 open Hox.Rendering
 open System.Threading.Tasks
 open FSharp.Control
-open System.Threading
 
 [<Fact>]
 let ``It should render an element``() = taskUnit {
   let node =
     Element {
       tag = "div"
-      attributes = []
-      children = []
+      attributes = LinkedList()
+      children = LinkedList()
     }
 
   let expected = "<div></div>"
@@ -32,8 +33,8 @@ let ``It should render an element with Async``() =
     let node =
       Element {
         tag = "div"
-        attributes = []
-        children = []
+        attributes = LinkedList()
+        children = LinkedList()
       }
 
     let expected = "<div></div>"
@@ -86,7 +87,7 @@ let ``It should render a comment node``() = taskUnit {
 
 [<Fact>]
 let ``It should render a fragment node``() = taskUnit {
-  let node = Fragment [ Text "Hello, "; Text "world!" ]
+  let node = Fragment(LinkedList [ Text "Hello, "; Text "world!" ])
 
   let expected = "Hello, world!"
 
@@ -125,11 +126,12 @@ let ``It should render an element with attributes``() = taskUnit {
   let node =
     Element {
       tag = "div"
-      attributes = [
-        Attribute { name = "class"; value = "foo" }
-        Attribute { name = "id"; value = "bar" }
-      ]
-      children = []
+      attributes =
+        LinkedList [
+          Attribute { name = "class"; value = "foo" }
+          Attribute { name = "id"; value = "bar" }
+        ]
+      children = LinkedList()
     }
 
   let expected = "<div id=\"bar\" class=\"foo\"></div>"
@@ -143,15 +145,16 @@ let ``It should render an element with an async attribute``() = taskUnit {
   let node =
     Element {
       tag = "div"
-      attributes = [
-        AsyncAttribute(
-          cancellableValueTask { return { name = "class"; value = "foo" } }
-        )
-        AsyncAttribute(
-          cancellableValueTask { return { name = "id"; value = "bar" } }
-        )
-      ]
-      children = []
+      attributes =
+        LinkedList [
+          AsyncAttribute(
+            cancellableValueTask { return { name = "class"; value = "foo" } }
+          )
+          AsyncAttribute(
+            cancellableValueTask { return { name = "id"; value = "bar" } }
+          )
+        ]
+      children = LinkedList()
     }
 
   let expected = "<div id=\"bar\" class=\"foo\"></div>"
@@ -163,10 +166,12 @@ let ``It should render an element with an async attribute``() = taskUnit {
 [<Fact>]
 let ``It should render a mix of sync/async nodes``() = taskUnit {
   let node =
-    Fragment [
-      AsyncNode(cancellableValueTask { return Text "Hello, " })
-      Text "world!"
-    ]
+    Fragment(
+      LinkedList [
+        AsyncNode(cancellableValueTask { return Text "Hello, " })
+        Text "world!"
+      ]
+    )
 
   let expected = "Hello, world!"
 
@@ -177,18 +182,21 @@ let ``It should render a mix of sync/async nodes``() = taskUnit {
 [<Fact>]
 let ``It should render a mix of sync/async nodes with attributes``() = taskUnit {
   let node =
-    Fragment [
-      AsyncNode(cancellableValueTask { return Text "Hello, " })
-      Element {
-        tag = "div"
-        attributes = [
-          Attribute { name = "class"; value = "foo" }
-          Attribute { name = "id"; value = "bar" }
-        ]
-        children = []
-      }
-      Text "world!"
-    ]
+    Fragment(
+      LinkedList [
+        AsyncNode(cancellableValueTask { return Text "Hello, " })
+        Element {
+          tag = "div"
+          attributes =
+            LinkedList [
+              Attribute { name = "class"; value = "foo" }
+              Attribute { name = "id"; value = "bar" }
+            ]
+          children = LinkedList()
+        }
+        Text "world!"
+      ]
+    )
 
   let expected = "Hello, <div id=\"bar\" class=\"foo\"></div>world!"
 
@@ -199,22 +207,27 @@ let ``It should render a mix of sync/async nodes with attributes``() = taskUnit 
 [<Fact>]
 let ``It should render a mix of sync/async nodes with async attributes``() = taskUnit {
   let node =
-    Fragment [
-      AsyncNode(cancellableValueTask { return Text "Hello, " })
-      Element {
-        tag = "div"
-        attributes = [
-          AsyncAttribute(
-            cancellableValueTask { return { name = "class"; value = "foo" } }
-          )
-          AsyncAttribute(
-            cancellableValueTask { return { name = "id"; value = "bar" } }
-          )
-        ]
-        children = []
-      }
-      Text "world!"
-    ]
+    Fragment(
+      LinkedList [
+        AsyncNode(cancellableValueTask { return Text "Hello, " })
+        Element {
+          tag = "div"
+          attributes =
+            LinkedList [
+              AsyncAttribute(
+                cancellableValueTask {
+                  return { name = "class"; value = "foo" }
+                }
+              )
+              AsyncAttribute(
+                cancellableValueTask { return { name = "id"; value = "bar" } }
+              )
+            ]
+          children = LinkedList()
+        }
+        Text "world!"
+      ]
+    )
 
   let expected = "Hello, <div id=\"bar\" class=\"foo\"></div>world!"
 
@@ -228,23 +241,29 @@ let ``It should render a mix of sync/async nodes with async attributes and async
   =
   taskUnit {
     let node =
-      Fragment [
-        AsyncNode(cancellableValueTask { return Text "Hello, " })
-        Element {
-          tag = "div"
-          attributes = [
-            AsyncAttribute(
-              cancellableValueTask { return { name = "class"; value = "foo" } }
-            )
-            AsyncAttribute(
-              cancellableValueTask { return { name = "id"; value = "bar" } }
-            )
-          ]
-          children = [
-            AsyncNode(cancellableValueTask { return Text "world!" })
-          ]
-        }
-      ]
+      Fragment(
+        LinkedList [
+          AsyncNode(cancellableValueTask { return Text "Hello, " })
+          Element {
+            tag = "div"
+            attributes =
+              LinkedList [
+                AsyncAttribute(
+                  cancellableValueTask {
+                    return { name = "class"; value = "foo" }
+                  }
+                )
+                AsyncAttribute(
+                  cancellableValueTask { return { name = "id"; value = "bar" } }
+                )
+              ]
+            children =
+              LinkedList [
+                AsyncNode(cancellableValueTask { return Text "world!" })
+              ]
+          }
+        ]
+      )
 
     let expected = "Hello, <div id=\"bar\" class=\"foo\">world!</div>"
 
@@ -258,24 +277,30 @@ let ``It should render a mix of sync/async nodes with async attributes and async
   =
   taskUnit {
     let node =
-      Fragment [
-        AsyncNode(cancellableValueTask { return Text "Hello, " })
-        Element {
-          tag = "div"
-          attributes = [
-            AsyncAttribute(
-              cancellableValueTask { return { name = "class"; value = "foo" } }
-            )
-            AsyncAttribute(
-              cancellableValueTask { return { name = "id"; value = "bar" } }
-            )
-          ]
-          children = [
-            AsyncNode(cancellableValueTask { return Text "world!" })
-          ]
-        }
-        AsyncNode(cancellableValueTask { return Text "!" })
-      ]
+      Fragment(
+        LinkedList [
+          AsyncNode(cancellableValueTask { return Text "Hello, " })
+          Element {
+            tag = "div"
+            attributes =
+              LinkedList [
+                AsyncAttribute(
+                  cancellableValueTask {
+                    return { name = "class"; value = "foo" }
+                  }
+                )
+                AsyncAttribute(
+                  cancellableValueTask { return { name = "id"; value = "bar" } }
+                )
+              ]
+            children =
+              LinkedList [
+                AsyncNode(cancellableValueTask { return Text "world!" })
+              ]
+          }
+          AsyncNode(cancellableValueTask { return Text "!" })
+        ]
+      )
 
     let expected = "Hello, <div id=\"bar\" class=\"foo\">world!</div>!"
 
@@ -289,30 +314,36 @@ let ``It should render a mix of sync/async nodes with async attributes and async
   =
   taskUnit {
     let node =
-      Fragment [
-        AsyncNode(cancellableValueTask { return Text "Hello, " })
-        Element {
-          tag = "div"
-          attributes = [
-            AsyncAttribute(
-              cancellableValueTask { return { name = "class"; value = "foo" } }
-            )
-            AsyncAttribute(
-              cancellableValueTask { return { name = "id"; value = "bar" } }
-            )
-          ]
-          children = [
-            AsyncNode(cancellableValueTask { return Text "world!" })
-          ]
-        }
-        AsyncNode(cancellableValueTask { return Text "!" })
-        AsyncSeqNode(
-          taskSeq {
-            Text " "
-            Text "How are you?"
+      Fragment(
+        LinkedList [
+          AsyncNode(cancellableValueTask { return Text "Hello, " })
+          Element {
+            tag = "div"
+            attributes =
+              LinkedList [
+                AsyncAttribute(
+                  cancellableValueTask {
+                    return { name = "class"; value = "foo" }
+                  }
+                )
+                AsyncAttribute(
+                  cancellableValueTask { return { name = "id"; value = "bar" } }
+                )
+              ]
+            children =
+              LinkedList [
+                AsyncNode(cancellableValueTask { return Text "world!" })
+              ]
           }
-        )
-      ]
+          AsyncNode(cancellableValueTask { return Text "!" })
+          AsyncSeqNode(
+            taskSeq {
+              Text " "
+              Text "How are you?"
+            }
+          )
+        ]
+      )
 
     let expected =
       "Hello, <div id=\"bar\" class=\"foo\">world!</div>! How are you?"
@@ -327,31 +358,37 @@ let ``It should render a mix of sync/async nodes with async attributes and async
   =
   taskUnit {
     let node =
-      Fragment [
-        AsyncNode(cancellableValueTask { return Text "Hello, " })
-        Element {
-          tag = "div"
-          attributes = [
-            AsyncAttribute(
-              cancellableValueTask { return { name = "class"; value = "foo" } }
-            )
-            AsyncAttribute(
-              cancellableValueTask { return { name = "id"; value = "bar" } }
-            )
-          ]
-          children = [
-            AsyncNode(cancellableValueTask { return Text "world!" })
-          ]
-        }
-        AsyncNode(cancellableValueTask { return Text "!" })
-        AsyncSeqNode(
-          taskSeq {
-            Text " "
-            Text "How are you?"
+      Fragment(
+        LinkedList [
+          AsyncNode(cancellableValueTask { return Text "Hello, " })
+          Element {
+            tag = "div"
+            attributes =
+              LinkedList [
+                AsyncAttribute(
+                  cancellableValueTask {
+                    return { name = "class"; value = "foo" }
+                  }
+                )
+                AsyncAttribute(
+                  cancellableValueTask { return { name = "id"; value = "bar" } }
+                )
+              ]
+            children =
+              LinkedList [
+                AsyncNode(cancellableValueTask { return Text "world!" })
+              ]
           }
-        )
-        AsyncNode(cancellableValueTask { return Text "I'm fine, thanks!" })
-      ]
+          AsyncNode(cancellableValueTask { return Text "!" })
+          AsyncSeqNode(
+            taskSeq {
+              Text " "
+              Text "How are you?"
+            }
+          )
+          AsyncNode(cancellableValueTask { return Text "I'm fine, thanks!" })
+        ]
+      )
 
     let expected =
       "Hello, <div id=\"bar\" class=\"foo\">world!</div>! How are you?I&#39;m fine, thanks!"
@@ -366,8 +403,8 @@ let ``Rendering childless nodes should not write the end tag``() = taskUnit {
   let node =
     Element {
       tag = "input"
-      attributes = []
-      children = []
+      attributes = LinkedList()
+      children = LinkedList()
     }
 
   let expected = "<input>"
@@ -379,24 +416,28 @@ let ``Rendering childless nodes should not write the end tag``() = taskUnit {
 [<Fact>]
 let ``Childless nodes can be added to elements and fragments``() = taskUnit {
   let node =
-    Fragment [
-      Element {
-        tag = "div"
-        attributes = []
-        children = [
-          Element {
-            tag = "source"
-            attributes = [ Attribute { name = "src"; value = "foo" } ]
-            children = []
-          }
-        ]
-      }
-      Element {
-        tag = "input"
-        attributes = []
-        children = []
-      }
-    ]
+    Fragment(
+      LinkedList [
+        Element {
+          tag = "div"
+          attributes = LinkedList()
+          children =
+            LinkedList [
+              Element {
+                tag = "source"
+                attributes =
+                  LinkedList [ Attribute { name = "src"; value = "foo" } ]
+                children = LinkedList()
+              }
+            ]
+        }
+        Element {
+          tag = "input"
+          attributes = LinkedList()
+          children = LinkedList()
+        }
+      ]
+    )
 
   let expected = "<div><source src=\"foo\"></div><input>"
 

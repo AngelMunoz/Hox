@@ -17,12 +17,12 @@ type Node =
   | Text of text: string
   | Raw of raw: string
   | Comment of comment: string
-  | Fragment of nodes: Node list
+  | Fragment of nodes: Node LinkedList
   | AsyncNode of node: Node CancellableValueTask
   | AsyncSeqNode of nodes: Node IAsyncEnumerable
 
 and [<NoComparison; NoEquality>] Element = {
   tag: string
-  attributes: AttributeNode list
-  children: Node list
+  attributes: AttributeNode LinkedList
+  children: Node LinkedList
 }
