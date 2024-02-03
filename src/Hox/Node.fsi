@@ -2,6 +2,7 @@ namespace Hox.Core
 
 open IcedTasks
 open System.Collections.Generic
+open System.Collections.Immutable
 
 
 /// This type is used to represent HTML attributes e.g `class="foo"`
@@ -26,7 +27,7 @@ type Node =
   | Text of text: string
   | Raw of raw: string
   | Comment of comment: string
-  | Fragment of nodes: Node list
+  | Fragment of nodes: Node LinkedList
   /// Async nodes require a cancellation token to be passed to them,
   /// As we'd like to be able to cancel the rendering process in case
   /// the user decides to cancel the operation.
@@ -34,12 +35,12 @@ type Node =
   | AsyncSeqNode of nodes: Node IAsyncEnumerable
 
 /// An element is a single HTML element e.g `<div></div>`
-/// It has a tag, a list of attributes and a list of children
-/// Since the children are nodes, any node can be added to this list
+/// It has a tag, a seq of attributes and a seq of children
+/// Since the children are nodes, any node can be added to this seq
 /// however that may lead to invalid HTML, so it's up to the user to make sure
 /// that the HTML is valid.
 and [<NoComparison; NoEquality>] Element = {
   tag: string
-  attributes: AttributeNode list
-  children: Node list
+  attributes: AttributeNode LinkedList
+  children: Node LinkedList
 }

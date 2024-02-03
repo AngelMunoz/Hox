@@ -6,6 +6,7 @@ open System.Collections.Immutable
 open FParsec
 
 open Hox.Core
+open System.Collections.Generic
 
 [<Struct>]
 type private SelectorValue =
@@ -95,13 +96,16 @@ let private pSelector: Parser<Element, unit> =
           dcBuilder.Add(attribute.name, AttributeNode.Attribute attribute)
         | _, _ -> ()
 
+    let built = dcBuilder.ToImmutableArray()
+    let items = LinkedList()
+
+    for pair in built do
+      items.AddLast(pair.Value) |> ignore
+
     preturn {
       tag = tag
-      attributes =
-        dcBuilder.ToImmutableList()
-        |> Seq.map(fun pair -> pair.Value)
-        |> Seq.toList
-      children = []
+      attributes = items
+      children = LinkedList()
     }
 
 let selector(selector: string) =

@@ -1,6 +1,7 @@
 module Parser
 
 open System
+open System.Collections.Generic
 open Xunit
 open Hox
 open Hox.Core
@@ -9,8 +10,8 @@ open Hox.Core
 let ``Can parse a tag name``() =
   let expected = {
     tag = "div"
-    attributes = []
-    children = []
+    attributes = LinkedList []
+    children = LinkedList []
   }
 
   let actual = Parsers.selector "div"
@@ -20,14 +21,14 @@ let ``Can parse a tag name``() =
 let ``Can parse a tag name with an id``() =
   let expected = {
     tag = "div"
-    attributes = [ Attribute { name = "id"; value = "my-id" } ]
-    children = []
+    attributes = LinkedList [ Attribute { name = "id"; value = "my-id" } ]
+    children = LinkedList []
   }
 
   let actual = Parsers.selector "div#my-id"
   Assert.Equal(expected.tag, actual.tag)
 
-  match actual.attributes with
+  match actual.attributes |> List.ofSeq with
   | [ Attribute { name = "id"; value = "my-id" } ] -> ()
   | _ -> Assert.Fail("Expected one attribute")
 
@@ -35,14 +36,14 @@ let ``Can parse a tag name with an id``() =
 let ``Can parse a css class``() =
   let expected = {
     tag = "div"
-    attributes = [ Attribute { name = "class"; value = "my-class" } ]
-    children = []
+    attributes = LinkedList [ Attribute { name = "class"; value = "my-class" } ]
+    children = LinkedList []
   }
 
   let actual = Parsers.selector "div.my-class"
   Assert.Equal(expected.tag, actual.tag)
 
-  match actual.attributes with
+  match actual.attributes |> List.ofSeq with
   | [ Attribute { name = "class"; value = "my-class" } ] -> ()
   | _ -> Assert.Fail("Expected a class with the value 'my-class'")
 
@@ -51,20 +52,21 @@ let ``Can parse multiple css classes``() =
 
   let expected = {
     tag = "div"
-    attributes = [
-      Attribute { name = "class"; value = "my-class" }
-      Attribute {
-        name = "class"
-        value = "another-class"
-      }
-    ]
-    children = []
+    attributes =
+      LinkedList [
+        Attribute { name = "class"; value = "my-class" }
+        Attribute {
+          name = "class"
+          value = "another-class"
+        }
+      ]
+    children = LinkedList []
   }
 
   let actual = Parsers.selector "div.my-class.another-class"
   Assert.Equal(expected.tag, actual.tag)
 
-  match actual.attributes with
+  match actual.attributes |> List.ofSeq with
   | [ Attribute {
                   name = "class"
                   value = "my-class another-class"
@@ -75,14 +77,14 @@ let ``Can parse multiple css classes``() =
 let ``Can parse an attribute``() =
   let expected = {
     tag = "div"
-    attributes = [ Attribute { name = "data-foo"; value = "bar" } ]
-    children = []
+    attributes = LinkedList [ Attribute { name = "data-foo"; value = "bar" } ]
+    children = LinkedList []
   }
 
   let actual = Parsers.selector "div[data-foo=bar]"
   Assert.Equal(expected.tag, actual.tag)
 
-  match actual.attributes with
+  match actual.attributes |> List.ofSeq with
   | [ Attribute { name = "data-foo"; value = "bar" } ] -> ()
   | _ ->
     Assert.Fail(
@@ -93,20 +95,21 @@ let ``Can parse an attribute``() =
 let ``Can parse multiple attributes``() =
   let expected = {
     tag = "div"
-    attributes = [
-      Attribute { name = "data-foo"; value = "bar" }
-      Attribute { name = "data-baz"; value = "qux" }
-    ]
-    children = []
+    attributes =
+      LinkedList [
+        Attribute { name = "data-foo"; value = "bar" }
+        Attribute { name = "data-baz"; value = "qux" }
+      ]
+    children = LinkedList []
   }
 
   let actual = Parsers.selector "div[data-foo=bar][data-baz=qux]"
   Assert.Equal(expected.tag, actual.tag)
-  Assert.Equal(expected.attributes.Length, actual.attributes.Length)
+  Assert.Equal(expected.attributes.Count, actual.attributes.Count)
 
   let attributes =
     actual.attributes
-    |> List.map(fun attribute ->
+    |> Seq.map(fun attribute ->
       match attribute with
       | Attribute { name = name; value = value } -> struct (name, value)
       | _ -> failwith "Expected an attribute")
@@ -119,21 +122,22 @@ let ``Can parse a mix of id, class, and attribute selectors``() =
 
   let expected = {
     tag = "div"
-    attributes = [
-      Attribute { name = "data-foo"; value = "bar" }
-      Attribute { name = "class"; value = "my-class" }
-      Attribute { name = "id"; value = "my-id" }
-    ]
-    children = []
+    attributes =
+      LinkedList [
+        Attribute { name = "data-foo"; value = "bar" }
+        Attribute { name = "class"; value = "my-class" }
+        Attribute { name = "id"; value = "my-id" }
+      ]
+    children = LinkedList []
   }
 
   let actual = Parsers.selector "div#my-id.my-class[data-foo=bar]"
   Assert.Equal(expected.tag, actual.tag)
-  Assert.Equal(expected.attributes.Length, actual.attributes.Length)
+  Assert.Equal(expected.attributes.Count, actual.attributes.Count)
 
   let attributes =
     actual.attributes
-    |> List.map(fun attribute ->
+    |> Seq.map(fun attribute ->
       match attribute with
       | Attribute { name = name; value = value } -> struct (name, value)
       | _ -> failwith "Expected an attribute")
@@ -148,12 +152,13 @@ let ``Can parse id, class, and attributes over multiple lines``() =
 
   let expected = {
     tag = "div"
-    attributes = [
-      Attribute { name = "id"; value = "my-id" }
-      Attribute { name = "class"; value = "my-class" }
-      Attribute { name = "data-foo"; value = "bar" }
-    ]
-    children = []
+    attributes =
+      LinkedList [
+        Attribute { name = "id"; value = "my-id" }
+        Attribute { name = "class"; value = "my-class" }
+        Attribute { name = "data-foo"; value = "bar" }
+      ]
+    children = LinkedList []
   }
 
   let actual =
@@ -168,7 +173,7 @@ let ``Can parse id, class, and attributes over multiple lines``() =
 
   let attributes =
     actual.attributes
-    |> List.map(fun attribute ->
+    |> Seq.map(fun attribute ->
       match attribute with
       | Attribute { name = name; value = value } -> struct (name, value)
       | _ -> failwith "Expected an attribute")
@@ -181,28 +186,29 @@ let ``Can parse id, class, and attributes over multiple lines``() =
 let ``Attributes can have arbitrary content within '[' ']'``() =
   let expected = {
     tag = "div"
-    attributes = [
-      Attribute {
-        name = "camello"
-        value = "~!@#2abcDE"
-      }
-      Attribute {
-        name = "camello-2"
-        value =
-          """^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?1234567890-=qwertyuiop\asdfghjkl;'zxcvbnm,./"""
-      }
-      Attribute {
-        name = "camello-3"
-        value =
-          """1234567890-=QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?qwertyuiop\asdfghjkl;'zxcvbnm,./~!@#$%^&*()_+"""
-      }
-      Attribute {
-        name = "camello-4"
-        value =
-          """~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?1234567890-=qwertyuiop\asdfghjkl;'zxcvbnm,./"""
-      }
-    ]
-    children = []
+    attributes =
+      LinkedList [
+        Attribute {
+          name = "camello"
+          value = "~!@#2abcDE"
+        }
+        Attribute {
+          name = "camello-2"
+          value =
+            """^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?1234567890-=qwertyuiop\asdfghjkl;'zxcvbnm,./"""
+        }
+        Attribute {
+          name = "camello-3"
+          value =
+            """1234567890-=QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?qwertyuiop\asdfghjkl;'zxcvbnm,./~!@#$%^&*()_+"""
+        }
+        Attribute {
+          name = "camello-4"
+          value =
+            """~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?1234567890-=qwertyuiop\asdfghjkl;'zxcvbnm,./"""
+        }
+      ]
+    children = LinkedList []
   }
 
   let actual =
@@ -215,11 +221,11 @@ let ``Attributes can have arbitrary content within '[' ']'``() =
   """
 
   Assert.Equal(expected.tag, actual.tag)
-  Assert.Equal(expected.attributes.Length, actual.attributes.Length)
+  Assert.Equal(expected.attributes.Count, actual.attributes.Count)
 
   let attributes =
     actual.attributes
-    |> List.map(fun attribute ->
+    |> Seq.map(fun attribute ->
       match attribute with
       | Attribute { name = name; value = value } -> struct (name, value)
       | _ -> failwith "Expected an attribute")
@@ -243,30 +249,3 @@ let ``Attributes can have arbitrary content within '[' ']'``() =
             """~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?1234567890-=qwertyuiop\asdfghjkl;'zxcvbnm,./"""),
     attributes
   )
-
-// TODO: Add this test back in when we can parse \] in attributes
-//[<Fact>]
-//let ``Attributes can have \] in them``() =
-//  let expected = {
-//    tag = "div"
-//    attributes = [ Attribute { name = "camello"; value = @"\]" } ]
-//    children = []
-//  }
-
-//  let actual =
-//    Parsers.selector
-//      """
-//    div[camello=\]]
-//  """
-
-//  Assert.Equal(expected.tag, actual.tag)
-//  Assert.Equal(expected.attributes.Length, actual.attributes.Length)
-
-//  let attributes =
-//    actual.attributes
-//    |> List.map(fun attribute ->
-//      match attribute with
-//      | Attribute { name = name; value = value } -> struct (name, value)
-//      | _ -> failwith "Expected an attribute")
-
-//  Assert.Contains(struct ("camello", @"]"), attributes)
