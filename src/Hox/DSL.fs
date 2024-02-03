@@ -14,55 +14,33 @@ open Hox.Core
 module NodeOps =
   let rec addToNode(target: Node, value: Node) =
     match target, value with
-    | Element target, Element value ->
-      target.children.AddLast(LinkedListNode(Element value))
-      Element target
-    | Element target, Text value ->
-      target.children.AddLast(LinkedListNode(Text value))
-      Element target
-    | Element target, Comment value ->
-      target.children.AddLast(LinkedListNode(Comment value))
-      Element target
-    | Element target, Raw value ->
-      target.children.AddLast(LinkedListNode(Raw value))
-      Element target
-    | Element target, AsyncNode value ->
+    | Element current, Element value ->
+      current.children.AddLast(LinkedListNode(Element value))
+      target
+    | Element current, Text value ->
+      current.children.AddLast(LinkedListNode(Text value))
+      target
+    | Element current, Comment value ->
+      current.children.AddLast(LinkedListNode(Comment value))
+      target
+    | Element current, Raw value ->
+      current.children.AddLast(LinkedListNode(Raw value))
+      target
+    | Element _, AsyncNode value ->
       let tsk = cancellableValueTask {
         let! value = value
-        return addToNode(Element target, value)
+        return addToNode(target, value)
       }
 
       AsyncNode tsk
-    | Element target, Fragment value ->
+    | Element current, Fragment value ->
       for node in value do
-        target.children.AddLast(LinkedListNode(node))
+        current.children.AddLast(LinkedListNode(node))
 
-      Element target
-    | Element target, AsyncSeqNode value ->
-      target.children.AddLast(LinkedListNode(AsyncSeqNode value))
-      Element target
-    | AsyncNode target, Element value ->
-      let tsk = cancellableValueTask {
-        let! target = target
-        return addToNode(target, Element value)
-      }
-
-      AsyncNode tsk
-    | AsyncNode target, Text value ->
-      let tsk = cancellableValueTask {
-        let! target = target
-        return addToNode(target, Text value)
-      }
-
-      AsyncNode tsk
-
-    | AsyncNode target, Raw value ->
-      let tsk = cancellableValueTask {
-        let! target = target
-        return addToNode(target, Raw value)
-      }
-
-      AsyncNode tsk
+      target
+    | Element current, AsyncSeqNode value ->
+      current.children.AddLast(LinkedListNode(AsyncSeqNode value))
+      target
     | AsyncNode target, AsyncNode value ->
       let tsk = cancellableValueTask {
         let! target = target
@@ -71,39 +49,18 @@ module NodeOps =
       }
 
       AsyncNode tsk
-    | AsyncNode target, AsyncSeqNode value ->
+    | AsyncNode target, value ->
       let tsk = cancellableValueTask {
         let! target = target
-        return addToNode(target, AsyncSeqNode value)
+        return addToNode(target, value)
       }
 
       AsyncNode tsk
-    | AsyncNode target, Fragment value ->
-      let tsk = cancellableValueTask {
-        let! target = target
-        return addToNode(target, Fragment value)
-      }
-
-      AsyncNode tsk
-    | AsyncSeqNode target, Element value ->
+    | AsyncSeqNode target, Fragment value ->
       AsyncSeqNode(
         taskSeq {
           yield! target
-          Element value
-        }
-      )
-    | AsyncSeqNode target, Text value ->
-      AsyncSeqNode(
-        taskSeq {
-          yield! target
-          Text value
-        }
-      )
-    | AsyncSeqNode target, Raw value ->
-      AsyncSeqNode(
-        taskSeq {
-          yield! target
-          Raw value
+          yield! value
         }
       )
     | AsyncSeqNode target, AsyncNode value ->
@@ -127,28 +84,19 @@ module NodeOps =
           yield! value
         }
       )
-    | AsyncSeqNode target, Fragment value ->
+    | AsyncSeqNode target, value ->
       AsyncSeqNode(
         taskSeq {
           yield! target
-          yield! value
+          value
         }
       )
-    | Fragment target, Element value ->
-      target.AddLast(LinkedListNode(Element value))
-      Fragment target
-    | Fragment target, Text value ->
-      target.AddLast(LinkedListNode(Text value))
-      Fragment target
-    | Fragment target, Raw value ->
-      target.AddLast(LinkedListNode(Raw value))
-      Fragment target
-    | Fragment target, AsyncNode value ->
+    | Fragment current, AsyncNode value ->
 
       let tsk = cancellableValueTask {
         let! value = value
-        target.AddLast(LinkedListNode(value))
-        return Fragment(target)
+        current.AddLast(LinkedListNode(value))
+        return target
       }
 
       AsyncNode tsk
@@ -159,12 +107,14 @@ module NodeOps =
           yield! value
         }
       )
-    | Fragment target, Fragment value ->
+    | Fragment current, Fragment value ->
       for node in value do
-        target.AddLast(LinkedListNode(node))
+        current.AddLast(LinkedListNode(node))
 
-      Fragment target
-
+      target
+    | Fragment current, value ->
+      current.AddLast(LinkedListNode(value))
+      target
     | Text target, Text value -> Text(target + value)
     // merging a text node with a raw node is not supported
     // as the raw node contents will be scaped by the text node
@@ -181,20 +131,13 @@ module NodeOps =
     // merging a comment node with a raw node is not supported
     // as the raw node contents will be scaped by the comment node
     | Comment target, Raw _ -> Comment target
-    | Text target, AsyncNode value ->
-      let tsk = cancellableValueTask {
-        let! value = value
-        return addToNode(Text target, value)
-      }
-
-      AsyncNode tsk
     | _, _ -> target
 
   let rec addAttribute(target: Node, attribute: AttributeNode) =
     match target with
-    | Element target ->
-      target.attributes.AddLast(LinkedListNode(attribute))
-      Element target
+    | Element current ->
+      current.attributes.AddLast(LinkedListNode(attribute))
+      target
     | AsyncNode target ->
       let tsk = cancellableValueTask {
         let! target = target
@@ -242,13 +185,12 @@ type NodeDsl =
       cssSelector: string,
       [<ParamArray>] textNodes: string array
     ) =
-
-    let items = LinkedList<Node>()
+    let element = Parsers.selector cssSelector
 
     for node in textNodes do
-      items.AddLast(LinkedListNode(Text node))
+      element.children.AddLast(LinkedListNode(Text node))
 
-    Element(Parsers.selector cssSelector) <+ Fragment(items)
+    Element(element)
 
   static member inline h(cssSelector: string, child: Node Task) =
     let child =
@@ -257,14 +199,16 @@ type NodeDsl =
           let! token = CancellableValueTask.getCancellationToken()
 
           if token.IsCancellationRequested then
-            return Fragment(LinkedList())
+            return NodeDsl.empty
           else
             let! child = child
             return child
         }
       )
 
-    Element(Parsers.selector cssSelector) <+ child
+    let element = Parsers.selector cssSelector
+    element.children.AddLast(LinkedListNode(child))
+    Element(element)
 
   static member inline h(cssSelector: string, child: Node Async) =
     let child =
@@ -273,31 +217,47 @@ type NodeDsl =
           let! token = CancellableValueTask.getCancellationToken()
 
           if token.IsCancellationRequested then
-            return Fragment(LinkedList())
+            return NodeDsl.empty
           else
             let! child = child
             return child
         }
       )
 
-    Element(Parsers.selector cssSelector) <+ child
+    let element = Parsers.selector cssSelector
+    element.children.AddLast(LinkedListNode(child))
+    Element(element)
 
   static member inline h(cssSelector: string, children: Node seq) =
-    Element(Parsers.selector cssSelector) <+ Fragment(LinkedList(children))
+    let element = Parsers.selector cssSelector
+
+    for node in children do
+      element.children.AddLast(LinkedListNode(node))
+
+    Element(element)
 
   static member inline h
     (
       cssSelector: string,
       [<ParamArray>] children: Node array
     ) =
-    Element(Parsers.selector cssSelector) <+ Fragment(LinkedList(children))
+    let element = Parsers.selector cssSelector
+
+    for node in children do
+      element.children.AddLast(LinkedListNode(node))
+
+    Element(element)
 
   static member inline h
     (
       cssSelector: string,
       children: IAsyncEnumerable<Node>
     ) =
-    Element(Parsers.selector cssSelector) <+ AsyncSeqNode children
+
+    let element = Parsers.selector cssSelector
+
+    element.children.AddLast(LinkedListNode(AsyncSeqNode children))
+    Element(element)
 
   static member inline h(element: Node Task) =
     AsyncNode(
@@ -305,7 +265,7 @@ type NodeDsl =
         let! token = CancellableValueTask.getCancellationToken()
 
         if token.IsCancellationRequested then
-          return Fragment(LinkedList())
+          return NodeDsl.empty
         else
           let! element = element
           return element
@@ -319,7 +279,7 @@ type NodeDsl =
           let! token = CancellableValueTask.getCancellationToken()
 
           if token.IsCancellationRequested then
-            return Fragment(LinkedList())
+            return NodeDsl.empty
           else
             let! element = element
             return element
@@ -335,7 +295,7 @@ type NodeDsl =
           let! token = CancellableValueTask.getCancellationToken()
 
           if token.IsCancellationRequested then
-            return Fragment(LinkedList())
+            return NodeDsl.empty
           else
             let! element = element
             return element
@@ -350,7 +310,7 @@ type NodeDsl =
         let! token = CancellableValueTask.getCancellationToken()
 
         if token.IsCancellationRequested then
-          return Fragment(LinkedList())
+          return NodeDsl.empty
         else
           let! element = element
           return element
@@ -364,7 +324,7 @@ type NodeDsl =
           let! token = CancellableValueTask.getCancellationToken()
 
           if token.IsCancellationRequested then
-            return Fragment(LinkedList())
+            return NodeDsl.empty
           else
             let! element = element
             return element
@@ -380,7 +340,7 @@ type NodeDsl =
           let! token = CancellableValueTask.getCancellationToken()
 
           if token.IsCancellationRequested then
-            return Fragment(LinkedList())
+            return NodeDsl.empty
           else
             let! element = element
             return element
@@ -399,7 +359,7 @@ type NodeDsl =
           let! token = CancellableValueTask.getCancellationToken()
 
           if token.IsCancellationRequested then
-            return Fragment(LinkedList())
+            return NodeDsl.empty
           else
             let! element = element
             return element
@@ -419,7 +379,7 @@ type NodeDsl =
           let! token = CancellableValueTask.getCancellationToken()
 
           if token.IsCancellationRequested then
-            return Fragment(LinkedList())
+            return NodeDsl.empty
           else
             let! element = element
             return element
@@ -497,7 +457,7 @@ type NodeDsl =
         let! token = CancellableValueTask.getCancellationToken()
 
         if token.IsCancellationRequested then
-          return Fragment(LinkedList())
+          return NodeDsl.empty
         else
           let! nodes = nodes
           return Fragment(LinkedList(nodes))
@@ -510,7 +470,7 @@ type NodeDsl =
         let! token = CancellableValueTask.getCancellationToken()
 
         if token.IsCancellationRequested then
-          return Fragment(LinkedList())
+          return NodeDsl.empty
         else
           let! nodes = nodes
           return Fragment(LinkedList(nodes))
