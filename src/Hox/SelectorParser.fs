@@ -36,15 +36,24 @@ let private pClass: Parser<SelectorValue, unit> =
   >>= fun cls -> preturn(Class cls)
 
 let private pAttribute: Parser<SelectorValue, unit> =
-  let name = manyChars(letter <|> digit <|> pchar '-')
+  let name =
+    letter .>>. manyChars(letter <|> digit <|> pchar '-')
+    >>= fun (initial, rest) -> preturn $"{initial}{rest}"
+
   let eq = pchar '='
   let value = manySatisfy(fun ch -> ch <> ']')
 
-  pchar '[' >>. name .>> eq .>>. value
+  pchar '[' >>. name .>> opt eq .>>. opt value
   .>> unicodeSpaces
   .>> pchar ']'
   .>> unicodeSpaces
-  >>= fun (name, value) -> preturn(Attribute { name = name; value = value })
+  >>= fun (name, value) ->
+    preturn(
+      Attribute {
+        name = name
+        value = defaultArg value System.String.Empty
+      }
+    )
 
 let private pSelector: Parser<Element, unit> =
   unicodeSpaces >>. tagName .>> unicodeSpaces

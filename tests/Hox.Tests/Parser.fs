@@ -249,3 +249,19 @@ let ``Attributes can have arbitrary content within '[' ']'``() =
             """~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?1234567890-=qwertyuiop\asdfghjkl;'zxcvbnm,./"""),
     attributes
   )
+
+[<Fact>]
+let ``Can parse selector without value``() =
+  let expected = {
+    tag = "div"
+    attributes = LinkedList [ Attribute { name = "data-foo"; value = "" } ]
+    children = LinkedList []
+  }
+
+  let actual = Parsers.selector "div[data-foo]"
+  Assert.Equal(expected.tag, actual.tag)
+
+  match actual.attributes.First.Value with
+  | Attribute { name = "data-foo"; value = "" } -> ()
+  | _ ->
+    Assert.Fail("Expected an attribute with the name 'data-foo' and value ''")
