@@ -9,12 +9,13 @@ open Hox.Core
 open System.Collections.Generic
 
 [<Struct>]
-type private SelectorValue =
+type SelectorValue =
+  | Child of cTag: string * cValue: SelectorValue list
   | Id of id: string
   | Class of classes: string
   | Attribute of attributes: HAttribute
 
-let private tagName: Parser<string, unit> =
+let tagName: Parser<string, unit> =
   let options =
     IdentifierOptions(
       isAsciiIdStart = isAsciiLetter,
@@ -23,30 +24,27 @@ let private tagName: Parser<string, unit> =
 
   identifier(options)
 
-let private pId: Parser<SelectorValue, unit> =
-  let value = satisfy(fun ch -> ch <> '#' && ch <> '.' && ch <> '[')
+let pId: Parser<SelectorValue, unit> =
+  let value =
+    satisfy(fun ch -> ch <> '#' && ch <> '.' && ch <> '[' && ch <> '\n')
 
-  pchar '#' >>. manyChars value .>> unicodeSpaces >>= (fun id -> preturn(Id id))
+  pchar '#' >>. manyChars value >>= (fun id -> preturn(Id id))
 
-let private pClass: Parser<SelectorValue, unit> =
+let pClass: Parser<SelectorValue, unit> =
   let avoid = noneOf [ ' '; '\t'; '\n'; '\r'; '['; '.'; '#' ]
 
-  pchar '.' >>. manyChars(letter <|> digit <|> pchar '-' <|> avoid)
-  .>> unicodeSpaces
+  pchar '.' >>. manyChars(choice [ letter; digit; pchar '-'; avoid ])
   >>= fun cls -> preturn(Class cls)
 
-let private pAttribute: Parser<SelectorValue, unit> =
+let pAttribute: Parser<SelectorValue, unit> =
   let name =
-    letter .>>. manyChars(letter <|> digit <|> pchar '-')
+    letter .>>. manyChars(choice [ letter; digit; pchar '-' ])
     >>= fun (initial, rest) -> preturn $"{initial}{rest}"
 
   let eq = pchar '='
   let value = manySatisfy(fun ch -> ch <> ']')
 
-  pchar '[' >>. name .>> opt eq .>>. opt value
-  .>> unicodeSpaces
-  .>> pchar ']'
-  .>> unicodeSpaces
+  pchar '[' >>. name .>> opt eq .>>. opt value .>> unicodeSpaces .>> pchar ']'
   >>= fun (name, value) ->
     preturn(
       Attribute {
@@ -55,69 +53,79 @@ let private pAttribute: Parser<SelectorValue, unit> =
       }
     )
 
-let private pSelector: Parser<Element, unit> =
-  unicodeSpaces >>. tagName .>> unicodeSpaces
-  .>>. many(attempt pClass <|> attempt pAttribute <|> attempt pId)
+let pElement =
+  tagName .>> unicodeSpaces
+  .>>. many(
+    choice [ attempt pId; attempt pClass; attempt pAttribute ] .>> unicodeSpaces
+  )
+
+let pChild =
+  pchar '>' >>. unicodeSpaces >>. pElement
+  >>= fun (tag, values) -> preturn(Child(tag, values))
+
+let pSelector: Parser<_, unit> =
+  let childRefs, pValueRef = createParserForwardedToRef<SelectorValue, unit>()
+
+  pValueRef.Value <- attempt pChild
+
+  unicodeSpaces >>. pElement .>> unicodeSpaces .>>. many childRefs
   .>> unicodeSpaces
-  >>= fun (tag, values) ->
-    let dcBuilder = ImmutableDictionary.CreateBuilder<string, AttributeNode>()
 
-    for attributes in values do
-      match attributes with
-      | Attribute { name = "id"; value = value }
-      | Id value ->
-        dcBuilder.Add(
-          "id",
-          AttributeNode.Attribute { name = "id"; value = value.Trim() }
-        )
-      | Attribute { name = "class"; value = value }
-      | Class value ->
-        match dcBuilder.TryGetValue("class") with
-        | true, AttributeNode.Attribute { name = "class"; value = classes } ->
-          dcBuilder.Remove("class") |> ignore
+let rec getAttributes
+  (builder: ImmutableDictionary<string, string>.Builder)
+  (attributes: SelectorValue list)
+  =
+  match attributes with
+  | [] ->
+    builder.ToImmutable()
+    |> Seq.map(fun (KeyValue(k, v)) ->
+      AttributeNode.Attribute { name = k; value = v })
+    |> LinkedList
+  | Id id :: rest ->
+    builder.Add("id", id)
+    getAttributes builder rest
+  | Class cls :: rest ->
+    match builder.TryGetValue("class") with
+    | true, value ->
+      builder.["class"] <- $"{value} {cls}"
+      getAttributes builder rest
+    | false, _ ->
+      builder.Add("class", cls)
+      getAttributes builder rest
+  | Attribute attribute :: rest ->
+    builder.Add(attribute.name, attribute.value)
+    getAttributes builder rest
+  | _ :: rest -> getAttributes builder rest
 
-          dcBuilder.Add(
-            "class",
-            AttributeNode.Attribute {
-              name = "class"
-              value = $"%s{classes} %s{value}"
-            }
-          )
-        | false, _ ->
-          dcBuilder.Add(
-            "class",
-            AttributeNode.Attribute { name = "class"; value = value }
-          )
-        | _, _ -> ()
-      | Attribute attribute ->
-        match dcBuilder.TryGetValue(attribute.name) with
-        | true, AttributeNode.Attribute { name = key; value = value } ->
-          dcBuilder.Remove(key) |> ignore
+let rec getChildren (parent: Element) (children: SelectorValue list) =
+  match children with
+  | [] -> parent
+  | Child(tag, attributes) :: rest ->
+    let builder = ImmutableDictionary.CreateBuilder<string, string>()
 
-          dcBuilder.Add(
-            key,
-            AttributeNode.Attribute {
-              name = key
-              value = $"%s{value} %s{attribute.value}"
-            }
-          )
-        | false, _ ->
-          dcBuilder.Add(attribute.name, AttributeNode.Attribute attribute)
-        | _, _ -> ()
-
-    let built = dcBuilder.ToImmutableArray()
-    let items = LinkedList()
-
-    for pair in built do
-      items.AddLast(pair.Value) |> ignore
-
-    preturn {
+    let element = {
       tag = tag
-      attributes = items
+      attributes = getAttributes builder attributes
       children = LinkedList()
     }
 
+    let child = getChildren element rest
+    parent.children.AddLast(Element child) |> ignore
+    parent
+  | _ -> failwith "Trees should not start without an element"
+
 let selector(selector: string) =
   match run pSelector selector with
-  | Success(result, _, _) -> result
+  | Success(result, _, _) ->
+    match result with
+    | (tag, attributes), children ->
+      let builder = ImmutableDictionary.CreateBuilder<string, string>()
+
+      let element = {
+        tag = tag
+        attributes = getAttributes builder attributes
+        children = LinkedList()
+      }
+
+      getChildren element children
   | Failure(origin, err, _) -> failwith $"Failed to parse '{origin}': {err}"
