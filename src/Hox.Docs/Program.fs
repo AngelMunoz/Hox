@@ -13,32 +13,6 @@ open Hox.Rendering
 open Hox.Docs
 open Hox.Docs.Toc
 
-let copyAssets() =
-
-  let source = Path.Combine("markdown", "assets")
-  let destination = Path.Combine("docs", "assets")
-
-  AnsiConsole
-    .Status()
-    .Start(
-      "Copying assets...",
-      fun ctx ->
-        for file in Directory.EnumerateFiles(source) do
-          let finalDestination =
-            Path
-              .Combine(destination, file)
-              .Replace(Path.DirectorySeparatorChar, '/')
-              .Replace("/markdown/assets/", "/")
-              .Replace(".md", ".html")
-
-          ctx.Status <- $"Copying {Path.GetFileName(file)}..."
-
-          Directory.CreateDirectory(Path.GetDirectoryName(finalDestination))
-          |> ignore
-
-          File.Copy(file, finalDestination, true)
-    )
-
 [<EntryPoint>]
 let Main argv =
   task {
@@ -100,8 +74,6 @@ let Main argv =
               do! Render.toStream(layout, writer, cts.Token)
           }
         )
-
-    copyAssets()
 
     if isGhPages then
       File.WriteAllText(Path.Combine("docs", ".nojekyll"), String.Empty)

@@ -147,15 +147,30 @@ module NodeOps =
       AsyncNode tsk
     | _ -> target
 
+  [<TailCall>]
+  let rec getInnerMostChild(element: Element) : Element =
+    match element.children.First with
+    | null -> element
+    | node ->
+      match node.Value with
+      | Text _
+      | Raw _
+      | Comment _
+      | Fragment _
+      | AsyncNode _
+      | AsyncSeqNode _ -> element
+      | Element child -> getInnerMostChild child
+
   [<AutoOpen>]
   module Operators =
     /// Adds the 'value' node to the 'target' node, it can be seen as ading
     /// a child to a parent.
-    let rec inline (<+) (target: Node) (value: Node) = addToNode(target, value)
+    let inline (<+) (target: Node) (value: Node) = addToNode(target, value)
 
     /// Adds an attribute to the 'target' node.
-    let rec inline (<+.) (target: Node) (value: AttributeNode) =
+    let inline (<+.) (target: Node) (value: AttributeNode) =
       addAttribute(target, value)
+
 
 open NodeOps
 
@@ -186,9 +201,10 @@ type NodeDsl =
       [<ParamArray>] textNodes: string array
     ) =
     let element = Parsers.selector cssSelector
+    let innerMostChild = NodeOps.getInnerMostChild element
 
     for node in textNodes do
-      element.children.AddLast(LinkedListNode(Text node))
+      innerMostChild.children.AddLast(LinkedListNode(Text node))
 
     Element(element)
 
@@ -207,7 +223,9 @@ type NodeDsl =
       )
 
     let element = Parsers.selector cssSelector
-    element.children.AddLast(LinkedListNode(child))
+    let innerMostChild = NodeOps.getInnerMostChild element
+
+    innerMostChild.children.AddLast(LinkedListNode(child))
     Element(element)
 
   static member inline h(cssSelector: string, child: Node Async) =
@@ -225,14 +243,18 @@ type NodeDsl =
       )
 
     let element = Parsers.selector cssSelector
-    element.children.AddLast(LinkedListNode(child))
+    let innerMostChild = NodeOps.getInnerMostChild element
+
+    innerMostChild.children.AddLast(LinkedListNode(child))
     Element(element)
 
   static member inline h(cssSelector: string, children: Node seq) =
     let element = Parsers.selector cssSelector
 
+    let innerMostChild = NodeOps.getInnerMostChild element
+
     for node in children do
-      element.children.AddLast(LinkedListNode(node))
+      innerMostChild.children.AddLast(LinkedListNode(node))
 
     Element(element)
 
@@ -243,8 +265,10 @@ type NodeDsl =
     ) =
     let element = Parsers.selector cssSelector
 
+    let innerMostChild = NodeOps.getInnerMostChild element
+
     for node in children do
-      element.children.AddLast(LinkedListNode(node))
+      innerMostChild.children.AddLast(LinkedListNode(node))
 
     Element(element)
 
@@ -256,7 +280,10 @@ type NodeDsl =
 
     let element = Parsers.selector cssSelector
 
-    element.children.AddLast(LinkedListNode(AsyncSeqNode children))
+    let innerMostChild = NodeOps.getInnerMostChild element
+
+    innerMostChild.children.AddLast(LinkedListNode(AsyncSeqNode children))
+
     Element(element)
 
   static member inline h(element: Node Task) =

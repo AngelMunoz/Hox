@@ -7,6 +7,7 @@ open Xunit
 
 open IcedTasks
 
+open Hox
 open Hox.Core
 open Hox.Rendering
 open System.Threading.Tasks
@@ -444,3 +445,79 @@ let ``Childless nodes can be added to elements and fragments``() = taskUnit {
   let! actual = Render.asString node
   Assert.Equal(expected, actual)
 }
+
+[<Fact>]
+let ``It should render a nested element``() = taskUnit {
+  let node = h("div > span")
+
+  let expected = "<div><span></span></div>"
+
+  let! actual = Render.asString node
+  Assert.Equal(expected, actual)
+}
+
+[<Fact>]
+let ``It should render nested elements with attributes``() = taskUnit {
+  let node = h("div > span#foo.bar")
+
+  let expected = "<div><span id=\"foo\" class=\"bar\"></span></div>"
+
+  let! actual = Render.asString node
+  Assert.Equal(expected, actual)
+}
+
+[<Fact>]
+let ``It should render attributes for parent and nested elements``() = taskUnit {
+  let node = h("div#foo.bar > span#baz.qux")
+
+  let expected =
+    "<div id=\"foo\" class=\"bar\"><span id=\"baz\" class=\"qux\"></span></div>"
+
+  let! actual = Render.asString node
+  Assert.Equal(expected, actual)
+}
+
+[<Fact>]
+let ``It should add the node to the inner most child in a nested element``() = taskUnit {
+  let node = h("div > span", "Hello, world!")
+
+  let expected = "<div><span>Hello, world!</span></div>"
+
+  let! actual = Render.asString node
+  Assert.Equal(expected, actual)
+}
+
+[<Fact>]
+let ``It should add the node to the inner most child and respect the attributes``
+  ()
+  =
+  taskUnit {
+    let node = h("div#foo.bar > span#baz.qux", "Hello world!")
+
+    let expected =
+      "<div id=\"foo\" class=\"bar\"><span id=\"baz\" class=\"qux\">Hello world!</span></div>"
+
+    let! actual = Render.asString node
+    Assert.Equal(expected, actual)
+  }
+
+[<Fact>]
+let ``It should add the parent to the tree even if the node is added to the inner most child``
+  ()
+  =
+  taskUnit {
+    let node =
+      h(
+        "ul.list-items",
+        h("li.is-active > a.list-item[href=/]", "Home"),
+        h("li > a.list-item[href=/about]", "About"),
+        h("li > a.list-item[href=/contact]", "Contact")
+      )
+
+    let expected =
+      "<ul class=\"list-items\"><li class=\"is-active\"><a class=\"list-item\" href=\"/\">Home</a></li><li><a class=\"list-item\" href=\"/about\">About</a></li><li><a class=\"list-item\" href=\"/contact\">Contact</a></li></ul>"
+
+    let! actual = Render.asString node
+    Assert.Equal(expected, actual)
+
+  }

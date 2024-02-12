@@ -660,6 +660,19 @@ module AsyncSeqNodes =
 open NodeOps.Operators
 
 [<Fact>]
+let ``It should give me the inner most child of a nested element``() = taskUnit {
+  let element =
+    Parsers.selector "article > main > section > article > aside > p"
+
+  let innerMost = NodeOps.getInnerMostChild element
+
+  match innerMost with
+  | { tag = "p" } -> ()
+  | other ->
+    Assert.Fail $"Expected inner most to be a p element, but got %A{other}"
+}
+
+[<Fact>]
 let ``addToNode will add correctly and every kind of Node into an element parent``
   ()
   =

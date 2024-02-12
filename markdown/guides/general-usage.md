@@ -117,7 +117,7 @@ let combined = h("div#main.is-primary[data-name=main]", h("span", "Hello World")
 
 The syntax is as follows:
 
-`<element-name><#id><.class><[attribute=value]>...`
+`<element-name><#id><.class><[attribute=value]>'> <element-definition>'...`
 
 Where:
 
@@ -125,6 +125,7 @@ Where:
 - `#id` is specified with a `#` followed by the value of said id, if more than one id attribute is present only the first one will be picked up.
 - `.class` is specified with a `.` followed by the value of said class.
 - `[attribute=value]` is specified with a `[` followed by the name of the attribute, followed by a required `=` even for no-value atributes (like `checked`), after te `=` symbol anything will be taken as the string until a `]` is found, even break line characters.
+- `> <element-definition>` child element definition
 
 You can specify attributes in any order or with spaces and break lines in between the attribute declarations, example:
 
@@ -135,6 +136,20 @@ Those examples above are equivalent and will produce the following structure
 
 ```html
 <div id="main" class="is-primary"></div>
+```
+
+For the case of children:
+
+- `div#main.is-primary > button.is-danger > span.is-large`
+
+Will produce the following structure
+
+```html
+<div id="main" class="is-primary">
+  <button class="is-danger">
+    <span class="is-large"></span>
+  </button>
+</div>
 ```
 
 Attributes will always render in the following order "id", "class" and the rest in the order they were specified, as an example:
