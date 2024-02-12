@@ -39,6 +39,9 @@ module NodeOps =
   /// </remarks>
   val addAttribute: target: Node * attribute: AttributeNode -> Node
 
+  [<TailCall>]
+  val getInnerMostChild: element: Element -> Element
+
   [<AutoOpen>]
   module Operators =
     /// Adds the 'value' node to the 'target' node, it can be seen as ading
