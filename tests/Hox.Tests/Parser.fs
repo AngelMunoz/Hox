@@ -177,6 +177,7 @@ let ``Can parse id, class, and attributes over multiple lines``() =
       match attribute with
       | Attribute { name = name; value = value } -> struct (name, value)
       | _ -> failwith "Expected an attribute")
+    |> Seq.toList
 
   Assert.Contains(struct ("id", "my-id"), attributes)
   Assert.Contains(struct ("class", "my-class"), attributes)
@@ -265,3 +266,157 @@ let ``Can parse selector without value``() =
   | Attribute { name = "data-foo"; value = "" } -> ()
   | _ ->
     Assert.Fail("Expected an attribute with the name 'data-foo' and value ''")
+
+[<Fact>]
+let ``Can parse child elements``() =
+  let expected = {
+    tag = "div"
+    attributes = LinkedList []
+    children =
+      LinkedList [
+        Element {
+          tag = "span"
+          attributes = LinkedList []
+          children = LinkedList []
+        }
+      ]
+  }
+
+  let actual = Parsers.selector "div > span"
+  Assert.Equal(expected.tag, actual.tag)
+  Assert.Equal(expected.children.Count, actual.children.Count)
+
+  let children =
+    actual.children
+    |> Seq.map(fun child ->
+      match child with
+      | Element {
+                  tag = tag
+                  attributes = _
+                  children = _
+                } -> tag
+      | _ -> failwith "Expected an element")
+
+  Assert.Contains("span", children)
+
+[<Fact>]
+let ``Can parse multiple child elements``() =
+  let expected = {
+    tag = "div"
+    attributes = LinkedList []
+    children =
+      LinkedList [
+        Element {
+          tag = "span"
+          attributes = LinkedList []
+          children =
+            LinkedList [
+              Element {
+                tag = "p"
+                attributes = LinkedList []
+                children = LinkedList []
+              }
+            ]
+        }
+      ]
+  }
+
+  let actual = Parsers.selector "div > span > p"
+  Assert.Equal(expected.tag, actual.tag)
+  Assert.Equal(expected.children.Count, actual.children.Count)
+
+  let rec flattenChildren(parent: Element) =
+    parent.children
+    |> Seq.fold
+      (fun acc child ->
+        match child with
+        | Element child -> seq {
+            yield! acc
+            yield! flattenChildren child
+          }
+        | _ -> acc)
+      (seq { parent.tag })
+
+  match flattenChildren actual |> List.ofSeq with
+  | [ "div"; "span"; "p" ] -> ()
+  | list -> Assert.Fail($"Expected div > span > p but got '%A{list}'")
+
+
+[<Fact>]
+let ``Can parse nested elements with ids, classes and attributes``() =
+  let expected = {
+    tag = "div"
+    attributes = LinkedList []
+    children =
+      LinkedList [
+        Element {
+          tag = "span"
+          attributes =
+            LinkedList [
+              Attribute { name = "id"; value = "my-id" }
+              Attribute { name = "class"; value = "my-class" }
+              Attribute { name = "data-foo"; value = "bar" }
+            ]
+          children =
+            LinkedList [
+              Element {
+                tag = "p"
+                attributes =
+                  LinkedList [
+                    Attribute { name = "id"; value = "my-id-2" }
+                    Attribute { name = "class"; value = "my-class-2" }
+                    Attribute { name = "data-foo"; value = "bar-2" }
+                  ]
+                children = LinkedList []
+              }
+            ]
+        }
+      ]
+  }
+
+  let actual =
+    Parsers.selector
+      """
+    div > span#my-id.my-class[data-foo=bar] > p#my-id-2.my-class-2[data-foo=bar-2]
+  """
+
+  Assert.Equal(expected.tag, actual.tag)
+  Assert.Equal(expected.children.Count, actual.children.Count)
+
+  let rec flattenChildren(parent: Element) =
+    parent.children
+    |> Seq.fold
+      (fun acc child ->
+        match child with
+        | Element child -> seq {
+            yield! acc
+            yield! flattenChildren child
+          }
+        | _ -> acc)
+      (seq { parent })
+
+  let [ div; span; p ] = flattenChildren actual |> List.ofSeq
+
+  Assert.Equal("div", div.tag)
+  Assert.Equal("span", span.tag)
+  Assert.Equal("p", p.tag)
+
+  let simplifyAttributes element =
+    element.attributes
+    |> Seq.map(fun attribute ->
+      match attribute with
+      | Attribute { name = name; value = value } -> struct (name, value)
+      | _ -> failwith "Expected an attribute")
+
+  let spanAttributes = simplifyAttributes span
+  let pAttributes = simplifyAttributes p
+
+  Assert.Contains(struct ("id", "my-id"), spanAttributes)
+  Assert.Contains(struct ("class", "my-class"), spanAttributes)
+  Assert.Contains(struct ("data-foo", "bar"), spanAttributes)
+
+  Assert.Contains(struct ("id", "my-id-2"), pAttributes)
+
+  Assert.Contains(struct ("class", "my-class-2"), pAttributes)
+
+  Assert.Contains(struct ("data-foo", "bar-2"), pAttributes)
