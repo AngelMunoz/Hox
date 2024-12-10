@@ -1,4 +1,4 @@
-<html lang="en"><head><title>Usage</title><meta content="width=device-width,initial-scale=1" name="viewport"><meta content="Hox Documentation" property="og:site_name"><meta content="How to use render and create Hox nodes to use in your application." name="og:description"><meta content="Usage" property="og:title"><meta content="website" property="og:type"><style>:root {
+<html lang="en"><head><title>Usage</title><meta content="width=device-width,initial-scale=1" name="viewport"><meta property="og:site_name" content="Hox Documentation"><meta content="How to use render and create Hox nodes to use in your application." name="og:description"><meta property="og:title" content="Usage"><meta property="og:type" content="website"><style>:root {
   --hox-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
   --hox-font-size: 16px;
@@ -36,7 +36,7 @@
     --hox-card-box-shadow: 0 5px 5px 4px rgba(199, 156, 76, 0.5),
       0 4px 4px 0 rgba(199, 156, 76, 0.4);
   }
-}</style><link rel="stylesheet" href="/assets/styles.css"><link rel="stylesheet" href="/assets/links.css"><base href="/"><script src="https://ga.jspm.io/npm:es-module-shims@1.6.2/dist/es-module-shims.js" crossorigin="anonymouys" async=""></script><script type="importmap">{
+}</style><link rel="stylesheet" href="/assets/styles.css"><link rel="stylesheet" href="/assets/links.css"><base href="/"><script crossorigin="anonymouys" src="https://ga.jspm.io/npm:es-module-shims@1.6.2/dist/es-module-shims.js" async=""></script><script type="importmap">{
   "imports": {
     "hox": "/assets/script.js",
     "highlight.js": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/index.js",
@@ -141,13 +141,14 @@ let node2 = h(&quot;link[rel='stylesheet'][href=style.css]&quot;)
 let combined = h(&quot;div#main.is-primary[data-name=main]&quot;, h(&quot;span&quot;, &quot;Hello World&quot;))
 </code></pre>
 <p>The syntax is as follows:</p>
-<p><code>&lt;element-name&gt;&lt;#id&gt;&lt;.class&gt;&lt;[attribute=value]&gt;...</code></p>
+<p><code>&lt;element-name&gt;&lt;#id&gt;&lt;.class&gt;&lt;[attribute=value]&gt;'&gt; &lt;element-definition&gt;'...</code></p>
 <p>Where:</p>
 <ul>
 <li><code>element-name</code> is the name of the element, element names should follow the HTML spec to define tag names.</li>
 <li><code>#id</code> is specified with a <code>#</code> followed by the value of said id, if more than one id attribute is present only the first one will be picked up.</li>
 <li><code>.class</code> is specified with a <code>.</code> followed by the value of said class.</li>
 <li><code>[attribute=value]</code> is specified with a <code>[</code> followed by the name of the attribute, followed by a required <code>=</code> even for no-value atributes (like <code>checked</code>), after te <code>=</code> symbol anything will be taken as the string until a <code>]</code> is found, even break line characters.</li>
+<li><code>&gt; &lt;element-definition&gt;</code> child element definition</li>
 </ul>
 <p>You can specify attributes in any order or with spaces and break lines in between the attribute declarations, example:</p>
 <ul>
@@ -156,6 +157,17 @@ let combined = h(&quot;div#main.is-primary[data-name=main]&quot;, h(&quot;span&q
 </ul>
 <p>Those examples above are equivalent and will produce the following structure</p>
 <pre><code class="language-html">&lt;div id=&quot;main&quot; class=&quot;is-primary&quot;&gt;&lt;/div&gt;
+</code></pre>
+<p>For the case of children:</p>
+<ul>
+<li><code>div#main.is-primary &gt; button.is-danger &gt; span.is-large</code></li>
+</ul>
+<p>Will produce the following structure</p>
+<pre><code class="language-html">&lt;div id=&quot;main&quot; class=&quot;is-primary&quot;&gt;
+  &lt;button class=&quot;is-danger&quot;&gt;
+    &lt;span class=&quot;is-large&quot;&gt;&lt;/span&gt;
+  &lt;/button&gt;
+&lt;/div&gt;
 </code></pre>
 <p>Attributes will always render in the following order &quot;id&quot;, &quot;class&quot; and the rest in the order they were specified, as an example:</p>
 <pre><code class="language-fsharp">open Hox
