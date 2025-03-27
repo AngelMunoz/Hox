@@ -12,6 +12,42 @@ open IcedTasks
 open Hox.Core
 open System.Threading
 
+
+module private Seq =
+  let headTail (a : IEnumerable<_>) =
+      let e = a.GetEnumerator()
+      let hasNext = e.MoveNext()
+      match hasNext with
+      | true ->
+        let head = e.Current
+        let tail = seq {
+          use e = e
+          while e.MoveNext() do
+            yield e.Current
+        }
+        ValueSome (head, tail)
+      | false -> ValueNone
+
+module private TaskSeq =
+
+  let headTail (a : IAsyncEnumerable<_>) =
+    cancellableValueTask {
+      let! ct = CancellableValueTask.getCancellationToken()
+      let e = a.GetAsyncEnumerator ct
+      let! hasNext = e.MoveNextAsync()
+      match hasNext with
+      | true ->
+        let head = e.Current
+        let tail = taskSeq {
+          use e = e
+          while! e.MoveNextAsync() do
+            yield e.Current
+        }
+        return ValueSome (head, tail)
+      | false -> return ValueNone
+    }
+
+
 [<Struct; RequireQualifiedAccess>]
 type EscapeMode =
   | Html
@@ -215,44 +251,31 @@ module Builder =
   }
 
 /// This module contains functions that are used to render a node to a sequence of strings
+
 /// As soon as a chunk is ready it is yielded to the caller.
 [<RequireQualifiedAccess>]
 module Chunked =
 
   /// <summary>
   /// Renders the node and it's children to an asynchronous sequence of strings
-  /// The sequence is chunked by node and we keep track of the depth of the node
-  /// so we can choose between rendering recursively or buffering the async sequences
-  /// to avoid stack overflows.
   /// </summary>
-  /// <param name="stack">The stack of nodes to render</param>
-  /// <param name="cancellationToken">The cancellation token to use</param>
-  /// <returns>An asynchronous sequence of strings</returns>
-  /// <remarks>
-  /// This function will switch between rendering recursively and buffering the async sequences
-  /// depending on the depth of the node for nodes 200+ levels deep we'll default to buffering the chunk.
-  /// </remarks>
-  let rec renderNode
-    (
-      stack: Stack<struct (Node * bool * int)>,
-      cancellationToken: CancellationToken
-    ) : IAsyncEnumerable<string> =
+  let renderNode (n : Node, cancellationToken : CancellationToken) : IAsyncEnumerable<string> =
+    let cachedHtmlEncode =
+      getEncodedCache EscapeMode.Html (Dictionary<string, string>())
+
+    let cachedAttrEncode =
+      getEncodedCache EscapeMode.Attribute (Dictionary<string, string>())
+
     taskSeq {
-      let cachedHtmlEncode =
-        getEncodedCache EscapeMode.Html (Dictionary<string, string>())
-
-      let cachedAttrEncode =
-        getEncodedCache EscapeMode.Attribute (Dictionary<string, string>())
-
-      while stack.Count > 0 do
+      let dfs = Stack<struct (Node * bool)>()
+      dfs.Push(n, false)
+      while dfs.Count > 0 do
         cancellationToken.ThrowIfCancellationRequested()
-
-        let struct (node, closing, depth) = stack.Pop()
-
+        let struct (node, closing) = dfs.Pop()
         match node with
         | Element element when closing -> $"</%s{element.tag}>"
         | Element element ->
-          $"<%s{element.tag}"
+          $"<{element.tag}"
 
           let! id, classes, attributes =
             getAttributes element.attributes cancellationToken
@@ -260,7 +283,6 @@ module Chunked =
           match id with
           | ValueSome id -> $" id=\"%s{id}\""
           | ValueNone -> ()
-
           match classes with
           | classes when classes.Count = 0 -> ()
           | classes ->
@@ -282,72 +304,50 @@ module Chunked =
 
           ">"
 
-          // Only non-void tags have children
-          // if the element is not a void tag also close it
+          dfs.Push(Element element, true)
           if not(voidTags.Value.Contains(element.tag)) then
-            stack.Push(Element element, true, depth)
-
-            let mutable node = element.children.Last
-
-            while node <> null do
-              stack.Push(node.Value, false, depth)
-              node <- node.Previous
-
-        | Text text -> cachedHtmlEncode text
+            let nodes = element.children
+            nodes
+            |> Seq.headTail
+            |> ValueOption.iter (fun (h, ts) ->
+              // small optimization to avoid pushing the fragment if it's the only child
+                if nodes.Count > 1 then
+                  // Since this is a stack, we need to push nodes we want to process later first
+                  let ts = ts |> LinkedList
+                  dfs.Push(Fragment ts, false)
+                // then push the first node so it can render next
+                // this prevents long lists from stalling rendering
+                dfs.Push(h, false)
+            )
+        | Text text ->  cachedHtmlEncode text
         | Raw raw -> raw
-        | Comment comment -> $"<!--%s{cachedHtmlEncode comment}-->"
+        | Comment comment -> $"<!--{cachedHtmlEncode comment}-->"
         | Fragment nodes ->
-
-          let mutable node = nodes.Last
-
-          while node <> null do
-            stack.Push(node.Value, false, depth)
-            node <- node.Previous
+          nodes
+          |> Seq.headTail
+          |> ValueOption.iter (fun (h, ts) ->
+              // small optimization to avoid pushing the fragment if it's the only child
+              if nodes.Count > 1 then
+                // Since this is a stack, we need to push nodes we want to process later first
+                let ts =  ts |> LinkedList
+                dfs.Push(Fragment ts, false)
+              // then push the first node so it can render next
+              // this prevents long lists from stalling rendering
+              dfs.Push(h, false)
+          )
         | AsyncNode node ->
-          // These nodes are already handling cancellation semantics
-          // when they're added to the parent node, so we don't need to
-          // do anything here.
           let! node = node cancellationToken
-          stack.Push(node, false, depth)
-
+          dfs.Push(node, false)
         | AsyncSeqNode nodes ->
-          // This number is tricky, I've seen stack frames overflow at 248
-          // but also at 355, we'll keep it to 235 for now, we'll need to investigate
-          // further or if you're reading this and have an idea, let me know please :).
-          if depth > 235 then
-            // Similarly to the Builder module, we can't cancell this operation
-            // as it doesn't support cancellation, so we'll just have to wait
-            // for it to finish.
-            let! nodes = nodes |> TaskSeq.toArrayAsync
-
-            if nodes.Length > 0 then
-              for child = nodes.Length - 1 downto 0 do
-                stack.Push(nodes[child], false, depth)
-
-          else
-            // This part makes me a bit sad, since we can't reverse the sequence
-            // we have to add each node to a queue and then dequeue them in order
-            // to render them in the correctly in the final html string.
-            // so... we're kind of doing the same thing above but still yielding
-            // recursively the chunks once available Not fan of this approach
-            // we might as well just keep above's approach and that's it.
-
-            // Ideally I'd just for node in nodes do renderThing but that would
-            // render the nodes in reverse order.
-            // I guess we'll be stuck until recursion us supported for Tasks/TaskSeq in the F# compiler 🫠
-            // that or we could use async computations to attempt a recursive solution
-            // but that would potentially make ValueTasks Hot which we'd like to avoid untill
-            // we know the ValueTask is actually an async operation (see the cases above).
-            let items = LinkedList()
-
-            for node in nodes do
-              items.AddFirst(node) |> ignore
-
-            for item in items do
-              stack.Push(item, false, depth)
-            // The next renderNode call will check it's own
-            // cancellation token and throw if needed.
-            yield! renderNode(stack, cancellationToken)
+          match! TaskSeq.headTail nodes cancellationToken with
+          | ValueSome (node, nodes) ->
+            // Since this is a stack, we need to push nodes we want to process later first
+            // Can't do the same optimization above because we don't know how many nodes are in the sequence
+            dfs.Push(AsyncSeqNode nodes, false)
+              // then push the first node so it can render next
+              // this prevents long lists from stalling rendering
+            dfs.Push(node, false)
+          | ValueNone -> ()
     }
 
 type Render =
@@ -360,8 +360,7 @@ type Render =
         CancellationToken
     ) =
     let cancellationToken = defaultArg cancellationToken CancellationToken.None
-
-    Chunked.renderNode(Stack([ struct (node, false, 0) ]), cancellationToken)
+    Chunked.renderNode(node, cancellationToken)
 
   [<CompiledName "ToStream">]
   static member toStream
@@ -376,10 +375,7 @@ type Render =
         defaultArg cancellationToken CancellationToken.None
 
       let operation =
-        Chunked.renderNode(
-          Stack([ struct (node, false, 0) ]),
-          cancellationToken
-        )
+        Chunked.renderNode(node, cancellationToken)
         |> TaskSeq.map(System.Text.Encoding.UTF8.GetBytes >> ReadOnlyMemory)
 
       for chunk in operation do
