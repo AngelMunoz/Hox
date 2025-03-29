@@ -26,7 +26,9 @@ module private Seq =
             yield e.Current
         }
         ValueSome (head, tail)
-      | false -> ValueNone
+      | false ->
+        e.Dispose()
+        ValueNone
 
 module private TaskSeq =
 
@@ -44,7 +46,9 @@ module private TaskSeq =
             yield e.Current
         }
         return ValueSome (head, tail)
-      | false -> return ValueNone
+      | false ->
+        do! e.DisposeAsync()
+        return ValueNone
     }
 
 
@@ -251,7 +255,6 @@ module Builder =
   }
 
 /// This module contains functions that are used to render a node to a sequence of strings
-
 /// As soon as a chunk is ready it is yielded to the caller.
 [<RequireQualifiedAccess>]
 module Chunked =
@@ -275,7 +278,7 @@ module Chunked =
         match node with
         | Element element when closing -> $"</%s{element.tag}>"
         | Element element ->
-          $"<{element.tag}"
+          $"<%s{element.tag}"
 
           let! id, classes, attributes =
             getAttributes element.attributes cancellationToken
