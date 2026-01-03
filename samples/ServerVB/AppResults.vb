@@ -33,17 +33,26 @@ Module AppResults
         Return New HoxStreamedResult(Node)
     End Function
 
-    Public Async Function ToTextResult(
-        Node As Node,
-        Optional CancellationToken As CancellationToken = Nothing
-    ) As Task(Of IResult)
-        Dim Token As CancellationToken
-        If CancellationToken = Nothing Then Token = CancellationToken.None Else Token = CancellationToken
+    Public Class HoxStringResult
+        Implements IResult
 
-        Dim Text = Await Render.AsString(Node, Token)
+        Private ReadOnly _node As Node
 
-        Return Results.Text(Text, "text/html", Encoding.UTF8)
+        Public Sub New(node As Node)
+            _node = node
+        End Sub
 
+        Public Async Function ExecuteAsync(context As HttpContext) As Task Implements IResult.ExecuteAsync
+            context.Response.ContentType = "text/html; charset=utf-8"
+            Await context.Response.StartAsync(context.RequestAborted)
+            Dim Text = Await Render.AsString(_node, context.RequestAborted)
+            Await context.Response.WriteAsync(Text, context.RequestAborted)
+            Await context.Response.CompleteAsync()
+        End Function
+    End Class
+
+    Public Function ToTextResult(Node As Node) As IResult
+        Return New HoxStringResult(Node)
     End Function
 
 End Module
