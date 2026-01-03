@@ -2,11 +2,8 @@
 module Hox.Parsers
 
 open System.Collections.Immutable
-
 open FParsec
-
 open Hox.Core
-open System.Collections.Generic
 
 [<Struct>]
 type SelectorValue =
@@ -65,7 +62,6 @@ let pChild =
 
 let pSelector: Parser<_, unit> =
   let childRefs, pValueRef = createParserForwardedToRef<SelectorValue, unit>()
-
   pValueRef.Value <- attempt pChild
 
   unicodeSpaces >>. pElement .>> unicodeSpaces .>>. many childRefs
@@ -73,31 +69,31 @@ let pSelector: Parser<_, unit> =
 
 let rec getAttributes
   (builder: ImmutableDictionary<string, string>.Builder)
-  (attributes: SelectorValue list)
+  attributes
   =
   match attributes with
   | [] ->
-    builder.ToImmutable()
-    |> Seq.map(fun (KeyValue(k, v)) ->
-      AttributeNode.Attribute { name = k; value = v })
-    |> LinkedList
+    let d = Deque(builder.Count)
+
+    for KeyValue(k, v) in builder.ToImmutable() do
+      d.AddLast(AttributeNode.Attribute { name = k; value = v })
+
+    d
   | Id id :: rest ->
     builder.Add("id", id)
     getAttributes builder rest
   | Class cls :: rest ->
     match builder.TryGetValue("class") with
-    | true, value ->
-      builder.["class"] <- $"{value} {cls}"
-      getAttributes builder rest
-    | false, _ ->
-      builder.Add("class", cls)
-      getAttributes builder rest
+    | true, value -> builder.["class"] <- $"{value} {cls}"
+    | false, _ -> builder.Add("class", cls)
+
+    getAttributes builder rest
   | Attribute attribute :: rest ->
     builder.Add(attribute.name, attribute.value)
     getAttributes builder rest
   | _ :: rest -> getAttributes builder rest
 
-let rec getChildren (parent: Element) (children: SelectorValue list) =
+let rec getChildren (parent: Element) children =
   match children with
   | [] -> parent
   | Child(tag, attributes) :: rest ->
@@ -106,11 +102,11 @@ let rec getChildren (parent: Element) (children: SelectorValue list) =
     let element = {
       tag = tag
       attributes = getAttributes builder attributes
-      children = LinkedList()
+      children = Deque(4)
     }
 
     let child = getChildren element rest
-    parent.children.AddLast(Element child) |> ignore
+    parent.children.AddLast(Element child)
     parent
   | _ -> failwith "Trees should not start without an element"
 
@@ -124,7 +120,7 @@ let selector(selector: string) =
       let element = {
         tag = tag
         attributes = getAttributes builder attributes
-        children = LinkedList()
+        children = Deque(4)
       }
 
       getChildren element children

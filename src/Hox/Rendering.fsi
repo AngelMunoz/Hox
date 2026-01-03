@@ -31,7 +31,8 @@ type Render =
   /// </remarks>
   [<CompiledName "Start">]
   static member start:
-    node: Node * [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
+    node: Node *
+    [<OptionalAttribute; Struct>] ?cancellationToken: CancellationToken ->
       string IAsyncEnumerable
 
   /// <summary>
@@ -39,6 +40,7 @@ type Render =
   /// </summary>
   /// <param name="node"></param>
   /// <param name="stream"></param>
+  /// <param name="chunkSize">The size of the chunks to use when rendering async nodes. If not specified, defaults to 4092 bytes.</param>
   /// <param name="cancellationToken">The cancellation token required to stop the rendering process.</param>
   /// <returns>A sequence of strings that represents the rendering operation</returns>
   /// <remarks>
@@ -49,7 +51,8 @@ type Render =
   static member toStream:
     node: Node *
     stream: System.IO.Stream *
-    [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
+    [<OptionalAttribute; Struct>] ?chunkSize: int *
+    [<OptionalAttribute; Struct>] ?cancellationToken: CancellationToken ->
       Task
 
   /// <summary>
@@ -64,7 +67,8 @@ type Render =
   /// </remarks>
   [<CompiledName "AsString">]
   static member asString:
-    node: Node * [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
+    node: Node *
+    [<OptionalAttribute; Struct>] ?cancellationToken: CancellationToken ->
       string ValueTask
 
   /// <summary>

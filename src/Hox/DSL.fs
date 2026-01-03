@@ -11,20 +11,44 @@ open IcedTasks
 open Hox
 open Hox.Core
 
+module private Helpers =
+  let inline mkFragment(nodes: Node seq) =
+    let d = Deque<Node>(8)
+
+    for n in nodes do
+      d.AddLast(n)
+
+    Fragment d
+
+  let inline mkFragmentOf(nodes: Node[]) =
+    let d = Deque<Node>(nodes.Length)
+
+    for n in nodes do
+      d.AddLast(n)
+
+    Fragment d
+
+  let emptyNode = Fragment(Deque<Node>(0))
+
+open Helpers
+
 module NodeOps =
   let rec addToNode(target: Node, value: Node) =
     match target, value with
     | Element current, Element value ->
-      current.children.AddLast(LinkedListNode(Element value))
+      current.children.AddLast(Element value)
       target
     | Element current, Text value ->
-      current.children.AddLast(LinkedListNode(Text value))
+      current.children.AddLast(Text value)
       target
     | Element current, Comment value ->
-      current.children.AddLast(LinkedListNode(Comment value))
+      current.children.AddLast(Comment value)
       target
     | Element current, Raw value ->
-      current.children.AddLast(LinkedListNode(Raw value))
+      current.children.AddLast(Raw value)
+      target
+    | Element current, PreRendered value ->
+      current.children.AddLast(PreRendered value)
       target
     | Element _, AsyncNode value ->
       let tsk = cancellableValueTask {
@@ -35,11 +59,11 @@ module NodeOps =
       AsyncNode tsk
     | Element current, Fragment value ->
       for node in value do
-        current.children.AddLast(LinkedListNode(node))
+        current.children.AddLast(node)
 
       target
     | Element current, AsyncSeqNode value ->
-      current.children.AddLast(LinkedListNode(AsyncSeqNode value))
+      current.children.AddLast(AsyncSeqNode value)
       target
     | AsyncNode target, AsyncNode value ->
       let tsk = cancellableValueTask {
@@ -92,10 +116,9 @@ module NodeOps =
         }
       )
     | Fragment current, AsyncNode value ->
-
       let tsk = cancellableValueTask {
         let! value = value
-        current.AddLast(LinkedListNode(value))
+        current.AddLast(value)
         return target
       }
 
@@ -109,34 +132,25 @@ module NodeOps =
       )
     | Fragment current, Fragment value ->
       for node in value do
-        current.AddLast(LinkedListNode(node))
+        current.AddLast(node)
 
       target
     | Fragment current, value ->
-      current.AddLast(LinkedListNode(value))
+      current.AddLast(value)
       target
     | Text target, Text value -> Text(target + value)
-    // merging a text node with a raw node is not supported
-    // as the raw node contents will be scaped by the text node
     | Text target, Raw _ -> Text target
-
-    // WARNING: merging anything with raw node will result in converting the content
-    // into RAW nodes, which can lead to unescaped inputs.
-    // make sure to note this in the documentation
     | Raw target, Text value -> Raw(target + value)
     | Raw target, Raw value -> Raw(target + value)
-
     | Comment target, Comment value -> Comment(target + value)
     | Comment target, Text value -> Comment(target + value)
-    // merging a comment node with a raw node is not supported
-    // as the raw node contents will be scaped by the comment node
     | Comment target, Raw _ -> Comment target
     | _, _ -> target
 
   let rec addAttribute(target: Node, attribute: AttributeNode) =
     match target with
     | Element current ->
-      current.attributes.AddLast(LinkedListNode(attribute))
+      current.attributes.AddLast(attribute)
       target
     | AsyncNode target ->
       let tsk = cancellableValueTask {
@@ -149,46 +163,22 @@ module NodeOps =
 
   [<TailCall>]
   let rec getInnerMostChild(element: Element) : Element =
-    match element.children.First with
-    | null -> element
-    | node ->
-      match node.Value with
-      | Text _
-      | Raw _
-      | Comment _
-      | Fragment _
-      | AsyncNode _
-      | AsyncSeqNode _ -> element
+    if element.children.IsEmpty then
+      element
+    else
+      match element.children.PeekFirst() with
       | Element child -> getInnerMostChild child
+      | _ -> element
 
   [<AutoOpen>]
   module Operators =
-    /// Adds the 'value' node to the 'target' node, it can be seen as ading
-    /// a child to a parent.
     let inline (<+) (target: Node) (value: Node) = addToNode(target, value)
 
-    /// Adds an attribute to the 'target' node.
     let inline (<+.) (target: Node) (value: AttributeNode) =
       addAttribute(target, value)
 
-
 open NodeOps
 
-/// A for us, node represents a renderable item in an HTML document structure
-/// it can be a text node, an element node, a comment node, a raw node or a fragment node.
-/// The fragment node is a special node that allows you to group multiple nodes together
-/// without having to wrap them in a parent element.
-/// Attributes in our case are not a separate node, but rather a property of an element node.
-/// While we could have attributes as nodes themselves, we don't really need them to be at least
-/// for the moment.
-///
-/// For asynchronous nodes (e.g. Task&gt;Node&lt;, or Async&lt;Node&gt;) we'll implement cancellation
-/// semantics at this level, the ValueTask that areused to wrap these applications should
-/// check for cancellation before trying to await the value, in case that cancellation has been requested:
-/// - Nodes should return empty nodes e.g. Fragment []
-/// - Attributes should return empty attributes e.g. Attribute { name = String.Empty; value = String.Empty }
-///
-/// For IAsyncEnumerable&gt;Node&lt; we'll implement cancellation semantics at the rendering level.
 [<AutoOpen>]
 type NodeDsl =
 
@@ -196,15 +186,13 @@ type NodeDsl =
     Element(Parsers.selector cssSelector)
 
   static member inline h
-    (
-      cssSelector: string,
-      [<ParamArray>] textNodes: string array
-    ) =
+    (cssSelector: string, [<ParamArray>] textNodes: string array)
+    =
     let element = Parsers.selector cssSelector
     let innerMostChild = NodeOps.getInnerMostChild element
 
     for node in textNodes do
-      innerMostChild.children.AddLast(LinkedListNode(Text node))
+      innerMostChild.children.AddLast(Text node)
 
     Element(element)
 
@@ -224,8 +212,7 @@ type NodeDsl =
 
     let element = Parsers.selector cssSelector
     let innerMostChild = NodeOps.getInnerMostChild element
-
-    innerMostChild.children.AddLast(LinkedListNode(child))
+    innerMostChild.children.AddLast(child)
     Element(element)
 
   static member inline h(cssSelector: string, child: Node Async) =
@@ -244,46 +231,35 @@ type NodeDsl =
 
     let element = Parsers.selector cssSelector
     let innerMostChild = NodeOps.getInnerMostChild element
-
-    innerMostChild.children.AddLast(LinkedListNode(child))
+    innerMostChild.children.AddLast(child)
     Element(element)
 
   static member inline h(cssSelector: string, children: Node seq) =
     let element = Parsers.selector cssSelector
-
     let innerMostChild = NodeOps.getInnerMostChild element
 
     for node in children do
-      innerMostChild.children.AddLast(LinkedListNode(node))
+      innerMostChild.children.AddLast(node)
 
     Element(element)
 
   static member inline h
-    (
-      cssSelector: string,
-      [<ParamArray>] children: Node array
-    ) =
+    (cssSelector: string, [<ParamArray>] children: Node array)
+    =
     let element = Parsers.selector cssSelector
-
     let innerMostChild = NodeOps.getInnerMostChild element
 
     for node in children do
-      innerMostChild.children.AddLast(LinkedListNode(node))
+      innerMostChild.children.AddLast(node)
 
     Element(element)
 
   static member inline h
-    (
-      cssSelector: string,
-      children: IAsyncEnumerable<Node>
-    ) =
-
+    (cssSelector: string, children: IAsyncEnumerable<Node>)
+    =
     let element = Parsers.selector cssSelector
-
     let innerMostChild = NodeOps.getInnerMostChild element
-
-    innerMostChild.children.AddLast(LinkedListNode(AsyncSeqNode children))
-
+    innerMostChild.children.AddLast(AsyncSeqNode children)
     Element(element)
 
   static member inline h(element: Node Task) =
@@ -329,7 +305,7 @@ type NodeDsl =
         }
       )
 
-    element <+ Fragment(LinkedList(children))
+    element <+ mkFragment children
 
   static member inline h(element: Node Async) =
     AsyncNode(
@@ -374,7 +350,7 @@ type NodeDsl =
         }
       )
 
-    node <+ Fragment(LinkedList(children))
+    node <+ mkFragment children
 
   static member inline h(element: Node, children: IAsyncEnumerable<Node>) =
     element <+ AsyncSeqNode children
@@ -396,10 +372,8 @@ type NodeDsl =
     node <+ AsyncSeqNode children
 
   static member inline h
-    (
-      element: Node Async,
-      children: IAsyncEnumerable<Node>
-    ) =
+    (element: Node Async, children: IAsyncEnumerable<Node>)
+    =
     let node =
       AsyncNode(
         cancellableValueTask {
@@ -473,10 +447,10 @@ type NodeDsl =
 
   static member inline comment(comment: string) = Comment comment
 
-  static member inline fragment(nodes: Node seq) = Fragment(LinkedList(nodes))
+  static member inline fragment(nodes: Node seq) = mkFragment nodes
 
   static member inline fragment([<ParamArray>] nodes: Node array) =
-    Fragment(LinkedList(nodes))
+    mkFragmentOf nodes
 
   static member inline fragment(nodes: Node seq Task) =
     AsyncNode(
@@ -487,7 +461,7 @@ type NodeDsl =
           return NodeDsl.empty
         else
           let! nodes = nodes
-          return Fragment(LinkedList(nodes))
+          return mkFragment nodes
       }
     )
 
@@ -500,14 +474,14 @@ type NodeDsl =
           return NodeDsl.empty
         else
           let! nodes = nodes
-          return Fragment(LinkedList(nodes))
+          return mkFragment nodes
       }
     )
 
   static member inline fragment(nodes: IAsyncEnumerable<Node>) =
     AsyncSeqNode nodes
 
-  static member empty = Fragment(LinkedList())
+  static member empty = emptyNode
 
   static member inline attribute(name: string, value: string) =
     Attribute { name = name; value = value }
@@ -574,7 +548,6 @@ type NodeExtensions =
   static member inline attr(node: Node, name: string, value: float) =
     node <+. Attribute { name = name; value = $"%f{value}" }
 
-
   [<Extension>]
   static member inline attr(node: Node, name: string, value: string Task) =
     node
@@ -613,7 +586,6 @@ type NodeExtensions =
 
   [<Extension>]
   static member inline attr(node: Node, name: string, value: bool Task) =
-
     node
     <+. AsyncAttribute(
       cancellableValueTask {
@@ -650,7 +622,6 @@ type NodeExtensions =
             value = String.Empty
           }
         else
-
           let! value = value
 
           if value then
@@ -676,7 +647,6 @@ type NodeExtensions =
             value = String.Empty
           }
         else
-
           let! value = value
           return { name = name; value = $"%i{value}" }
       }
@@ -713,7 +683,6 @@ type NodeExtensions =
             value = String.Empty
           }
         else
-
           let! value = value
           return { name = name; value = $"%f{value}" }
       }
@@ -737,33 +706,24 @@ type NodeExtensions =
       }
     )
 
-
 [<AutoOpen>]
 type DeclarativeShadowDom =
-
   static member inline sh(tagName: string, templateDefinition: Node) =
     h(tagName, h("template[shadowrootmode=open]", templateDefinition))
 
   static member inline sh
-    (
-      tagName: string,
-      [<ParamArray>] templateDefinition: Node array
-    ) =
+    (tagName: string, [<ParamArray>] templateDefinition: Node array)
+    =
     let tpl = h("template[shadowrootmode=open]", templateDefinition)
-
     fun instanceContent -> h(tagName, tpl, instanceContent)
 
   static member inline shcs
-    (
-      tagName: string,
-      [<ParamArray>] templateDefinition: Node array
-    ) =
+    (tagName: string, [<ParamArray>] templateDefinition: Node array)
+    =
     let tpl = h("template[shadowrootmode=open]", templateDefinition)
-
     Func<Node, Node>(fun instanceContent -> h(tagName, tpl, instanceContent))
 
 type ScopableElements =
-
   static member inline article([<ParamArray>] content: _ array) =
     sh("article", fragment content)
 
