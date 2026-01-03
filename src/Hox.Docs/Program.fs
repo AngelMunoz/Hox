@@ -71,7 +71,7 @@ let Main argv =
                 )
 
               ctx.Status <- $"Rendering {metadata.title}..."
-              do! Render.toStream(layout, writer, cts.Token)
+              do! Render.toStream(layout, writer, cancellationToken = cts.Token)
           }
         )
 

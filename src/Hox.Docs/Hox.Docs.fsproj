@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
@@ -11,9 +11,9 @@
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="IcedTasks" Version="0.11.7" />
-    <PackageReference Include="Markdig" Version="0.38.0" />
-    <PackageReference Include="Spectre.Console" Version="0.49.1" />
+    <PackageReference Include="IcedTasks" Version="0.11.9" />
+    <PackageReference Include="Markdig" Version="0.44.0" />
+    <PackageReference Include="Spectre.Console" Version="0.54.0" />
     <PackageReference Include="Thoth.Json.Net" Version="12.0.0" />
   </ItemGroup>
   <ItemGroup>
