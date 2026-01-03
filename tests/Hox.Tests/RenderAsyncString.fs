@@ -1,29 +1,34 @@
 module RenderAsyncString
 
 open System
-open System.Collections.Generic
 open System.Threading
 open Xunit
-
 open IcedTasks
-
 open Hox
 open Hox.Core
 open Hox.Rendering
 open System.Threading.Tasks
 open FSharp.Control
 
+// Helper to create Deque from list
+let inline dequeOf(items: 'T list) =
+  let d = Deque<'T>(items.Length)
+
+  for item in items do
+    d.AddLast(item)
+
+  d
+
 [<Fact>]
 let ``It should render an element``() = taskUnit {
   let node =
     Element {
       tag = "div"
-      attributes = LinkedList()
-      children = LinkedList()
+      attributes = Deque()
+      children = Deque()
     }
 
   let expected = "<div></div>"
-
   let! actual = Render.asString node
   Assert.Equal(expected, actual)
 }
@@ -34,12 +39,11 @@ let ``It should render an element with Async``() =
     let node =
       Element {
         tag = "div"
-        attributes = LinkedList()
-        children = LinkedList()
+        attributes = Deque()
+        children = Deque()
       }
 
     let expected = "<div></div>"
-
     let! actual = Render.asStringAsync node
     Assert.Equal(expected, actual)
   }
@@ -49,9 +53,7 @@ let ``It should render an element with Async``() =
 [<Fact>]
 let ``It should render a text node``() = taskUnit {
   let node = Text "Hello, world!"
-
   let expected = "Hello, world!"
-
   let! actual = Render.asString node
   Assert.Equal(expected, actual)
 }
@@ -59,9 +61,7 @@ let ``It should render a text node``() = taskUnit {
 [<Fact>]
 let ``It should HTML encode a string renderd as text``() = taskUnit {
   let node = Text "<div>Hello, world!</div>"
-
   let expected = "&lt;div&gt;Hello, world!&lt;/div&gt;"
-
   let! actual = Render.asString node
   Assert.Equal(expected, actual)
 }
@@ -69,9 +69,7 @@ let ``It should HTML encode a string renderd as text``() = taskUnit {
 [<Fact>]
 let ``It should render a raw node``() = taskUnit {
   let node = Raw "<div>Hello, world!</div>"
-
   let expected = "<div>Hello, world!</div>"
-
   let! actual = Render.asString node
   Assert.Equal(expected, actual)
 }
@@ -79,19 +77,15 @@ let ``It should render a raw node``() = taskUnit {
 [<Fact>]
 let ``It should render a comment node``() = taskUnit {
   let node = Comment "Hello, world!"
-
   let expected = "<!--Hello, world!-->"
-
   let! actual = Render.asString node
   Assert.Equal(expected, actual)
 }
 
 [<Fact>]
 let ``It should render a fragment node``() = taskUnit {
-  let node = Fragment(LinkedList [ Text "Hello, "; Text "world!" ])
-
+  let node = Fragment(dequeOf [ Text "Hello, "; Text "world!" ])
   let expected = "Hello, world!"
-
   let! actual = Render.asString node
   Assert.Equal(expected, actual)
 }
@@ -99,9 +93,7 @@ let ``It should render a fragment node``() = taskUnit {
 [<Fact>]
 let ``It should render an Async Node``() = taskUnit {
   let node = AsyncNode(cancellableValueTask { return Text "Hello, world!" })
-
   let expected = "Hello, world!"
-
   let! actual = Render.asString node
   Assert.Equal(expected, actual)
 }
@@ -117,7 +109,6 @@ let ``It should render an Async Seq Node``() = taskUnit {
     )
 
   let expected = "Hello, world!"
-
   let! actual = Render.asString node
   Assert.Equal(expected, actual)
 }
@@ -128,15 +119,14 @@ let ``It should render an element with attributes``() = taskUnit {
     Element {
       tag = "div"
       attributes =
-        LinkedList [
+        dequeOf [
           Attribute { name = "class"; value = "foo" }
           Attribute { name = "id"; value = "bar" }
         ]
-      children = LinkedList()
+      children = Deque()
     }
 
   let expected = "<div id=\"bar\" class=\"foo\"></div>"
-
   let! actual = Render.asString node
   Assert.Equal(expected, actual)
 }
@@ -147,7 +137,7 @@ let ``It should render an element with an async attribute``() = taskUnit {
     Element {
       tag = "div"
       attributes =
-        LinkedList [
+        dequeOf [
           AsyncAttribute(
             cancellableValueTask { return { name = "class"; value = "foo" } }
           )
@@ -155,11 +145,10 @@ let ``It should render an element with an async attribute``() = taskUnit {
             cancellableValueTask { return { name = "id"; value = "bar" } }
           )
         ]
-      children = LinkedList()
+      children = Deque()
     }
 
   let expected = "<div id=\"bar\" class=\"foo\"></div>"
-
   let! actual = Render.asString node
   Assert.Equal(expected, actual)
 }
@@ -168,14 +157,13 @@ let ``It should render an element with an async attribute``() = taskUnit {
 let ``It should render a mix of sync/async nodes``() = taskUnit {
   let node =
     Fragment(
-      LinkedList [
+      dequeOf [
         AsyncNode(cancellableValueTask { return Text "Hello, " })
         Text "world!"
       ]
     )
 
   let expected = "Hello, world!"
-
   let! actual = Render.asString node
   Assert.Equal(expected, actual)
 }
@@ -184,23 +172,22 @@ let ``It should render a mix of sync/async nodes``() = taskUnit {
 let ``It should render a mix of sync/async nodes with attributes``() = taskUnit {
   let node =
     Fragment(
-      LinkedList [
+      dequeOf [
         AsyncNode(cancellableValueTask { return Text "Hello, " })
         Element {
           tag = "div"
           attributes =
-            LinkedList [
+            dequeOf [
               Attribute { name = "class"; value = "foo" }
               Attribute { name = "id"; value = "bar" }
             ]
-          children = LinkedList()
+          children = Deque()
         }
         Text "world!"
       ]
     )
 
   let expected = "Hello, <div id=\"bar\" class=\"foo\"></div>world!"
-
   let! actual = Render.asString node
   Assert.Equal(expected, actual)
 }
@@ -209,12 +196,12 @@ let ``It should render a mix of sync/async nodes with attributes``() = taskUnit 
 let ``It should render a mix of sync/async nodes with async attributes``() = taskUnit {
   let node =
     Fragment(
-      LinkedList [
+      dequeOf [
         AsyncNode(cancellableValueTask { return Text "Hello, " })
         Element {
           tag = "div"
           attributes =
-            LinkedList [
+            dequeOf [
               AsyncAttribute(
                 cancellableValueTask {
                   return { name = "class"; value = "foo" }
@@ -224,14 +211,13 @@ let ``It should render a mix of sync/async nodes with async attributes``() = tas
                 cancellableValueTask { return { name = "id"; value = "bar" } }
               )
             ]
-          children = LinkedList()
+          children = Deque()
         }
         Text "world!"
       ]
     )
 
   let expected = "Hello, <div id=\"bar\" class=\"foo\"></div>world!"
-
   let! actual = Render.asString node
   Assert.Equal(expected, actual)
 }
@@ -243,12 +229,12 @@ let ``It should render a mix of sync/async nodes with async attributes and async
   taskUnit {
     let node =
       Fragment(
-        LinkedList [
+        dequeOf [
           AsyncNode(cancellableValueTask { return Text "Hello, " })
           Element {
             tag = "div"
             attributes =
-              LinkedList [
+              dequeOf [
                 AsyncAttribute(
                   cancellableValueTask {
                     return { name = "class"; value = "foo" }
@@ -259,7 +245,7 @@ let ``It should render a mix of sync/async nodes with async attributes and async
                 )
               ]
             children =
-              LinkedList [
+              dequeOf [
                 AsyncNode(cancellableValueTask { return Text "world!" })
               ]
           }
@@ -267,7 +253,6 @@ let ``It should render a mix of sync/async nodes with async attributes and async
       )
 
     let expected = "Hello, <div id=\"bar\" class=\"foo\">world!</div>"
-
     let! actual = Render.asString node
     Assert.Equal(expected, actual)
   }
@@ -279,12 +264,12 @@ let ``It should render a mix of sync/async nodes with async attributes and async
   taskUnit {
     let node =
       Fragment(
-        LinkedList [
+        dequeOf [
           AsyncNode(cancellableValueTask { return Text "Hello, " })
           Element {
             tag = "div"
             attributes =
-              LinkedList [
+              dequeOf [
                 AsyncAttribute(
                   cancellableValueTask {
                     return { name = "class"; value = "foo" }
@@ -295,7 +280,7 @@ let ``It should render a mix of sync/async nodes with async attributes and async
                 )
               ]
             children =
-              LinkedList [
+              dequeOf [
                 AsyncNode(cancellableValueTask { return Text "world!" })
               ]
           }
@@ -304,7 +289,6 @@ let ``It should render a mix of sync/async nodes with async attributes and async
       )
 
     let expected = "Hello, <div id=\"bar\" class=\"foo\">world!</div>!"
-
     let! actual = Render.asString node
     Assert.Equal(expected, actual)
   }
@@ -316,12 +300,12 @@ let ``It should render a mix of sync/async nodes with async attributes and async
   taskUnit {
     let node =
       Fragment(
-        LinkedList [
+        dequeOf [
           AsyncNode(cancellableValueTask { return Text "Hello, " })
           Element {
             tag = "div"
             attributes =
-              LinkedList [
+              dequeOf [
                 AsyncAttribute(
                   cancellableValueTask {
                     return { name = "class"; value = "foo" }
@@ -332,7 +316,7 @@ let ``It should render a mix of sync/async nodes with async attributes and async
                 )
               ]
             children =
-              LinkedList [
+              dequeOf [
                 AsyncNode(cancellableValueTask { return Text "world!" })
               ]
           }
@@ -360,12 +344,12 @@ let ``It should render a mix of sync/async nodes with async attributes and async
   taskUnit {
     let node =
       Fragment(
-        LinkedList [
+        dequeOf [
           AsyncNode(cancellableValueTask { return Text "Hello, " })
           Element {
             tag = "div"
             attributes =
-              LinkedList [
+              dequeOf [
                 AsyncAttribute(
                   cancellableValueTask {
                     return { name = "class"; value = "foo" }
@@ -376,7 +360,7 @@ let ``It should render a mix of sync/async nodes with async attributes and async
                 )
               ]
             children =
-              LinkedList [
+              dequeOf [
                 AsyncNode(cancellableValueTask { return Text "world!" })
               ]
           }
@@ -398,18 +382,16 @@ let ``It should render a mix of sync/async nodes with async attributes and async
     Assert.Equal(expected, actual)
   }
 
-
 [<Fact>]
 let ``Rendering childless nodes should not write the end tag``() = taskUnit {
   let node =
     Element {
       tag = "input"
-      attributes = LinkedList()
-      children = LinkedList()
+      attributes = Deque()
+      children = Deque()
     }
 
   let expected = "<input>"
-
   let! actual = Render.asString node
   Assert.Equal(expected, actual)
 }
@@ -418,30 +400,29 @@ let ``Rendering childless nodes should not write the end tag``() = taskUnit {
 let ``Childless nodes can be added to elements and fragments``() = taskUnit {
   let node =
     Fragment(
-      LinkedList [
+      dequeOf [
         Element {
           tag = "div"
-          attributes = LinkedList()
+          attributes = Deque()
           children =
-            LinkedList [
+            dequeOf [
               Element {
                 tag = "source"
                 attributes =
-                  LinkedList [ Attribute { name = "src"; value = "foo" } ]
-                children = LinkedList()
+                  dequeOf [ Attribute { name = "src"; value = "foo" } ]
+                children = Deque()
               }
             ]
         }
         Element {
           tag = "input"
-          attributes = LinkedList()
-          children = LinkedList()
+          attributes = Deque()
+          children = Deque()
         }
       ]
     )
 
   let expected = "<div><source src=\"foo\"></div><input>"
-
   let! actual = Render.asString node
   Assert.Equal(expected, actual)
 }
@@ -449,9 +430,7 @@ let ``Childless nodes can be added to elements and fragments``() = taskUnit {
 [<Fact>]
 let ``It should render a nested element``() = taskUnit {
   let node = h("div > span")
-
   let expected = "<div><span></span></div>"
-
   let! actual = Render.asString node
   Assert.Equal(expected, actual)
 }
@@ -459,9 +438,7 @@ let ``It should render a nested element``() = taskUnit {
 [<Fact>]
 let ``It should render nested elements with attributes``() = taskUnit {
   let node = h("div > span#foo.bar")
-
   let expected = "<div><span id=\"foo\" class=\"bar\"></span></div>"
-
   let! actual = Render.asString node
   Assert.Equal(expected, actual)
 }
@@ -480,9 +457,7 @@ let ``It should render attributes for parent and nested elements``() = taskUnit 
 [<Fact>]
 let ``It should add the node to the inner most child in a nested element``() = taskUnit {
   let node = h("div > span", "Hello, world!")
-
   let expected = "<div><span>Hello, world!</span></div>"
-
   let! actual = Render.asString node
   Assert.Equal(expected, actual)
 }
@@ -519,5 +494,4 @@ let ``It should add the parent to the tree even if the node is added to the inne
 
     let! actual = Render.asString node
     Assert.Equal(expected, actual)
-
   }

@@ -1,17 +1,25 @@
 module Parser
 
 open System
-open System.Collections.Generic
 open Xunit
 open Hox
 open Hox.Core
+
+// Helper to create Deque from list literal - preserves exact test structure
+let inline dequeOf(items: 'T list) =
+  let d = Deque<'T>(items.Length)
+
+  for item in items do
+    d.AddLast(item)
+
+  d
 
 [<Fact>]
 let ``Can parse a tag name``() =
   let expected = {
     tag = "div"
-    attributes = LinkedList []
-    children = LinkedList []
+    attributes = dequeOf []
+    children = dequeOf []
   }
 
   let actual = Parsers.selector "div"
@@ -21,8 +29,8 @@ let ``Can parse a tag name``() =
 let ``Can parse a tag name with an id``() =
   let expected = {
     tag = "div"
-    attributes = LinkedList [ Attribute { name = "id"; value = "my-id" } ]
-    children = LinkedList []
+    attributes = dequeOf [ Attribute { name = "id"; value = "my-id" } ]
+    children = dequeOf []
   }
 
   let actual = Parsers.selector "div#my-id"
@@ -36,8 +44,8 @@ let ``Can parse a tag name with an id``() =
 let ``Can parse a css class``() =
   let expected = {
     tag = "div"
-    attributes = LinkedList [ Attribute { name = "class"; value = "my-class" } ]
-    children = LinkedList []
+    attributes = dequeOf [ Attribute { name = "class"; value = "my-class" } ]
+    children = dequeOf []
   }
 
   let actual = Parsers.selector "div.my-class"
@@ -53,14 +61,14 @@ let ``Can parse multiple css classes``() =
   let expected = {
     tag = "div"
     attributes =
-      LinkedList [
+      dequeOf [
         Attribute { name = "class"; value = "my-class" }
         Attribute {
           name = "class"
           value = "another-class"
         }
       ]
-    children = LinkedList []
+    children = dequeOf []
   }
 
   let actual = Parsers.selector "div.my-class.another-class"
@@ -77,8 +85,8 @@ let ``Can parse multiple css classes``() =
 let ``Can parse an attribute``() =
   let expected = {
     tag = "div"
-    attributes = LinkedList [ Attribute { name = "data-foo"; value = "bar" } ]
-    children = LinkedList []
+    attributes = dequeOf [ Attribute { name = "data-foo"; value = "bar" } ]
+    children = dequeOf []
   }
 
   let actual = Parsers.selector "div[data-foo=bar]"
@@ -96,11 +104,11 @@ let ``Can parse multiple attributes``() =
   let expected = {
     tag = "div"
     attributes =
-      LinkedList [
+      dequeOf [
         Attribute { name = "data-foo"; value = "bar" }
         Attribute { name = "data-baz"; value = "qux" }
       ]
-    children = LinkedList []
+    children = dequeOf []
   }
 
   let actual = Parsers.selector "div[data-foo=bar][data-baz=qux]"
@@ -123,12 +131,12 @@ let ``Can parse a mix of id, class, and attribute selectors``() =
   let expected = {
     tag = "div"
     attributes =
-      LinkedList [
+      dequeOf [
         Attribute { name = "data-foo"; value = "bar" }
         Attribute { name = "class"; value = "my-class" }
         Attribute { name = "id"; value = "my-id" }
       ]
-    children = LinkedList []
+    children = dequeOf []
   }
 
   let actual = Parsers.selector "div#my-id.my-class[data-foo=bar]"
@@ -153,12 +161,12 @@ let ``Can parse id, class, and attributes over multiple lines``() =
   let expected = {
     tag = "div"
     attributes =
-      LinkedList [
+      dequeOf [
         Attribute { name = "id"; value = "my-id" }
         Attribute { name = "class"; value = "my-class" }
         Attribute { name = "data-foo"; value = "bar" }
       ]
-    children = LinkedList []
+    children = dequeOf []
   }
 
   let actual =
@@ -188,7 +196,7 @@ let ``Attributes can have arbitrary content within '[' ']'``() =
   let expected = {
     tag = "div"
     attributes =
-      LinkedList [
+      dequeOf [
         Attribute {
           name = "camello"
           value = "~!@#2abcDE"
@@ -209,7 +217,7 @@ let ``Attributes can have arbitrary content within '[' ']'``() =
             """~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?1234567890-=qwertyuiop\asdfghjkl;'zxcvbnm,./"""
         }
       ]
-    children = LinkedList []
+    children = dequeOf []
   }
 
   let actual =
@@ -255,14 +263,14 @@ let ``Attributes can have arbitrary content within '[' ']'``() =
 let ``Can parse selector without value``() =
   let expected = {
     tag = "div"
-    attributes = LinkedList [ Attribute { name = "data-foo"; value = "" } ]
-    children = LinkedList []
+    attributes = dequeOf [ Attribute { name = "data-foo"; value = "" } ]
+    children = dequeOf []
   }
 
   let actual = Parsers.selector "div[data-foo]"
   Assert.Equal(expected.tag, actual.tag)
 
-  match actual.attributes.First.Value with
+  match actual.attributes.PeekFirst() with
   | Attribute { name = "data-foo"; value = "" } -> ()
   | _ ->
     Assert.Fail("Expected an attribute with the name 'data-foo' and value ''")
@@ -271,13 +279,13 @@ let ``Can parse selector without value``() =
 let ``Can parse child elements``() =
   let expected = {
     tag = "div"
-    attributes = LinkedList []
+    attributes = dequeOf []
     children =
-      LinkedList [
+      dequeOf [
         Element {
           tag = "span"
-          attributes = LinkedList []
-          children = LinkedList []
+          attributes = dequeOf []
+          children = dequeOf []
         }
       ]
   }
@@ -303,18 +311,18 @@ let ``Can parse child elements``() =
 let ``Can parse multiple child elements``() =
   let expected = {
     tag = "div"
-    attributes = LinkedList []
+    attributes = dequeOf []
     children =
-      LinkedList [
+      dequeOf [
         Element {
           tag = "span"
-          attributes = LinkedList []
+          attributes = dequeOf []
           children =
-            LinkedList [
+            dequeOf [
               Element {
                 tag = "p"
-                attributes = LinkedList []
-                children = LinkedList []
+                attributes = dequeOf []
+                children = dequeOf []
               }
             ]
         }
@@ -346,28 +354,28 @@ let ``Can parse multiple child elements``() =
 let ``Can parse nested elements with ids, classes and attributes``() =
   let expected = {
     tag = "div"
-    attributes = LinkedList []
+    attributes = dequeOf []
     children =
-      LinkedList [
+      dequeOf [
         Element {
           tag = "span"
           attributes =
-            LinkedList [
+            dequeOf [
               Attribute { name = "id"; value = "my-id" }
               Attribute { name = "class"; value = "my-class" }
               Attribute { name = "data-foo"; value = "bar" }
             ]
           children =
-            LinkedList [
+            dequeOf [
               Element {
                 tag = "p"
                 attributes =
-                  LinkedList [
+                  dequeOf [
                     Attribute { name = "id"; value = "my-id-2" }
                     Attribute { name = "class"; value = "my-class-2" }
                     Attribute { name = "data-foo"; value = "bar-2" }
                   ]
-                children = LinkedList []
+                children = dequeOf []
               }
             ]
         }
