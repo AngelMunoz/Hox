@@ -33,7 +33,7 @@ task {
     // assuming Layout.Default() produces a `Node`
     let node = Layout.Default()
     use file = File.OpenWrite("output.html")
-    do! Render.toStream(node, file, token)
+    do! Render.toStream(node, file, cancellationToken = token)
 }
 ```
 
@@ -61,14 +61,14 @@ To create nodes manually you have to use the `Hox.Core` module, which contains t
 ```fsharp
 open Hox.Core
 
-let textNode = Node.Text "Hello World"
-let element = Node.Element { tag = "div"; attributes = []; children = [] }
+let textNode = Node.text "Hello World"
+let element = Node.element "div"
 
-let fragment = Node.Fragment [ textNode; element ]
+let fragment = Node.fragment [ textNode; element ]
 
 let asyncNode = Node.AsyncNode(cancellableValueTask {
     do! Async.Sleep 1000
-    return Node.Text "Hello World"
+    return Node.text "Hello World"
 })
 ```
 

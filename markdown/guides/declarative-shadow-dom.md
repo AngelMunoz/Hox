@@ -96,24 +96,26 @@ For cases where you want to use slots, things are slightly more complicated, as 
 ```fsharp
 let myPanel =
     sh("my-panel",
-       fragment(
         h("link[rel='stylesheet'][href='/my-panel.css']"),
         h("article",
-          h("header", h("slot[name=panel-header]"))
+          h("header", h("slot[name=panel-header]")),
           h("section", h "slot")
         )
-       )
     )
 // later on
 let firstPanel = myPanel(
-    h("h3[slot=panel-header]", "My Panel"),
-    h("p", "I'm on the section of the panel")
+    fragment(
+        h("h3[slot=panel-header]", "My Panel"),
+        h("p", "I'm on the section of the panel")
+    )
 )
 // the factory function enable a "component-like" API
 // where styles are scoped to that component
 let secondPanel = myPanel(
-    h("h4[slot=panel-header]", "Another Panel"),
-    h("p", "I'm on the section of the panel")
+    fragment(
+        h("h4[slot=panel-header]", "Another Panel"),
+        h("p", "I'm on the section of the panel")
+    )
 )
 ```
 
@@ -170,8 +172,10 @@ var myElement =
     );
 
 var element = myElement(
-  h("h3[slot=navigation]", "My Panel"),
-  h("p", "I'm on the section of the panel")
+  fragment(
+      h("h3[slot=navigation]", "My Panel"),
+      h("p", "I'm on the section of the panel")
+  )
 );
 ```
 

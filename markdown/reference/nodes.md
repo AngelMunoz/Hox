@@ -19,14 +19,15 @@ type Node =
   | Text of text: string
   | Raw of raw: string
   | Comment of comment: string
-  | Fragment of nodes: Node list
+  | Fragment of nodes: Deque<Node>
   | AsyncNode of node: Node CancellableValueTask
   | AsyncSeqNode of nodes: Node IAsyncEnumerable
+  | PreRendered of html: string
 
 and [<NoComparison; NoEquality>] Element = {
   tag: string
-  attributes: AttributeNode list
-  children: Node list
+  attributes: Deque<AttributeNode>
+  children: Deque<Node>
 }
 ```
 
@@ -38,7 +39,7 @@ There are two types of nodes synchronous and asynchronous. The reason they are s
 
 ## Element
 
-Elements represent HTML tags, they have a tag name, a list of attributes and a list of children. As you can read from the type definition, Attributes and Nodes are one dimensional lists, once again bluring the lines bwteen synchronous and asynchronous code.
+Elements represent HTML tags, they have a tag name, a collection of attributes and a collection of children. Attributes and children are stored in a specialized `Deque<'T>` collection optimized for our rendering patterns, once again bluring the lines bwteen synchronous and asynchronous code.
 
 ## Node
 
@@ -48,7 +49,7 @@ The Node contains the possible representations of work that can co-exist to gene
 
 ### Fragments
 
-These represent a "_parentless_" list of nodes. A concept that is not precisely present in HTML but it is quite popular in frontend frameworks by its versatility when composing nodes together, specially when you have a list of children that may agnostic to parent elements.
+These represent a "_parentless_" collection of nodes. A concept that is not precisely present in HTML but it is quite popular in frontend frameworks by its versatility when composing nodes together, specially when you have a list of children that may agnostic to parent elements.
 
 ### AsyncNodes
 
@@ -68,7 +69,7 @@ let asyncNode work =
         // and bind the token to the child computation as well.
         let! token = CancellableValueTask.getCancellationToken()
         if token.IsCancellationRequested then
-            return Node.Fragment []
+            return Node.empty
         else
             let! node = work
             return node

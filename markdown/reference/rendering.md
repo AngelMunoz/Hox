@@ -1,28 +1,31 @@
 There are two core rendering mechanisms included in Hox, both are stack based.
 
-> **_Note_**: Given our use of Cancellable Value Tasks, we are limited in the recursive department. This require compiler support which is being tracked in this issue https://github.com/fsharp/fslang-suggestions/issues/1006
-
 ## AsString
 
-The `renderNode` function in the `Rendering` module is itself a cancellable value task and it looks as follows:
+The `renderNode` function in the `Builder` module is a cancellable value task that utilizes a work-item stack for iterative rendering.
 
 ```fsharp
-let renderNode(node: Node) = cancellableValueTask {
-  let! token = CancellableValueTask.getCancellationToken()
-    let sb = StringBuilder()
-    let stack = Stack<struct (Node * bool)>()
-    stack.Push(node, false)
+let renderNode node (ct: CancellationToken) = valueTask {
+    let sb = StringBuilder(4096)
+    let stack = Stack<WorkItem>(64)
+    stack.Push(RenderNode node)
 
     while stack.Count > 0 do
-      token.ThrowIfCancellationRequested()
-      let struct (node, closing) = stack.Pop()
-      // rendering logic
-      match node with
+      ct.ThrowIfCancellationRequested()
+      let work = stack.Pop()
+
+      match work with
+      | RenderNode n ->
+        // rendering logic
+        match n with
+        // ...
+      | CloseElement tag -> // ...
       // ...
+    return sb.ToString()
 }
 ```
 
-It keeps a stack of nodes to render and a boolean flag indicating whether the node is closing it's tag on the next pass.
+It keeps a stack of `WorkItem`s (such as `RenderNode`, `CloseElement`, `RenderChildrenPrefetched`) to manage the rendering process iteratively.
 
 Our rendering algorithm not really optimized for speed or anything but contributions are welcome.
 
@@ -30,30 +33,32 @@ Considerations when you use this approach is that you will have to keep the stri
 
 This approach works best for small to medium sized documents but leaves HTML streaming (a browser feature) out of the window that improves certain metrics like time to first byte and time to first meaningful paint. If that is not a concern, meaning that you may not be in a web server environment, this approach is perfectly fine.
 
-## `IAsyncEnumerable<Node>`
+## `IAsyncEnumerable<string>`
 
-The second approach is to use an `IAsyncEnumerable<Node>` sequence and it is meant to be used where sending the HTML content to a consumer is the most important thing. This can be hooked up easily with `System.IO.Stream` objects and the like.
+The second approach is to use an `IAsyncEnumerable<string>` sequence and it is meant to be used where sending the HTML content to a consumer is the most important thing. This can be hooked up easily with `System.IO.Stream` objects and the like.
 
-The `renderNode` function is slightly different in this case because here we support partial recursive ness:
+The `Chunked.renderNode` function also uses a stack-based iterative approach similar to the string builder method, but yields strings asynchronously:
 
 ```fsharp
-let rec renderNode(
-    stack: Stack<struct(Node * bool * int)>,
-    cancellationToken: CancellationToken
-  ) =
-  taskSeq {
+  let renderNode(node: Node, ct: CancellationToken) : IAsyncEnumerable<string> = taskSeq {
+    let stack = Stack<WorkItem>(64)
+    stack.Push(RenderNode node)
+
     while stack.Count > 0 do
-      cancellationToken.ThrowIfCancellationRequested()
-      let struct (node, closing, depth) = stack.Pop()
-      // rendering logic
-      match node with
+      ct.ThrowIfCancellationRequested()
+      let work = stack.Pop()
+
+      match work with
+      | RenderNode n ->
+        // rendering logic
+        match n with
+        // ...
+      | CloseElement tag -> // ...
       // ...
   }
 ```
 
-In this case we are passing the same stack around and we're keeping tabs of the node depth. This is very important as it will allows us to decide to render between a recursive approach or a buffered approach.
-
-Due the limitations noted in a quote above, we can't do a full recursive approach. When we're around 235 nodes deep we will switch to a buffered approach. This is a bit of a magic number as I haven't run true science on this but it seems to work well enough.
+This implementation handles attribute encoding and tag rendering in fine-grained chunks.
 
 You can see the full implementation of this in the `Rendering.Chunked` module.
 
@@ -74,6 +79,7 @@ type Render =
   static member toStream:
     node: Node *
     stream: System.IO.Stream *
+    [<OptionalAttribute; Struct>] ?chunkSize: int *
     [<OptionalAttribute>] ?cancellationToken: CancellationToken ->
       Task
 
@@ -93,26 +99,28 @@ From these methods, `ToStream` is worth sharing as it is kind of the built-in st
     (
       node: Node,
       stream: IO.Stream,
-      [<Runtime.InteropServices.OptionalAttribute>] ?cancellationToken:
+      [<OptionalAttribute; Struct>] ?chunkSize: int,
+      [<OptionalAttribute>] ?cancellationToken:
         CancellationToken
     ) =
     taskUnit {
-      let cancellationToken =
+      let ct =
         defaultArg cancellationToken CancellationToken.None
 
-      let operation =
-        Chunked.renderNode(
-          Stack([ struct (node, false, 0) ]),
-          cancellationToken
-        )
-        |> TaskSeq.map(System.Text.Encoding.UTF8.GetBytes)
+      use writer =
+        new StreamWriter(stream, Text.Encoding.UTF8, 4092, leaveOpen = true)
 
-      for chunk in operation do
-        do! stream.WriteAsync(ReadOnlyMemory(chunk), cancellationToken)
-        do! stream.FlushAsync()
+      let chunkSize =
+        match chunkSize with
+        | ValueSome n when n > 0 -> ValueSome n
+        | _ -> ValueNone
+      
+      // ... implementation handling buffering based on chunkSize ...
     }
 ```
 
-Our `toStream` is not optimized in any way, it simply takes a stream and as soon as we have information written to it, we flush it. There might be better approaches with `BufferedStream` play with buffer sizes. I'd love the performance folks to chime in on this and help us improve it where possible.
+Our `toStream` implementation allows for optional buffering.
+
+> **_Note_**: The `chunkSize` parameter allows you to specify a buffer size in characters. If provided, the renderer will accumulate chunks into a buffer of this size before writing to the stream and flushing. This can significantly improve performance by reducing the number of I/O operations and flushing overhead.
 
 The main reason I share this is to show you that the building blocks are there and you can take it really far if that's what you need.

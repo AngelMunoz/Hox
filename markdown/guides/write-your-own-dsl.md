@@ -5,7 +5,7 @@ This can be accomplished in any dotnet language using the functions in the `Hox.
 This module exposes two simple functions
 
 - `addToNode`
-- `AddAttribute`
+- `addAttribute`
 
 These functions already contain all the functionality required to compose nodes together, regardless of the underlyng type of node.
 
@@ -16,11 +16,12 @@ open Hox
 open Hox.Core
 
 let createElement name attributes children =
-    Element {
-        tag = name
-        attributes = attributes
-        children = children
-    }
+    let el = Element.create name
+    for attr in attributes do
+        el.attributes.AddLast(attr)
+    for child in children do
+        el.children.AddLast(child)
+    Element el
 
 let createAttribute name value =
     Attribute {
@@ -40,13 +41,13 @@ module Elem =
       AsyncNode(cancellableValueTask {
         let! token = CancellableValueTask.getCancellationToken()
         if token.IsCancellationRequested then
-          return Fragment []
+          return Node.empty
         else
           let! node = node
         return
           attributes
           |> List.fold
-              (fun node attribute -> addAttribute(node, attribute))
+              (fun node attribute -> NodeOps.addAttribute(node, attribute))
               node
       })
 
