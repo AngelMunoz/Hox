@@ -1,33 +1,33 @@
-/* 
+/*
     These styles are a local copy of the Atom One themes from
     highlight.js. The original source can be found here: https://github.com/highlightjs/highlight.js/tree/master/src/styles
 */
 
 pre code.hljs {
-  display: block;
-  overflow-x: auto;
-  padding: 1em;
+    display: block;
+    overflow-x: auto;
+    padding: 1em;
 }
 
 code.hljs {
-  padding: 3px 5px;
+    padding: 3px 5px;
 }
 
 .hljs {
-  color: #383a42;
-  background: #fffbf5;
+    color: #383a42;
+    background: #fffbf5;
 }
 
 .hljs-comment,
 .hljs-quote {
-  color: #a0a1a7;
-  font-style: italic;
+    color: #a0a1a7;
+    font-style: italic;
 }
 
 .hljs-doctag,
 .hljs-formula,
 .hljs-keyword {
-  color: #a626a4;
+    color: #a626a4;
 }
 
 .hljs-deletion,
@@ -35,11 +35,11 @@ code.hljs {
 .hljs-section,
 .hljs-selector-tag,
 .hljs-subst {
-  color: #e45649;
+    color: #e45649;
 }
 
 .hljs-literal {
-  color: #0184bb;
+    color: #0184bb;
 }
 
 .hljs-addition,
@@ -47,7 +47,7 @@ code.hljs {
 .hljs-meta .hljs-string,
 .hljs-regexp,
 .hljs-string {
-  color: #50a14f;
+    color: #50a14f;
 }
 
 .hljs-attr,
@@ -58,7 +58,7 @@ code.hljs {
 .hljs-template-variable,
 .hljs-type,
 .hljs-variable {
-  color: #986801;
+    color: #986801;
 }
 
 .hljs-bullet,
@@ -67,110 +67,110 @@ code.hljs {
 .hljs-selector-id,
 .hljs-symbol,
 .hljs-title {
-  color: #4078f2;
+    color: #4078f2;
 }
 
 .hljs-built_in,
 .hljs-class .hljs-title,
 .hljs-title.class_ {
-  color: #c18401;
+    color: #c18401;
 }
 
 .hljs-emphasis {
-  font-style: italic;
+    font-style: italic;
 }
 
 .hljs-strong {
-  font-weight: 700;
+    font-weight: 700;
 }
 
 .hljs-link {
-  text-decoration: underline;
+    text-decoration: underline;
 }
 
 @media (prefers-color-scheme: dark) {
-  pre code.hljs {
-    display: block;
-    overflow-x: auto;
-    padding: 1em;
-  }
+    pre code.hljs {
+        display: block;
+        overflow-x: auto;
+        padding: 1em;
+    }
 
-  code.hljs {
-    padding: 3px 5px;
-  }
+    code.hljs {
+        padding: 3px 5px;
+    }
 
-  .hljs {
-    color: #abb2bf;
-    background: #2c1d04;
-  }
+    .hljs {
+        color: #abb2bf;
+        background: #1e150a;
+    }
 
-  .hljs-comment,
-  .hljs-quote {
-    color: #5c6370;
-    font-style: italic;
-  }
+    .hljs-comment,
+    .hljs-quote {
+        color: #5c6370;
+        font-style: italic;
+    }
 
-  .hljs-doctag,
-  .hljs-formula,
-  .hljs-keyword {
-    color: #c678dd;
-  }
+    .hljs-doctag,
+    .hljs-formula,
+    .hljs-keyword {
+        color: #c678dd;
+    }
 
-  .hljs-deletion,
-  .hljs-name,
-  .hljs-section,
-  .hljs-selector-tag,
-  .hljs-subst {
-    color: #e06c75;
-  }
+    .hljs-deletion,
+    .hljs-name,
+    .hljs-section,
+    .hljs-selector-tag,
+    .hljs-subst {
+        color: #e06c75;
+    }
 
-  .hljs-literal {
-    color: #56b6c2;
-  }
+    .hljs-literal {
+        color: #56b6c2;
+    }
 
-  .hljs-addition,
-  .hljs-attribute,
-  .hljs-meta .hljs-string,
-  .hljs-regexp,
-  .hljs-string {
-    color: #98c379;
-  }
+    .hljs-addition,
+    .hljs-attribute,
+    .hljs-meta .hljs-string,
+    .hljs-regexp,
+    .hljs-string {
+        color: #98c379;
+    }
 
-  .hljs-attr,
-  .hljs-number,
-  .hljs-selector-attr,
-  .hljs-selector-class,
-  .hljs-selector-pseudo,
-  .hljs-template-variable,
-  .hljs-type,
-  .hljs-variable {
-    color: #d19a66;
-  }
+    .hljs-attr,
+    .hljs-number,
+    .hljs-selector-attr,
+    .hljs-selector-class,
+    .hljs-selector-pseudo,
+    .hljs-template-variable,
+    .hljs-type,
+    .hljs-variable {
+        color: #d19a66;
+    }
 
-  .hljs-bullet,
-  .hljs-link,
-  .hljs-meta,
-  .hljs-selector-id,
-  .hljs-symbol,
-  .hljs-title {
-    color: #61aeee;
-  }
+    .hljs-bullet,
+    .hljs-link,
+    .hljs-meta,
+    .hljs-selector-id,
+    .hljs-symbol,
+    .hljs-title {
+        color: #61aeee;
+    }
 
-  .hljs-built_in,
-  .hljs-class .hljs-title,
-  .hljs-title.class_ {
-    color: #e6c07b;
-  }
+    .hljs-built_in,
+    .hljs-class .hljs-title,
+    .hljs-title.class_ {
+        color: #e6c07b;
+    }
 
-  .hljs-emphasis {
-    font-style: italic;
-  }
+    .hljs-emphasis {
+        font-style: italic;
+    }
 
-  .hljs-strong {
-    font-weight: 700;
-  }
+    .hljs-strong {
+        font-weight: 700;
+    }
 
-  .hljs-link {
-    text-decoration: underline;
-  }
+    .hljs-link {
+        text-decoration: underline;
+    }
 }

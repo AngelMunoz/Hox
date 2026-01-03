@@ -104,7 +104,7 @@ type Layout =
 @media (prefers-color-scheme: dark) {
   :root {
     --hox-font-color: #e8e6e3;
-    --hox-background-color: #312614;
+    --hox-background-color: #1e150a;
     --hox-blockquote-bg-color: #2c1d04;
     --hox-card-background-color: var(--hox-background-color, #0f0f0f);
     --hox-card-color: var(--hox-font-color, #e8e6e3);
