@@ -2,400 +2,470 @@ module Hox.Rendering
 
 open System
 open System.Collections.Generic
+open System.Threading
 open System.Threading.Tasks
-
+open System.Text
 open System.Web
+open System.IO
 
 open FSharp.Control
 open IcedTasks
 
 open Hox.Core
-open System.Threading
 
+module Encoding =
+  type StringCache =
+    abstract GetOrAdd: key: string * valueFactory: (string -> string) -> string
 
-module private Seq =
-  let headTail (a : IEnumerable<_>) =
-      let e = a.GetEnumerator()
-      let hasNext = e.MoveNext()
-      match hasNext with
-      | true ->
-        let head = e.Current
-        let tail = seq {
-          use e = e
-          while e.MoveNext() do
-            yield e.Current
-        }
-        ValueSome (head, tail)
-      | false ->
-        e.Dispose()
-        ValueNone
+  type EncodingCaches = { html: StringCache; attr: StringCache }
 
-module private TaskSeq =
+  /// Two-generation cache (approximate LRU) implemented with ConcurrentDictionary.
+  ///
+  /// Semantics:
+  /// - "current" holds the most recently added/promoted items
+  /// - "previous" holds the last generation
+  /// - when current grows beyond capacity, we rotate (previous <- current; current <- empty)
+  ///
+  /// This bounds growth to roughly 2 * capacity entries without needing a full LRU list.
+  let private createTwoGenStringCache(capacity: int) : StringCache =
+    let capacity = max 1 capacity
+    let gate = obj()
 
-  let headTail (a : IAsyncEnumerable<_>) =
-    cancellableValueTask {
-      let! ct = CancellableValueTask.getCancellationToken()
-      let e = a.GetAsyncEnumerator ct
-      let! hasNext = e.MoveNextAsync()
-      match hasNext with
-      | true ->
-        let head = e.Current
-        let tail = taskSeq {
-          use e = e
-          while! e.MoveNextAsync() do
-            yield e.Current
-        }
-        return ValueSome (head, tail)
-      | false ->
-        do! e.DisposeAsync()
-        return ValueNone
+    let mutable current =
+      System.Collections.Concurrent.ConcurrentDictionary<string, string>()
+
+    let mutable previous =
+      System.Collections.Concurrent.ConcurrentDictionary<string, string>()
+
+    let rotateIfNeeded() =
+      // Count is a snapshot; races are fine for this approximate strategy.
+      if current.Count > capacity then
+        lock gate (fun () ->
+          if current.Count > capacity then
+            previous <- current
+
+            current <-
+              System.Collections.Concurrent.ConcurrentDictionary<string, string>())
+
+    { new StringCache with
+        member _.GetOrAdd(key, valueFactory) =
+          match current.TryGetValue(key) with
+          | true, v -> v
+          | false, _ ->
+            match previous.TryGetValue(key) with
+            | true, v ->
+              // Promote into current for better locality.
+              current.TryAdd(key, v) |> ignore
+              rotateIfNeeded()
+              v
+            | false, _ ->
+              let v = current.GetOrAdd(key, fun k -> valueFactory k)
+              rotateIfNeeded()
+              v
     }
 
+  // Default caches (closure-backed, thread-safe via ConcurrentDictionary)
+  // We use a two-generation cache to avoid unbounded growth.
+  let private caches = {
+    html = createTwoGenStringCache(2048)
+    attr = createTwoGenStringCache(2048)
+  }
 
-[<Struct; RequireQualifiedAccess>]
-type EscapeMode =
-  | Html
-  | Attribute
+  let inline htmlEncode s =
+    caches.html.GetOrAdd(
+      s,
+      fun s ->
+        match HttpUtility.HtmlEncode(s) with
+        | null -> failwith $"HtmlEncode returned null for input: {s}"
+        | encoded -> encoded
+    )
 
-let inline getEncodedCache
-  escapeMode
-  (encodedCache: Dictionary<string, string>)
-  =
-  let cachedHtmlEncode(s: string) =
-    match encodedCache.TryGetValue(s) with
-    | true, encoded -> encoded
-    | false, _ ->
-      let encoded =
-        match escapeMode with
-        | EscapeMode.Html -> HttpUtility.HtmlEncode(s)
-        | EscapeMode.Attribute -> HttpUtility.HtmlAttributeEncode(s)
-
-      encodedCache.[s] <- encoded
-      encoded
-
-  cachedHtmlEncode
-
-
-let getAttributes(attributes: AttributeNode LinkedList) = cancellableValueTask {
-  let cachedHtmlEncode =
-    getEncodedCache EscapeMode.Attribute (Dictionary<string, string>())
-
-  let clsSeq = ResizeArray()
-  let attrSeq = ResizeArray()
-  let mutable id = ValueNone
-
-  // ids and classes have to be HtmlAttributeEncode'ed because we're
-  // handling them separately, attributes are handled by the renderAttr function
-  // which will HtmlAttributeEncode them.
-  let mutable node = attributes.First
-
-  while node <> null do
-    match node.Value with
-    | AttributeNode.Attribute { name = ""; value = _ } -> ()
-    | AttributeNode.Attribute { name = "class"; value = value } ->
-      clsSeq.Add(value |> cachedHtmlEncode)
-    | AttributeNode.Attribute { name = "id"; value = value } ->
-      id <-
-        id
-        |> ValueOption.orElseWith(fun _ -> ValueSome(value |> cachedHtmlEncode))
-    | AttributeNode.Attribute attribute -> attrSeq.Add(attribute)
-    | AttributeNode.AsyncAttribute asyncAttribute ->
-      let! { name = name; value = value } = asyncAttribute
-
-      if name = String.Empty then
-        ()
-      elif name = "id" then
-        id <-
-          id
-          |> ValueOption.orElseWith(fun _ ->
-            ValueSome(value |> cachedHtmlEncode))
-      elif name = "class" then
-        clsSeq.Add(value |> cachedHtmlEncode)
-      else
-        attrSeq.Add({ name = name; value = value })
-
-    node <- node.Next
-
-  return id, clsSeq, attrSeq
-}
-
-let renderAttr(node: AttributeNode) = cancellableValueTask {
-
-  match node with
-  | AttributeNode.Attribute { name = name; value = value } when
-    String.IsNullOrWhiteSpace name
-    ->
-    return String.Empty
-  | AttributeNode.Attribute { name = name; value = value } ->
-    return $" %s{name}=\"%s{value}\""
-  | AsyncAttribute asyncAttribute ->
-    let! { name = name; value = value } = asyncAttribute
-
-    if name = String.Empty then
-      return String.Empty
-    else
-      return $" %s{name}=\"%s{value}\""
-}
+  let inline attrEncode s =
+    caches.attr.GetOrAdd(
+      s,
+      fun s ->
+        match HttpUtility.HtmlAttributeEncode(s) with
+        | null -> failwith $"HtmlAttributeEncode returned null for input: {s}"
+        | encoded -> encoded
+    )
 
 let voidTags =
-  lazy
-    (HashSet(
-      [
-        "area"
-        "base"
-        "br"
-        "col"
-        "command"
-        "embed"
-        "hr"
-        "img"
-        "input"
-        "keygen"
-        "link"
-        "meta"
-        "param"
-        "source"
-        "track"
-        "wbr"
-      ],
-      StringComparer.InvariantCultureIgnoreCase
-    ))
+  HashSet<string>(
+    [
+      "area"
+      "base"
+      "br"
+      "col"
+      "command"
+      "embed"
+      "hr"
+      "img"
+      "input"
+      "keygen"
+      "link"
+      "meta"
+      "param"
+      "source"
+      "track"
+      "wbr"
+    ],
+    StringComparer.OrdinalIgnoreCase
+  )
 
-/// This module contains functions that are used to render a node to a string
-/// It is backed by a StringBuilder.
+let inline isVoidTag tag = voidTags.Contains(tag)
+
+let prefetchAsyncChildren
+  (children: Deque<Node>)
+  (ct: CancellationToken)
+  : Dictionary<int, ValueTask<Node>> | null =
+  // Avoid allocating a dictionary for the common case where there are no async children.
+  // We use null to represent "no prefetched async tasks".
+  let mutable prefetched: Dictionary<int, ValueTask<Node>> | null = null
+
+  for i = 0 to children.Count - 1 do
+    match children[i] with
+    | AsyncNode asyncTask ->
+      if isNull prefetched then
+        prefetched <- Dictionary<int, ValueTask<Node>>()
+
+      (nonNull prefetched).TryAdd(i, asyncTask ct) |> ignore
+    | _ -> ()
+
+  prefetched
+
+[<Struct; NoComparison; NoEquality>]
+type WorkItem =
+  | CloseElement of tag: string
+  | RenderChildrenPrefetched of
+    children: Deque<Node> *
+    index: int *
+    prefetched: (Dictionary<int, ValueTask<Node>> | null)
+  | RenderNode of node: Node
+  | AwaitSeq of enumerator: IAsyncEnumerator<Node>
+
+let renderAttributesToBuilder
+  (sb: StringBuilder)
+  (attrs: Deque<AttributeNode>)
+  (ct: CancellationToken)
+  =
+  valueTask {
+    if attrs.IsEmpty then
+      return ()
+
+    let mutable id = ValueNone
+    let classes = ResizeArray<string>()
+    let others = ResizeArray<struct (string * string)>()
+
+    for attr in attrs do
+      match attr with
+      | Attribute { name = ""; value = _ } -> ()
+      | Attribute { name = "id"; value = v } ->
+        if id.IsNone then
+          id <- ValueSome(Encoding.attrEncode v)
+      | Attribute { name = "class"; value = v } ->
+        classes.Add(Encoding.attrEncode v)
+      | Attribute { name = n; value = v } ->
+        others.Add struct (Encoding.attrEncode n, Encoding.attrEncode v)
+      | AsyncAttribute asyncAttr ->
+        let! { name = n; value = v } = asyncAttr ct
+
+        if String.IsNullOrEmpty(n) then
+          ()
+        elif n = "id" then
+          if id.IsNone then
+            id <- ValueSome(Encoding.attrEncode v)
+        elif n = "class" then
+          classes.Add(Encoding.attrEncode v)
+        else
+          others.Add struct (Encoding.attrEncode n, Encoding.attrEncode v)
+
+    match id with
+    | ValueSome idVal -> sb.Append(" id=\"").Append(idVal).Append('"') |> ignore
+    | _ -> ()
+
+    if classes.Count > 0 then
+      sb.Append(" class=\"") |> ignore
+
+      for i = 0 to classes.Count - 1 do
+        if i > 0 then
+          sb.Append(' ') |> ignore
+
+        sb.Append(classes.[i]) |> ignore
+
+      sb.Append('"') |> ignore
+
+    for struct (n, v) in others do
+      sb.Append(' ').Append(n).Append("=\"").Append(v).Append('"') |> ignore
+  }
+
 module Builder =
-  open System.Text
-
-
-
-  let renderNode(node: Node) : CancellableValueTask<string> = cancellableValueTask {
-    let! token = CancellableValueTask.getCancellationToken()
-
-    let cachedAttrEncode =
-      getEncodedCache EscapeMode.Attribute (Dictionary<string, string>())
-
-    let cachedHtmlEncode =
-      getEncodedCache EscapeMode.Html (Dictionary<string, string>())
-
-    let sb = StringBuilder()
-    let stack = Stack<struct (Node * bool)>()
-    stack.Push(node, false)
+  let renderNode node (ct: CancellationToken) = valueTask {
+    let sb = StringBuilder(4096)
+    let stack = Stack<WorkItem>(64)
+    stack.Push(RenderNode node)
 
     while stack.Count > 0 do
-      token.ThrowIfCancellationRequested()
+      ct.ThrowIfCancellationRequested()
+      let work = stack.Pop()
 
-      let struct (node, closing) = stack.Pop()
+      match work with
+      | RenderNode n ->
+        match n with
+        | Element el ->
+          if not(isVoidTag el.tag) then
+            stack.Push(CloseElement el.tag)
 
-      match node with
-      | Element element when closing ->
-        sb.Append("</").Append(element.tag).Append(">") |> ignore
-      | Element element ->
-        sb.Append("<").Append(element.tag) |> ignore
+            if not el.children.IsEmpty then
+              stack.Push(
+                RenderChildrenPrefetched(
+                  el.children,
+                  0,
+                  prefetchAsyncChildren el.children ct
+                )
+              )
 
-        let! id, classes, attributes = getAttributes element.attributes
+          sb.Append('<').Append(el.tag) |> ignore
+          do! renderAttributesToBuilder sb el.attributes ct
+          sb.Append('>') |> ignore
+        | Text t -> sb.Append(Encoding.htmlEncode t) |> ignore
+        | Raw r -> sb.Append(r) |> ignore
+        | Comment c ->
+          sb.Append("<!--").Append(Encoding.htmlEncode c).Append("-->")
+          |> ignore
+        | PreRendered html -> sb.Append(html) |> ignore
+        | Fragment frag ->
+          if not frag.IsEmpty then
+            stack.Push(
+              RenderChildrenPrefetched(frag, 0, prefetchAsyncChildren frag ct)
+            )
+        | AsyncNode asyncTask ->
+          let! resolved = asyncTask ct
+          stack.Push(RenderNode resolved)
+        | AsyncSeqNode asyncSeq ->
+          stack.Push(AwaitSeq(asyncSeq.GetAsyncEnumerator(ct)))
 
-        match id with
-        | ValueSome id -> sb.Append(" id=\"").Append(id).Append("\"") |> ignore
-        | ValueNone -> ()
+      | CloseElement tag -> sb.Append("</").Append(tag).Append('>') |> ignore
 
-        match classes with
-        | classes when classes.Count = 0 -> ()
-        | classes ->
-          sb.Append(" class=\"").AppendJoin(' ', classes).Append("\"") |> ignore
-
-        for attribute in attributes do
-          let! attribute =
-            renderAttr(
-              AttributeNode.Attribute {
-                attribute with
-                    value = cachedAttrEncode attribute.value
-                    name = cachedAttrEncode attribute.name
-              }
+      | RenderChildrenPrefetched(children, index, prefetched) ->
+        if index < children.Count then
+          if index + 1 < children.Count then
+            stack.Push(
+              RenderChildrenPrefetched(children, index + 1, prefetched)
             )
 
-          sb.Append(attribute) |> ignore
+          match prefetched with
+          | null -> stack.Push(RenderNode(children[index]))
+          | prefetched ->
+            match prefetched.TryGetValue(index) with
+            | true, startedTask ->
+              let! resolved = startedTask
+              stack.Push(RenderNode resolved)
+            | false, _ -> stack.Push(RenderNode(children[index]))
 
-        sb.Append(">") |> ignore
+      | AwaitSeq enumerator ->
+        let! hasNext = enumerator.MoveNextAsync()
 
-        if not(voidTags.Value.Contains(element.tag)) then
-          stack.Push(Element element, true)
-          let mutable node = element.children.Last
-
-          while node <> null do
-            stack.Push(node.Value, false)
-            node <- node.Previous
-
-      | Text text -> sb.Append(cachedHtmlEncode text) |> ignore
-      | Raw raw -> sb.Append(raw) |> ignore
-      | Comment comment ->
-        sb.Append("<!--").Append(cachedHtmlEncode comment).Append("-->")
-        |> ignore
-      | Fragment nodes ->
-        let mutable node = nodes.Last
-
-        while node <> null do
-          stack.Push(node.Value, false)
-          node <- node.Previous
-      | AsyncNode node ->
-        // These nodes are already handling cancellation semantics
-        // when they're added to the parent node, so we don't need to
-        // do anything here.
-        let! node = node
-        stack.Push(node, false)
-      | AsyncSeqNode nodes ->
-        // This is a complicated case, we need to handle cancellation
-        // but TaskSeq.toListAsync doesn't support cancellation
-        let! nodes = nodes |> TaskSeq.toArrayAsync
-
-        if nodes.Length > 0 then
-          for child = nodes.Length - 1 downto 0 do
-            stack.Push(nodes[child], false)
+        if hasNext then
+          stack.Push(AwaitSeq enumerator)
+          stack.Push(RenderNode enumerator.Current)
+        else
+          do! enumerator.DisposeAsync()
 
     return sb.ToString()
   }
 
-/// This module contains functions that are used to render a node to a sequence of strings
-/// As soon as a chunk is ready it is yielded to the caller.
 [<RequireQualifiedAccess>]
 module Chunked =
-
-  /// <summary>
-  /// Renders the node and it's children to an asynchronous sequence of strings
-  /// </summary>
-  let renderNode (n : Node, cancellationToken : CancellationToken) : IAsyncEnumerable<string> =
-    let cachedHtmlEncode =
-      getEncodedCache EscapeMode.Html (Dictionary<string, string>())
-
-    let cachedAttrEncode =
-      getEncodedCache EscapeMode.Attribute (Dictionary<string, string>())
-
+  // Render attributes as fine-grained chunks, yielding each attribute piece separately
+  let private renderAttributesChunked
+    (attrs: Deque<AttributeNode>)
+    (ct: CancellationToken)
+    : IAsyncEnumerable<string> =
     taskSeq {
-      let dfs = Stack<struct (Node * bool)>()
-      dfs.Push(n, false)
-      while dfs.Count > 0 do
-        cancellationToken.ThrowIfCancellationRequested()
-        let struct (node, closing) = dfs.Pop()
-        match node with
-        | Element element when closing -> $"</%s{element.tag}>"
-        | Element element ->
-          $"<%s{element.tag}"
+      if not attrs.IsEmpty then
+        let mutable id = ValueNone
+        let classes = ResizeArray<string>()
+        let others = ResizeArray<struct (string * string)>()
 
-          let! id, classes, attributes =
-            getAttributes element.attributes cancellationToken
+        for attr in attrs do
+          match attr with
+          | Attribute { name = ""; value = _ } -> ()
+          | Attribute { name = "id"; value = v } ->
+            if id.IsNone then
+              id <- ValueSome(Encoding.attrEncode v)
+          | Attribute { name = "class"; value = v } ->
+            classes.Add(Encoding.attrEncode v)
+          | Attribute { name = n; value = v } ->
+            others.Add struct (Encoding.attrEncode n, Encoding.attrEncode v)
+          | AsyncAttribute asyncAttr ->
+            let! { name = n; value = v } = asyncAttr ct
 
-          match id with
-          | ValueSome id -> $" id=\"%s{id}\""
-          | ValueNone -> ()
-          match classes with
-          | classes when classes.Count = 0 -> ()
-          | classes ->
-            " class=\""
-            System.String.Join(' ', classes)
-            "\""
+            if String.IsNullOrEmpty(n) then
+              ()
+            elif n = "id" then
+              if id.IsNone then
+                id <- ValueSome(Encoding.attrEncode v)
+            elif n = "class" then
+              classes.Add(Encoding.attrEncode v)
+            else
+              others.Add struct (Encoding.attrEncode n, Encoding.attrEncode v)
 
-          for attribute in attributes do
-            let! attribute =
-              renderAttr
-                (AttributeNode.Attribute {
-                  attribute with
-                      value = cachedAttrEncode attribute.value
-                      name = cachedAttrEncode attribute.name
-                })
-                cancellationToken
+        // Yield id first if present
+        match id with
+        | ValueSome idVal -> $" id=\"{idVal}\""
+        | _ -> ()
 
-            attribute
+        // Yield class with all values combined
+        if classes.Count > 0 then
+          " class=\""
+          String.Join(" ", classes)
+          "\""
 
-          ">"
-
-          dfs.Push(Element element, true)
-          if not(voidTags.Value.Contains(element.tag)) then
-            let nodes = element.children
-            nodes
-            |> Seq.headTail
-            |> ValueOption.iter (fun (h, ts) ->
-              // small optimization to avoid pushing the fragment if it's the only child
-                if nodes.Count > 1 then
-                  // Since this is a stack, we need to push nodes we want to process later first
-                  let ts = ts |> LinkedList
-                  dfs.Push(Fragment ts, false)
-                // then push the first node so it can render next
-                // this prevents long lists from stalling rendering
-                dfs.Push(h, false)
-            )
-        | Text text ->  cachedHtmlEncode text
-        | Raw raw -> raw
-        | Comment comment -> $"<!--{cachedHtmlEncode comment}-->"
-        | Fragment nodes ->
-          nodes
-          |> Seq.headTail
-          |> ValueOption.iter (fun (h, ts) ->
-              // small optimization to avoid pushing the fragment if it's the only child
-              if nodes.Count > 1 then
-                // Since this is a stack, we need to push nodes we want to process later first
-                let ts =  ts |> LinkedList
-                dfs.Push(Fragment ts, false)
-              // then push the first node so it can render next
-              // this prevents long lists from stalling rendering
-              dfs.Push(h, false)
-          )
-        | AsyncNode node ->
-          let! node = node cancellationToken
-          dfs.Push(node, false)
-        | AsyncSeqNode nodes ->
-          match! TaskSeq.headTail nodes cancellationToken with
-          | ValueSome (node, nodes) ->
-            // Since this is a stack, we need to push nodes we want to process later first
-            // Can't do the same optimization above because we don't know how many nodes are in the sequence
-            dfs.Push(AsyncSeqNode nodes, false)
-              // then push the first node so it can render next
-              // this prevents long lists from stalling rendering
-            dfs.Push(node, false)
-          | ValueNone -> ()
+        // Yield other attributes
+        for struct (n, v) in others do
+          $" {n}=\"{v}\""
     }
 
-type Render =
+  let renderNode(node: Node, ct: CancellationToken) : IAsyncEnumerable<string> = taskSeq {
+    let stack = Stack<WorkItem>(64)
+    stack.Push(RenderNode node)
 
+    while stack.Count > 0 do
+      ct.ThrowIfCancellationRequested()
+      let work = stack.Pop()
+
+      match work with
+      | RenderNode n ->
+        match n with
+        | Element el ->
+          // Yield opening tag start
+          $"<{el.tag}"
+
+          // Yield attributes as fine-grained chunks
+          yield! renderAttributesChunked el.attributes ct
+
+          // Yield close of opening tag
+          ">"
+
+          if not(isVoidTag el.tag) then
+            stack.Push(CloseElement el.tag)
+
+            if not el.children.IsEmpty then
+              stack.Push(
+                RenderChildrenPrefetched(
+                  el.children,
+                  0,
+                  prefetchAsyncChildren el.children ct
+                )
+              )
+        | Text t -> Encoding.htmlEncode t
+        | Raw r -> r
+        | Comment c -> $"<!--{Encoding.htmlEncode c}-->"
+        | PreRendered html -> html
+        | Fragment frag ->
+          if not frag.IsEmpty then
+            stack.Push(
+              RenderChildrenPrefetched(frag, 0, prefetchAsyncChildren frag ct)
+            )
+        | AsyncNode asyncTask ->
+          let! resolved = asyncTask ct
+          stack.Push(RenderNode resolved)
+        | AsyncSeqNode asyncSeq ->
+          stack.Push(AwaitSeq(asyncSeq.GetAsyncEnumerator(ct)))
+
+      | CloseElement tag -> $"</{tag}>"
+
+      | RenderChildrenPrefetched(children, index, prefetched) ->
+        if index < children.Count then
+          if index + 1 < children.Count then
+            stack.Push(
+              RenderChildrenPrefetched(children, index + 1, prefetched)
+            )
+
+          match prefetched with
+          | null -> stack.Push(RenderNode(children[index]))
+          | prefetched ->
+            match prefetched.TryGetValue(index) with
+            | true, startedTask ->
+              let! resolved = startedTask
+              stack.Push(RenderNode resolved)
+            | false, _ -> stack.Push(RenderNode(children[index]))
+      | AwaitSeq enumerator ->
+        let! hasNext = enumerator.MoveNextAsync()
+
+        if hasNext then
+          stack.Push(AwaitSeq enumerator)
+          stack.Push(RenderNode enumerator.Current)
+        else
+          do! enumerator.DisposeAsync()
+  }
+
+type Render =
   [<CompiledName "Start">]
   static member start
     (
-      node: Node,
-      [<Runtime.InteropServices.OptionalAttribute>] ?cancellationToken:
-        CancellationToken
+      node,
+      [<Runtime.InteropServices.OptionalAttribute; Struct>] ?cancellationToken
     ) =
-    let cancellationToken = defaultArg cancellationToken CancellationToken.None
-    Chunked.renderNode(node, cancellationToken)
+    let ct = defaultValueArg cancellationToken CancellationToken.None
+    Chunked.renderNode(node, ct)
 
   [<CompiledName "ToStream">]
   static member toStream
     (
-      node: Node,
-      stream: IO.Stream,
-      [<Runtime.InteropServices.OptionalAttribute>] ?cancellationToken:
-        CancellationToken
+      node,
+      stream: Stream,
+      [<Runtime.InteropServices.OptionalAttribute; Struct>] ?chunkSize,
+      [<Runtime.InteropServices.OptionalAttribute; Struct>] ?cancellationToken
     ) =
     taskUnit {
-      let cancellationToken =
-        defaultArg cancellationToken CancellationToken.None
+      let ct = defaultValueArg cancellationToken CancellationToken.None
 
-      let operation =
-        Chunked.renderNode(node, cancellationToken)
-        |> TaskSeq.map(System.Text.Encoding.UTF8.GetBytes >> ReadOnlyMemory)
+      use writer =
+        new StreamWriter(stream, Text.Encoding.UTF8, 4092, leaveOpen = true)
 
-      for chunk in operation do
-        do! stream.WriteAsync(chunk, cancellationToken)
-        do! stream.FlushAsync()
+      let chunkSize =
+        match chunkSize with
+        | ValueSome n when n > 0 -> ValueSome n
+        | _ -> ValueNone
+
+      match chunkSize with
+      | ValueNone ->
+        for chunk in Chunked.renderNode(node, ct) do
+          do! writer.WriteAsync(chunk.AsMemory(), ct)
+          do! writer.FlushAsync(ct)
+      | ValueSome size ->
+
+        let sb = StringBuilder(size * 2)
+
+        for chunk in Chunked.renderNode(node, ct) do
+          sb.Append(chunk) |> ignore
+
+          if sb.Length >= size then
+            let payload = sb.ToString()
+            do! writer.WriteAsync(payload.AsMemory(), ct)
+            do! writer.FlushAsync(ct)
+            sb.Clear() |> ignore
+
+        if sb.Length > 0 then
+          let payload = sb.ToString()
+          do! writer.WriteAsync(payload.AsMemory(), ct)
+          do! writer.FlushAsync(ct)
+
+      do! writer.FlushAsync(ct)
     }
+
 
   [<CompiledName "AsString">]
   static member asString
     (
-      node: Node,
-      [<Runtime.InteropServices.OptionalAttribute>] ?cancellationToken:
-        CancellationToken
+      node,
+      [<Runtime.InteropServices.OptionalAttribute; Struct>] ?cancellationToken
     ) =
-    let cancellationToken = defaultArg cancellationToken CancellationToken.None
-    Builder.renderNode node cancellationToken
+    let ct = defaultValueArg cancellationToken CancellationToken.None
+    Builder.renderNode node ct
 
-  static member asStringAsync(node: Node) = async {
-    return! Builder.renderNode node
+  static member asStringAsync node = asyncEx {
+    let! ct = Async.CancellationToken
+    return! Builder.renderNode node ct
   }

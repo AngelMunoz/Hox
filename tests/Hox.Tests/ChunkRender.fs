@@ -2,107 +2,99 @@ module ChunkRender
 
 open System
 open System.Threading.Tasks
-
 open Xunit
 open FSharp.Control
 open IcedTasks
-
 open Hox.Rendering
 open Hox.Core
-open System.Collections.Generic
+
+// Helper to create Deque from list
+let inline dequeOf(items: 'T list) =
+  let d = Deque<'T>(items.Length)
+
+  for item in items do
+    d.AddLast(item)
+
+  d
 
 [<Fact>]
 let ``Render can render an element``() = taskUnit {
-
   let actual = ResizeArray()
 
   for chunk in
     Render.start(
       Element {
         tag = "div"
-        attributes = LinkedList()
-        children = LinkedList()
+        attributes = Deque()
+        children = Deque()
       }
     ) do
     actual.Add(chunk)
 
   let expected = [ "<div"; ">"; "</div>" ]
-
   Seq.zip expected actual |> Seq.iter(fun (e, a) -> Assert.Equal(e, a))
-
 }
 
 [<Fact>]
 let ``Render can render an element with attributes``() = taskUnit {
-
   let actual = ResizeArray()
 
   for chunk in
     Render.start(
       Element {
         tag = "div"
-        attributes = LinkedList([ Attribute { name = "class"; value = "foo" } ])
-        children = LinkedList()
+        attributes = dequeOf [ Attribute { name = "class"; value = "foo" } ]
+        children = Deque()
       }
     ) do
     actual.Add(chunk)
 
   let expected = [ "<div"; " class=\""; "foo"; "\""; ">"; "</div>" ]
-
   actual |> Seq.zip expected |> Seq.iter(fun (e, a) -> Assert.Equal(e, a))
-
 }
 
 [<Fact>]
 let ``Render can render an element with children``() = taskUnit {
-
   let actual = ResizeArray()
 
   for chunk in
     Render.start(
       Element {
         tag = "div"
-        attributes = LinkedList()
+        attributes = Deque()
         children =
-          LinkedList(
-            [
-              Element {
-                tag = "span"
-                attributes = LinkedList()
-                children = LinkedList()
-              }
-            ]
-          )
+          dequeOf [
+            Element {
+              tag = "span"
+              attributes = Deque()
+              children = Deque()
+            }
+          ]
       }
     ) do
     actual.Add(chunk)
 
   let expected = [ "<div"; ">"; "<span"; ">"; "</span>"; "</div>" ]
-
   actual |> Seq.zip expected |> Seq.iter(fun (e, a) -> Assert.Equal(e, a))
-
 }
 
 [<Fact>]
 let ``Render can render an element with children and attributes``() = taskUnit {
-
   let actual = ResizeArray()
 
   for chunk in
     Render.start(
       Element {
         tag = "div"
-        attributes = LinkedList([ Attribute { name = "class"; value = "foo" } ])
+        attributes = dequeOf [ Attribute { name = "class"; value = "foo" } ]
         children =
-          LinkedList(
-            [
-              Element {
-                tag = "span"
-                attributes = LinkedList()
-                children = LinkedList()
-              }
-            ]
-          )
+          dequeOf [
+            Element {
+              tag = "span"
+              attributes = Deque()
+              children = Deque()
+            }
+          ]
       }
     ) do
     actual.Add(chunk)
@@ -120,29 +112,25 @@ let ``Render can render an element with children and attributes``() = taskUnit {
   ]
 
   actual |> Seq.zip expected |> Seq.iter(fun (e, a) -> Assert.Equal(e, a))
-
 }
 
 [<Fact>]
 let ``Render can render an element with children and attributes and text``() = taskUnit {
-
   let actual = ResizeArray()
 
   for chunk in
     Render.start(
       Element {
         tag = "div"
-        attributes = LinkedList([ Attribute { name = "class"; value = "foo" } ])
+        attributes = dequeOf [ Attribute { name = "class"; value = "foo" } ]
         children =
-          LinkedList(
-            [
-              Element {
-                tag = "span"
-                attributes = LinkedList()
-                children = LinkedList([ Text "Hello" ])
-              }
-            ]
-          )
+          dequeOf [
+            Element {
+              tag = "span"
+              attributes = Deque()
+              children = dequeOf [ Text "Hello" ]
+            }
+          ]
       }
     ) do
     actual.Add(chunk)
@@ -161,7 +149,6 @@ let ``Render can render an element with children and attributes and text``() = t
   ]
 
   actual |> Seq.zip expected |> Seq.iter(fun (e, a) -> Assert.Equal(e, a))
-
 }
 
 [<Fact>]
@@ -169,33 +156,28 @@ let ``Render can render an element with children and attributes and text and a f
   ()
   =
   taskUnit {
-
     let actual = ResizeArray()
 
     for chunk in
       Render.start(
         Element {
           tag = "div"
-          attributes =
-            LinkedList([ Attribute { name = "class"; value = "foo" } ])
+          attributes = dequeOf [ Attribute { name = "class"; value = "foo" } ]
           children =
-            LinkedList [
+            dequeOf [
               Element {
                 tag = "span"
-                attributes = LinkedList()
-                children = LinkedList [ Text "Hello" ]
+                attributes = Deque()
+                children = dequeOf [ Text "Hello" ]
               }
-
               Fragment(
-                LinkedList(
-                  [
-                    Element {
-                      tag = "span"
-                      attributes = LinkedList()
-                      children = LinkedList [ Text "World" ]
-                    }
-                  ]
-                )
+                dequeOf [
+                  Element {
+                    tag = "span"
+                    attributes = Deque()
+                    children = dequeOf [ Text "World" ]
+                  }
+                ]
               )
             ]
         }
@@ -220,7 +202,6 @@ let ``Render can render an element with children and attributes and text and a f
     ]
 
     actual |> Seq.zip expected |> Seq.iter(fun (e, a) -> Assert.Equal(e, a))
-
   }
 
 [<Fact>]
@@ -232,7 +213,7 @@ let ``Render can render an element with async nodes and async attributes``() = t
       Element {
         tag = "div"
         attributes =
-          LinkedList [
+          dequeOf [
             AsyncAttribute(
               cancellableValueTask { return { name = "class"; value = "foo" } }
             )
@@ -241,14 +222,14 @@ let ``Render can render an element with async nodes and async attributes``() = t
             )
           ]
         children =
-          LinkedList [
+          dequeOf [
             AsyncNode(
               cancellableValueTask {
                 return
                   Element {
                     tag = "span"
-                    attributes = LinkedList()
-                    children = LinkedList()
+                    attributes = Deque()
+                    children = Deque()
                   }
               }
             )
@@ -281,7 +262,7 @@ let ``Render can respect id, class, attribute order``() = taskUnit {
       Element {
         tag = "div"
         attributes =
-          LinkedList [
+          dequeOf [
             Attribute { name = "id"; value = "foo" }
             Attribute { name = "class"; value = "bar" }
             Attribute { name = "class"; value = "baz" }
@@ -290,7 +271,7 @@ let ``Render can respect id, class, attribute order``() = taskUnit {
             Attribute { name = "data-foo"; value = "bar" }
             Attribute { name = "data-bar"; value = "baz" }
           ]
-        children = LinkedList()
+        children = Deque()
       }
     ) do
     actual.Add(chunk)
@@ -308,7 +289,6 @@ let ``Render can respect id, class, attribute order``() = taskUnit {
   ]
 
   actual |> Seq.zip expected |> Seq.iter(fun (e, a) -> Assert.Equal(e, a))
-
 }
 
 [<Fact>]
@@ -316,7 +296,6 @@ let ``Render can render an element with children and attributes and text and a f
   ()
   =
   taskUnit {
-
     let actual = ResizeArray()
 
     for chunk in
@@ -324,7 +303,7 @@ let ``Render can render an element with children and attributes and text and a f
         Element {
           tag = "div"
           attributes =
-            LinkedList [
+            dequeOf [
               Attribute { name = "id"; value = "foo" }
               Attribute { name = "class"; value = "bar" }
               Attribute { name = "class"; value = "baz" }
@@ -342,18 +321,18 @@ let ``Render can render an element with children and attributes and text and a f
               )
             ]
           children =
-            LinkedList [
+            dequeOf [
               Element {
                 tag = "span"
-                attributes = LinkedList()
-                children = LinkedList [ Text "Hello" ]
+                attributes = Deque()
+                children = dequeOf [ Text "Hello" ]
               }
               Fragment(
-                LinkedList [
+                dequeOf [
                   Element {
                     tag = "span"
-                    attributes = LinkedList()
-                    children = LinkedList [ Text "World" ]
+                    attributes = Deque()
+                    children = dequeOf [ Text "World" ]
                   }
                 ]
               )
@@ -362,8 +341,8 @@ let ``Render can render an element with children and attributes and text and a f
                   return
                     Element {
                       tag = "span"
-                      attributes = LinkedList()
-                      children = LinkedList [ Text "Hello" ]
+                      attributes = Deque()
+                      children = dequeOf [ Text "Hello" ]
                     }
                 }
               )
@@ -397,7 +376,6 @@ let ``Render can render an element with children and attributes and text and a f
     ]
 
     actual |> Seq.zip expected |> Seq.iter(fun (e, a) -> Assert.Equal(e, a))
-
   }
 
 [<Fact>]
@@ -409,17 +387,16 @@ let ``Render discards any "id" attribute after the first``() = taskUnit {
       Element {
         tag = "div"
         attributes =
-          LinkedList [
+          dequeOf [
             Attribute { name = "id"; value = "foo" }
             Attribute { name = "id"; value = "bar" }
           ]
-        children = LinkedList()
+        children = Deque()
       }
     ) do
     actual.Add(chunk)
 
   let expected = [ "<div"; " id=\"foo\""; ">" ]
-
   actual |> Seq.zip expected |> Seq.iter(fun (e, a) -> Assert.Equal(e, a))
 }
 
@@ -432,19 +409,18 @@ let ``Render discards any async "id" after the first``() = taskUnit {
       Element {
         tag = "div"
         attributes =
-          LinkedList [
+          dequeOf [
             Attribute { name = "id"; value = "foo" }
             AsyncAttribute(
               cancellableValueTask { return { name = "id"; value = "bar" } }
             )
           ]
-        children = LinkedList()
+        children = Deque()
       }
     ) do
     actual.Add(chunk)
 
   let expected = [ "<div"; " id=\"foo\""; ">" ]
-
   actual |> Seq.zip expected |> Seq.iter(fun (e, a) -> Assert.Equal(e, a))
 }
 
@@ -457,19 +433,18 @@ let ``Render discards any "id" after the first async attribute``() = taskUnit {
       Element {
         tag = "div"
         attributes =
-          LinkedList [
+          dequeOf [
             AsyncAttribute(
               cancellableValueTask { return { name = "id"; value = "foo" } }
             )
             Attribute { name = "id"; value = "bar" }
           ]
-        children = LinkedList()
+        children = Deque()
       }
     ) do
     actual.Add(chunk)
 
   let expected = [ "<div"; " id=\"foo\""; ">" ]
-
   actual |> Seq.zip expected |> Seq.iter(fun (e, a) -> Assert.Equal(e, a))
 }
 
@@ -481,7 +456,6 @@ let ``Render can render text nodes``() = taskUnit {
     actual.Add(chunk)
 
   let expected = [ "Hello, world!" ]
-
   actual |> Seq.zip expected |> Seq.iter(fun (e, a) -> Assert.Equal(e, a))
 }
 
@@ -493,7 +467,6 @@ let ``Render will HTML encode a text node``() = taskUnit {
     actual.Add(chunk)
 
   let expected = [ "&lt;script&gt;" ]
-
   actual |> Seq.zip expected |> Seq.iter(fun (e, a) -> Assert.Equal(e, a))
 }
 
@@ -505,7 +478,6 @@ let ``Render can render a raw node``() = taskUnit {
     actual.Add(chunk)
 
   let expected = [ "<script>" ]
-
   actual |> Seq.zip expected |> Seq.iter(fun (e, a) -> Assert.Equal(e, a))
 }
 
@@ -517,7 +489,6 @@ let ``Render can render a comment node``() = taskUnit {
     actual.Add(chunk)
 
   let expected = [ "<!--Hello, world!-->" ]
-
   actual |> Seq.zip expected |> Seq.iter(fun (e, a) -> Assert.Equal(e, a))
 }
 
@@ -525,12 +496,10 @@ let ``Render can render a comment node``() = taskUnit {
 let ``Render can render a fragment node``() = taskUnit {
   let actual = ResizeArray()
 
-  for chunk in
-    Render.start(Fragment(LinkedList [ Text "Hello, "; Text "world!" ])) do
+  for chunk in Render.start(Fragment(dequeOf [ Text "Hello, "; Text "world!" ])) do
     actual.Add(chunk)
 
   let expected = [ "Hello, "; "world!" ]
-
   actual |> Seq.zip expected |> Seq.iter(fun (e, a) -> Assert.Equal(e, a))
 }
 
@@ -550,7 +519,6 @@ let ``Render can render an Async Node``() = taskUnit {
     actual.Add(chunk)
 
   let expected = [ "Hello, world!" ]
-
   actual |> Seq.zip expected |> Seq.iter(fun (e, a) -> Assert.Equal(e, a))
 }
 
@@ -563,16 +531,15 @@ let ``Render can render an Async Seq Node``() = taskUnit {
       AsyncSeqNode(
         taskSeq {
           do! Task.Delay(5)
-          Text "Hello, "
+          yield Text "Hello, "
           do! Task.Delay(5)
-          Text "world!"
+          yield Text "world!"
         }
       )
     ) do
     actual.Add(chunk)
 
   let expected = [ "Hello, "; "world!" ]
-
   actual |> Seq.zip expected |> Seq.iter(fun (e, a) -> Assert.Equal(e, a))
 }
 
@@ -585,18 +552,17 @@ let ``Render can render an Async Seq Node with a fragment``() = taskUnit {
       AsyncSeqNode(
         taskSeq {
           do! Task.Delay(5)
-          Text "Hello, "
+          yield Text "Hello, "
           do! Task.Delay(5)
-          Text "world!"
+          yield Text "world!"
           do! Task.Delay(5)
-          Fragment(LinkedList [ Text "Hello, "; Text "world!" ])
+          yield Fragment(dequeOf [ Text "Hello, "; Text "world!" ])
         }
       )
     ) do
     actual.Add(chunk)
 
   let expected = [ "Hello, "; "world!"; "Hello, "; "world!" ]
-
   actual |> Seq.zip expected |> Seq.iter(fun (e, a) -> Assert.Equal(e, a))
 }
 
@@ -605,7 +571,6 @@ let ``Render can render an Async Seq Node with a fragment and an async node``
   ()
   =
   taskUnit {
-
     let actual = ResizeArray()
 
     for chunk in
@@ -613,28 +578,27 @@ let ``Render can render an Async Seq Node with a fragment and an async node``
         AsyncSeqNode(
           taskSeq {
             do! Task.Delay(5)
-            Text "Hello, "
+            yield Text "Hello, "
             do! Task.Delay(5)
-            Text "world!"
+            yield Text "world!"
             do! Task.Delay(5)
-            Fragment(LinkedList [ Text "Hello, "; Text "world!" ])
+            yield Fragment(dequeOf [ Text "Hello, "; Text "world!" ])
             do! Task.Delay(5)
 
-            AsyncNode(
-              cancellableValueTask {
-                do! Task.Delay(5)
-                return Text "Hello, world!"
-              }
-            )
+            yield
+              AsyncNode(
+                cancellableValueTask {
+                  do! Task.Delay(5)
+                  return Text "Hello, world!"
+                }
+              )
           }
         )
       ) do
       actual.Add(chunk)
 
     let expected = [ "Hello, "; "world!"; "Hello, "; "world!"; "Hello, world!" ]
-
     actual |> Seq.zip expected |> Seq.iter(fun (e, a) -> Assert.Equal(e, a))
-
   }
 
 [<Fact>]
@@ -644,9 +608,8 @@ let ``Render can render a mix of sync/async nodes``() = taskUnit {
   for chunk in
     Render.start(
       Fragment(
-        LinkedList [
+        dequeOf [
           Text "Hello, "
-
           AsyncNode(
             cancellableValueTask {
               do! Task.Delay(5)
@@ -659,7 +622,6 @@ let ``Render can render a mix of sync/async nodes``() = taskUnit {
     actual.Add(chunk)
 
   let expected = [ "Hello, "; "world!" ]
-
   actual |> Seq.zip expected |> Seq.iter(fun (e, a) -> Assert.Equal(e, a))
 }
 
@@ -670,7 +632,7 @@ let ``Render can render a mix of sync/async nodes with a fragment``() = taskUnit
   for chunk in
     Render.start(
       Fragment(
-        LinkedList [
+        dequeOf [
           Text "Hello, "
           AsyncNode(
             cancellableValueTask {
@@ -678,14 +640,13 @@ let ``Render can render a mix of sync/async nodes with a fragment``() = taskUnit
               return Text "world!"
             }
           )
-          Fragment(LinkedList [ Text "Hello, "; Text "world!" ])
+          Fragment(dequeOf [ Text "Hello, "; Text "world!" ])
         ]
       )
     ) do
     actual.Add(chunk)
 
   let expected = [ "Hello, "; "world!"; "Hello, "; "world!" ]
-
   actual |> Seq.zip expected |> Seq.iter(fun (e, a) -> Assert.Equal(e, a))
 }
 
@@ -699,7 +660,7 @@ let ``Render can render a mix of sync/async nodes with a mix of sync/async attri
     for chunk in
       Render.start(
         Fragment(
-          LinkedList [
+          dequeOf [
             AsyncNode(
               cancellableValueTask {
                 do! Task.Delay(5)
@@ -709,7 +670,7 @@ let ``Render can render a mix of sync/async nodes with a mix of sync/async attri
             Element {
               tag = "div"
               attributes =
-                LinkedList [
+                dequeOf [
                   Attribute { name = "class"; value = "foo" }
                   AsyncAttribute(
                     cancellableValueTask {
@@ -719,7 +680,7 @@ let ``Render can render a mix of sync/async nodes with a mix of sync/async attri
                   )
                 ]
               children =
-                LinkedList [
+                dequeOf [
                   AsyncNode(
                     cancellableValueTask {
                       do! Task.Delay(5)

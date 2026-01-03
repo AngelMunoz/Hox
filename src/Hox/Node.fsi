@@ -1,46 +1,49 @@
 namespace Hox.Core
 
-open IcedTasks
+open System
 open System.Collections.Generic
-open System.Collections.Immutable
+open IcedTasks
 
+/// A double-ended queue with efficient O(1) amortized access to both ends.
+/// Uses a circular buffer internally for cache-friendly iteration.
+[<Sealed; NoComparison; NoEquality>]
+type Deque<'T> =
+  new: ?initialCapacity: int -> Deque<'T>
+  member Count: int
+  member IsEmpty: bool
+  member AddLast: item: 'T -> unit
+  member AddFirst: item: 'T -> unit
+  member RemoveFirst: unit -> 'T
+  member RemoveLast: unit -> 'T
+  member PeekFirst: unit -> 'T
+  member PeekLast: unit -> 'T
+  member Item: index: int -> 'T with get
+  interface IEnumerable<'T>
 
 /// This type is used to represent HTML attributes e.g `class="foo"`
 [<Struct>]
 type HAttribute = { name: string; value: string }
 
-/// Attributes can be synchronous or asynchronous we use this type to make the distinction
-/// between them and to be able to handle them properly when we're going to render the attribute
-/// itself.
+/// Attributes can be synchronous or asynchronous
 [<Struct; NoComparison; NoEquality>]
 type AttributeNode =
   | Attribute of attribute: HAttribute
   | AsyncAttribute of asyncAttribute: HAttribute CancellableValueTask
 
-/// A node is a single element of the DOM tree, and it is one of the basic bulding blocks of this library
-/// It can be a single element, a text node, a raw node, a comment node, a fragment node, an async node or an async sequence node
-/// Having async nodes allows us to place async operations in the middle of the rendering process side by side with synchronous operations
-/// this provides great developer experience as they don't have to worry about co-locating async operations in the right place.
+/// A node is a single element of the DOM tree
 [<NoComparison; NoEquality>]
 type Node =
   | Element of element: Element
   | Text of text: string
   | Raw of raw: string
   | Comment of comment: string
-  | Fragment of nodes: Node LinkedList
-  /// Async nodes require a cancellation token to be passed to them,
-  /// As we'd like to be able to cancel the rendering process in case
-  /// the user decides to cancel the operation.
+  | Fragment of nodes: Deque<Node>
   | AsyncNode of node: Node CancellableValueTask
   | AsyncSeqNode of nodes: Node IAsyncEnumerable
+  | PreRendered of html: string
 
-/// An element is a single HTML element e.g `<div></div>`
-/// It has a tag, a seq of attributes and a seq of children
-/// Since the children are nodes, any node can be added to this seq
-/// however that may lead to invalid HTML, so it's up to the user to make sure
-/// that the HTML is valid.
 and [<NoComparison; NoEquality>] Element = {
   tag: string
-  attributes: AttributeNode LinkedList
-  children: Node LinkedList
+  attributes: Deque<AttributeNode>
+  children: Deque<Node>
 }

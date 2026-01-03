@@ -1,7 +1,6 @@
 module DSL
 
 open System
-open System.Collections.Generic
 open System.Threading
 open System.Threading.Tasks
 
@@ -15,14 +14,23 @@ open Hox
 open Hox.Core
 open Hox.Rendering
 
+// Helper to create Deque from list literal
+let inline dequeOf(items: 'T list) =
+  let d = Deque<'T>(items.Length)
+
+  for item in items do
+    d.AddLast(item)
+
+  d
+
 module Elements =
   [<Fact>]
   let ``addToNode can be used to add a child node``() =
     let node =
       Element {
         tag = "div"
-        children = LinkedList()
-        attributes = LinkedList()
+        children = Deque()
+        attributes = Deque()
       }
 
     let child = Text "Hello, World!"
@@ -44,8 +52,8 @@ module Elements =
     let node =
       Element {
         tag = "div"
-        children = LinkedList [ Text "Hello, World!" ]
-        attributes = LinkedList()
+        children = dequeOf [ Text "Hello, World!" ]
+        attributes = Deque()
       }
 
     let child = Text "Hello, World!"
@@ -68,8 +76,8 @@ module Elements =
     let node =
       Element {
         tag = "div"
-        children = LinkedList()
-        attributes = LinkedList()
+        children = Deque()
+        attributes = Deque()
       }
 
     let child =
@@ -103,12 +111,11 @@ module Elements =
     let node =
       Element {
         tag = "div"
-        children = LinkedList()
-        attributes = LinkedList()
+        children = Deque()
+        attributes = Deque()
       }
 
-    let child =
-      Fragment(LinkedList [ Text "Hello, World!"; Text "Hello, World!" ])
+    let child = Fragment(dequeOf [ Text "Hello, World!"; Text "Hello, World!" ])
 
     let node' = NodeOps.addToNode(node, child)
 
@@ -128,8 +135,8 @@ module Elements =
     let node =
       Element {
         tag = "div"
-        children = LinkedList()
-        attributes = LinkedList()
+        children = Deque()
+        attributes = Deque()
       }
 
     let children =
@@ -161,7 +168,7 @@ module Fragments =
 
   [<Fact>]
   let ``addToNode can add a child node``() =
-    let node = Fragment(LinkedList [ Text "Hello, World!" ])
+    let node = Fragment(dequeOf [ Text "Hello, World!" ])
 
     let child = Text "Hello, World1!"
 
@@ -182,10 +189,10 @@ module Fragments =
   let ``addToNode can will preserve the order of children when adding another fragment``
     ()
     =
-    let node = Fragment(LinkedList [ Text "Hello, World!" ])
+    let node = Fragment(dequeOf [ Text "Hello, World!" ])
 
     let child =
-      Fragment(LinkedList [ Text "Hello, World1!"; Text "Hello, World2!" ])
+      Fragment(dequeOf [ Text "Hello, World1!"; Text "Hello, World2!" ])
 
     let node' = NodeOps.addToNode(node, child)
 
@@ -206,7 +213,7 @@ module Fragments =
     ()
     =
     taskUnit {
-      let node = Fragment(LinkedList [ Text "Hello, World!" ])
+      let node = Fragment(dequeOf [ Text "Hello, World!" ])
 
       let child =
         AsyncSeqNode(
@@ -350,8 +357,8 @@ module AsyncNodes =
           return
             Element {
               tag = "div"
-              children = LinkedList()
-              attributes = LinkedList()
+              children = Deque()
+              attributes = Deque()
             }
         }
       )
@@ -385,8 +392,8 @@ module AsyncNodes =
           return
             Element {
               tag = "div"
-              children = LinkedList()
-              attributes = LinkedList()
+              children = Deque()
+              attributes = Deque()
             }
         }
       )
@@ -427,14 +434,13 @@ module AsyncNodes =
           return
             Element {
               tag = "div"
-              children = LinkedList()
-              attributes = LinkedList()
+              children = Deque()
+              attributes = Deque()
             }
         }
       )
 
-    let child =
-      Fragment(LinkedList [ Text "Hello, World!"; Text "Hello, World!" ])
+    let child = Fragment(dequeOf [ Text "Hello, World!"; Text "Hello, World!" ])
 
     let node' = NodeOps.addToNode(node, child)
 
@@ -466,8 +472,8 @@ module AsyncNodes =
           return
             Element {
               tag = "div"
-              children = LinkedList()
-              attributes = LinkedList()
+              children = Deque()
+              attributes = Deque()
             }
         }
       )
@@ -550,7 +556,7 @@ module AsyncSeqNodes =
         )
 
       let child =
-        Fragment(LinkedList [ Text "Hello, World2!"; Text "Hello, World3!" ])
+        Fragment(dequeOf [ Text "Hello, World2!"; Text "Hello, World3!" ])
 
       let node' = NodeOps.addToNode(node, child)
 
@@ -680,8 +686,8 @@ let ``addToNode will add correctly and every kind of Node into an element parent
     let node =
       Element {
         tag = "div"
-        children = LinkedList()
-        attributes = LinkedList()
+        children = Deque()
+        attributes = Deque()
       }
 
     let node =
@@ -689,7 +695,7 @@ let ``addToNode will add correctly and every kind of Node into an element parent
       <+ Text "Text Node"
       <+ Raw "<div>Raw Node</div>"
       <+ Comment "Comment Node"
-      <+ Fragment(LinkedList [ Text "Fragment Node"; Text "Fragment Node1" ])
+      <+ Fragment(dequeOf [ Text "Fragment Node"; Text "Fragment Node1" ])
       <+ AsyncNode(
         cancellableValueTask {
           do! Task.Delay(5)
@@ -744,8 +750,8 @@ module Attributes =
     let node =
       Element {
         tag = "div"
-        children = LinkedList()
-        attributes = LinkedList()
+        children = Deque()
+        attributes = Deque()
       }
 
     let node' =
@@ -769,8 +775,8 @@ module Attributes =
     let node =
       Element {
         tag = "div"
-        children = LinkedList()
-        attributes = LinkedList()
+        children = Deque()
+        attributes = Deque()
       }
 
     let node' =
@@ -810,8 +816,8 @@ module Attributes =
           return
             Element {
               tag = "div"
-              children = LinkedList()
-              attributes = LinkedList()
+              children = Deque()
+              attributes = Deque()
             }
         }
       )
@@ -896,8 +902,8 @@ module Attributes =
       let node =
         Element {
           tag = "div"
-          children = LinkedList()
-          attributes = LinkedList()
+          children = Deque()
+          attributes = Deque()
         }
 
       let node =
@@ -999,13 +1005,13 @@ module DSD =
                      attributes = _
                      children = _
                    }) =
-        items.First.Value
+        items.PeekFirst()
 
       let (Element {
                      tag = "slot"
                      attributes = attributes2
                    }) =
-        items.First.Next.Value
+        items.[1]
 
       let (Attribute { name = name; value = value }) = Assert.Single attributes2
 
@@ -1046,13 +1052,13 @@ module DSD =
                      attributes = _
                      children = _
                    }) =
-        items.First.Value
+        items.PeekFirst()
 
       let (Element {
                      tag = "slot"
                      attributes = attributes2
                    }) =
-        items.First.Next.Value
+        items.[1]
 
       let (Attribute { name = name; value = value }) = Assert.Single attributes2
 
@@ -1073,7 +1079,7 @@ module DSD =
       )
 
     let (Element article) = node
-    let (Element template) = article.children.First.Value
+    let (Element template) = article.children.PeekFirst()
 
     let (Attribute { name = name; value = value }) =
       Assert.Single template.attributes
@@ -1081,9 +1087,9 @@ module DSD =
     Assert.Equal("shadowrootmode", name)
     Assert.Equal("open", value)
 
-    let (Fragment templateChildren) = template.children.First.Value
+    let (Fragment templateChildren) = template.children.PeekFirst()
 
-    let (Element link) = templateChildren.First.Value
+    let (Element link) = templateChildren.PeekFirst()
 
     let (Attribute { name = name; value = value }) =
       Assert.Single link.attributes
@@ -1091,6 +1097,6 @@ module DSD =
     Assert.Equal("href", name)
     Assert.Equal("https://some-css-file", value)
 
-    let (Text value) = templateChildren.First.Next.Value
+    let (Text value) = templateChildren.[1]
 
     Assert.Equal("Hello, World!", value)

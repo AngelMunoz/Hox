@@ -32,7 +32,13 @@ module Engine =
 
       AsyncNode tsk
 
-    member inline _.fragment(nodes: Node seq) = Fragment(LinkedList(nodes))
+    member inline _.fragment(nodes: Node seq) =
+      let d = Deque<Node>(8)
+
+      for n in nodes do
+        d.AddLast(n)
+
+      Fragment d
 
     member inline _.fragment(nodes: Node IAsyncEnumerable) = AsyncSeqNode nodes
 
@@ -95,7 +101,7 @@ module Engine =
     HtmlEngine(
       (fun tag nodes -> h(tag, nodes)),
       Text,
-      (fun () -> Fragment(LinkedList()))
+      (fun () -> Fragment(Deque()))
     )
 
   let A =
