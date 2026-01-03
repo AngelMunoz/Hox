@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Hox.Docs/Hox.Docs.fsproj" />
+    <Project Path="src/Hox.Feliz/Hox.Feliz.fsproj" />
+    <Project Path="src/Hox/Hox.fsproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Hox.Tests/Hox.Tests.fsproj" />
+  </Folder>
+</Solution>
