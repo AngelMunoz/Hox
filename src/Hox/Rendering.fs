@@ -144,51 +144,116 @@ type WorkItem =
   | RenderNode of node: Node
   | AwaitSeq of enumerator: IAsyncEnumerator<Node>
 
+// -------------------------
+// Shared helpers (Builder + Chunked)
+// -------------------------
+
+let inline private pushElementWork
+  (stack: Stack<WorkItem>)
+  (ct: CancellationToken)
+  (el: Element)
+  =
+  if not(isVoidTag el.tag) then
+    stack.Push(CloseElement el.tag)
+
+    if not el.children.IsEmpty then
+      stack.Push(
+        RenderChildrenPrefetched(
+          el.children,
+          0,
+          prefetchAsyncChildren el.children ct
+        )
+      )
+
+let inline private pushFragmentWork
+  (stack: Stack<WorkItem>)
+  (ct: CancellationToken)
+  (frag: Deque<Node>)
+  =
+  if not frag.IsEmpty then
+    stack.Push(RenderChildrenPrefetched(frag, 0, prefetchAsyncChildren frag ct))
+
+let inline private processChildrenPrefetchedWork
+  (stack: Stack<WorkItem>)
+  (ct: CancellationToken)
+  (children: Deque<Node>)
+  (index: int)
+  (prefetched: Dictionary<int, ValueTask<Node>> | null)
+  : ValueTask =
+  valueTaskUnit {
+    if index < children.Count then
+      if index + 1 < children.Count then
+        stack.Push(RenderChildrenPrefetched(children, index + 1, prefetched))
+
+      match prefetched with
+      | null -> stack.Push(RenderNode(children[index]))
+      | prefetched ->
+        match prefetched.TryGetValue(index) with
+        | true, startedTask ->
+          let! resolved = startedTask
+          stack.Push(RenderNode resolved)
+        | false, _ -> stack.Push(RenderNode(children[index]))
+  }
+
+let inline private processAwaitSeqWork
+  (stack: Stack<WorkItem>)
+  (enumerator: IAsyncEnumerator<Node>)
+  : ValueTask =
+  valueTaskUnit {
+    let! hasNext = enumerator.MoveNextAsync()
+
+    if hasNext then
+      stack.Push(AwaitSeq enumerator)
+      stack.Push(RenderNode enumerator.Current)
+    else
+      do! enumerator.DisposeAsync()
+  }
+
+let inline private collectAttributes
+  (attrs: Deque<AttributeNode>)
+  (ct: CancellationToken)
+  : ValueTask<
+      struct (string voption *
+      ResizeArray<string> *
+      ResizeArray<struct (string * string)>)
+     >
+  =
+  valueTask {
+    let mutable id = ValueNone
+    let classes = ResizeArray<string>()
+    let others = ResizeArray<struct (string * string)>()
+
+    for attr in attrs do
+      match attr with
+      | Attribute { name = ""; value = _ } -> ()
+      | Attribute { name = "id"; value = v } ->
+        if id.IsNone then
+          id <- ValueSome(Encoding.attrEncode v)
+      | Attribute { name = "class"; value = v } ->
+        classes.Add(Encoding.attrEncode v)
+      | Attribute { name = n; value = v } ->
+        others.Add struct (Encoding.attrEncode n, Encoding.attrEncode v)
+      | AsyncAttribute asyncAttr ->
+        let! { name = n; value = v } = asyncAttr ct
+
+        if String.IsNullOrEmpty(n) then
+          ()
+        elif n = "id" then
+          if id.IsNone then
+            id <- ValueSome(Encoding.attrEncode v)
+        elif n = "class" then
+          classes.Add(Encoding.attrEncode v)
+        else
+          others.Add struct (Encoding.attrEncode n, Encoding.attrEncode v)
+
+    return struct (id, classes, others)
+  }
+
 let renderAttributesToBuilder
   (sb: StringBuilder)
   (attrs: Deque<AttributeNode>)
   (ct: CancellationToken)
   =
-  let inline collectAttributes
-    (attrs: Deque<AttributeNode>)
-    (ct: CancellationToken)
-    : ValueTask<
-        struct (string voption *
-        ResizeArray<string> *
-        ResizeArray<struct (string * string)>)
-       >
-    =
-    valueTask {
-      let mutable id = ValueNone
-      let classes = ResizeArray<string>()
-      let others = ResizeArray<struct (string * string)>()
-
-      for attr in attrs do
-        match attr with
-        | Attribute { name = ""; value = _ } -> ()
-        | Attribute { name = "id"; value = v } ->
-          if id.IsNone then
-            id <- ValueSome(Encoding.attrEncode v)
-        | Attribute { name = "class"; value = v } ->
-          classes.Add(Encoding.attrEncode v)
-        | Attribute { name = n; value = v } ->
-          others.Add struct (Encoding.attrEncode n, Encoding.attrEncode v)
-        | AsyncAttribute asyncAttr ->
-          let! { name = n; value = v } = asyncAttr ct
-
-          if String.IsNullOrEmpty(n) then
-            ()
-          elif n = "id" then
-            if id.IsNone then
-              id <- ValueSome(Encoding.attrEncode v)
-          elif n = "class" then
-            classes.Add(Encoding.attrEncode v)
-          else
-            others.Add struct (Encoding.attrEncode n, Encoding.attrEncode v)
-
-      return struct (id, classes, others)
-    }
-
   let appendCollectedAttributes
     (sb: StringBuilder)
     (id: string voption)
@@ -229,17 +294,7 @@ module Builder =
     (el: Element)
     : ValueTask<unit> =
     valueTask {
-      if not(isVoidTag el.tag) then
-        stack.Push(CloseElement el.tag)
-
-        if not el.children.IsEmpty then
-          stack.Push(
-            RenderChildrenPrefetched(
-              el.children,
-              0,
-              prefetchAsyncChildren el.children ct
-            )
-          )
+      pushElementWork stack ct el
 
       sb.Append('<').Append(el.tag) |> ignore
       do! renderAttributesToBuilder sb el.attributes ct
@@ -260,52 +315,12 @@ module Builder =
       | Comment c ->
         sb.Append("<!--").Append(Encoding.htmlEncode c).Append("-->") |> ignore
       | PreRendered html -> sb.Append(html) |> ignore
-      | Fragment frag ->
-        if not frag.IsEmpty then
-          stack.Push(
-            RenderChildrenPrefetched(frag, 0, prefetchAsyncChildren frag ct)
-          )
+      | Fragment frag -> pushFragmentWork stack ct frag
       | AsyncNode asyncTask ->
         let! resolved = asyncTask ct
         stack.Push(RenderNode resolved)
       | AsyncSeqNode asyncSeq ->
         stack.Push(AwaitSeq(asyncSeq.GetAsyncEnumerator(ct)))
-    }
-
-  let inline private processChildrenPrefetched
-    (stack: Stack<WorkItem>)
-    (ct: CancellationToken)
-    (children: Deque<Node>)
-    (index: int)
-    (prefetched: Dictionary<int, ValueTask<Node>> | null)
-    : ValueTask<unit> =
-    valueTask {
-      if index < children.Count then
-        if index + 1 < children.Count then
-          stack.Push(RenderChildrenPrefetched(children, index + 1, prefetched))
-
-        match prefetched with
-        | null -> stack.Push(RenderNode(children[index]))
-        | prefetched ->
-          match prefetched.TryGetValue(index) with
-          | true, startedTask ->
-            let! resolved = startedTask
-            stack.Push(RenderNode resolved)
-          | false, _ -> stack.Push(RenderNode(children[index]))
-    }
-
-  let inline private processAwaitSeq
-    (stack: Stack<WorkItem>)
-    (enumerator: IAsyncEnumerator<Node>)
-    : ValueTask<unit> =
-    valueTask {
-      let! hasNext = enumerator.MoveNextAsync()
-
-      if hasNext then
-        stack.Push(AwaitSeq enumerator)
-        stack.Push(RenderNode enumerator.Current)
-      else
-        do! enumerator.DisposeAsync()
     }
 
   let inline private processWorkItem
@@ -321,9 +336,9 @@ module Builder =
       | CloseElement tag -> sb.Append("</").Append(tag).Append('>') |> ignore
 
       | RenderChildrenPrefetched(children, index, prefetched) ->
-        do! processChildrenPrefetched stack ct children index prefetched
+        do! processChildrenPrefetchedWork stack ct children index prefetched
 
-      | AwaitSeq enumerator -> do! processAwaitSeq stack enumerator
+      | AwaitSeq enumerator -> do! processAwaitSeqWork stack enumerator
     }
 
   let renderNode node (ct: CancellationToken) = valueTask {
@@ -341,33 +356,6 @@ module Builder =
 
 [<RequireQualifiedAccess>]
 module Chunked =
-  let inline private pushElementWork
-    (stack: Stack<WorkItem>)
-    (ct: CancellationToken)
-    (el: Element)
-    =
-    if not(isVoidTag el.tag) then
-      stack.Push(CloseElement el.tag)
-
-      if not el.children.IsEmpty then
-        stack.Push(
-          RenderChildrenPrefetched(
-            el.children,
-            0,
-            prefetchAsyncChildren el.children ct
-          )
-        )
-
-  let inline private pushFragmentWork
-    (stack: Stack<WorkItem>)
-    (ct: CancellationToken)
-    (frag: Deque<Node>)
-    =
-    if not frag.IsEmpty then
-      stack.Push(
-        RenderChildrenPrefetched(frag, 0, prefetchAsyncChildren frag ct)
-      )
-
   // Channel-backed chunked renderer to avoid taskSeq resumable state machines.
   // The producer is ValueTask-based to keep a fast synchronous path.
 
@@ -393,32 +381,7 @@ module Chunked =
       if attrs.IsEmpty then
         return ()
 
-      let mutable id = ValueNone
-      let classes = ResizeArray<string>()
-      let others = ResizeArray<struct (string * string)>()
-
-      for attr in attrs do
-        match attr with
-        | Attribute { name = ""; value = _ } -> ()
-        | Attribute { name = "id"; value = v } ->
-          if id.IsNone then
-            id <- ValueSome(Encoding.attrEncode v)
-        | Attribute { name = "class"; value = v } ->
-          classes.Add(Encoding.attrEncode v)
-        | Attribute { name = n; value = v } ->
-          others.Add struct (Encoding.attrEncode n, Encoding.attrEncode v)
-        | AsyncAttribute asyncAttr ->
-          let! { name = n; value = v } = asyncAttr ct
-
-          if String.IsNullOrEmpty(n) then
-            ()
-          elif n = "id" then
-            if id.IsNone then
-              id <- ValueSome(Encoding.attrEncode v)
-          elif n = "class" then
-            classes.Add(Encoding.attrEncode v)
-          else
-            others.Add struct (Encoding.attrEncode n, Encoding.attrEncode v)
+      let! struct (id, classes, others) = collectAttributes attrs ct
 
       match id with
       | ValueSome idVal -> do! write writer ct $" id=\"{idVal}\""
@@ -470,42 +433,6 @@ module Chunked =
         stack.Push(AwaitSeq(asyncSeq.GetAsyncEnumerator(ct)))
     }
 
-  let inline private processChildrenPrefetched
-    (stack: Stack<WorkItem>)
-    (ct: CancellationToken)
-    (children: Deque<Node>)
-    (index: int)
-    (prefetched: Dictionary<int, ValueTask<Node>> | null)
-    : ValueTask =
-    valueTaskUnit {
-      if index < children.Count then
-        if index + 1 < children.Count then
-          stack.Push(RenderChildrenPrefetched(children, index + 1, prefetched))
-
-        match prefetched with
-        | null -> stack.Push(RenderNode(children[index]))
-        | prefetched ->
-          match prefetched.TryGetValue(index) with
-          | true, startedTask ->
-            let! resolved = startedTask
-            stack.Push(RenderNode resolved)
-          | false, _ -> stack.Push(RenderNode(children[index]))
-    }
-
-  let inline private processAwaitSeq
-    (stack: Stack<WorkItem>)
-    (enumerator: IAsyncEnumerator<Node>)
-    : ValueTask =
-    valueTaskUnit {
-      let! hasNext = enumerator.MoveNextAsync()
-
-      if hasNext then
-        stack.Push(AwaitSeq enumerator)
-        stack.Push(RenderNode enumerator.Current)
-      else
-        do! enumerator.DisposeAsync()
-    }
-
   let inline private stepWorkItem
     (stack: Stack<WorkItem>)
     (writer: ChannelWriter<string>)
@@ -517,8 +444,8 @@ module Chunked =
       | RenderNode n -> do! emitNode stack writer ct n
       | CloseElement tag -> do! write writer ct $"</{tag}>"
       | RenderChildrenPrefetched(children, index, prefetched) ->
-        do! processChildrenPrefetched stack ct children index prefetched
-      | AwaitSeq enumerator -> do! processAwaitSeq stack enumerator
+        do! processChildrenPrefetchedWork stack ct children index prefetched
+      | AwaitSeq enumerator -> do! processAwaitSeqWork stack enumerator
     }
 
   let private produce
@@ -552,19 +479,22 @@ module Chunked =
     interface IAsyncEnumerator<string> with
       member _.Current = current
 
-      member _.MoveNextAsync() : ValueTask<bool> =
-        let rec loop() = valueTask {
+      member _.MoveNextAsync() : ValueTask<bool> = valueTask {
+        let mutable keepGoing = true
+        let mutable result = false
+
+        while keepGoing do
           let! ok = reader.WaitToReadAsync(ct)
 
           if not ok then
-            return false
-          else
-            match reader.TryRead(&current) with
-            | true -> return true
-            | false -> return! loop()
-        }
+            keepGoing <- false
+            result <- false
+          else if reader.TryRead(&current) then
+            keepGoing <- false
+            result <- true
 
-        loop()
+        return result
+      }
 
       member _.DisposeAsync() : ValueTask = valueTaskUnit {
         match producerTask with
