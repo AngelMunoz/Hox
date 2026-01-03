@@ -247,7 +247,3 @@ module Node =
         }
       )
     | _ -> target
-
-module NodeOps =
-  let inline (<+) target child = Node.addChild child target
-  let inline (<+.) target attr = Node.addAttribute attr target
