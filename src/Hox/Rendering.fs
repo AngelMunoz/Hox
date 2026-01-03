@@ -564,9 +564,21 @@ type Render =
 
       match chunkSize with
       | ValueNone ->
+        let flushThreshold = 4096
+        let sb = StringBuilder flushThreshold
+
         for chunk in Chunked.renderNode(node, ct) do
-          do! writer.WriteAsync(chunk.AsMemory(), ct)
-          do! writer.FlushAsync(ct)
+          sb.Append chunk |> ignore
+
+          if sb.Length >= flushThreshold then
+            let payload = sb.ToString()
+            do! writer.WriteAsync(payload.AsMemory(), ct)
+            sb.Clear() |> ignore
+
+        if sb.Length > 0 then
+          let payload = sb.ToString()
+          do! writer.WriteAsync(payload.AsMemory(), ct)
+
       | ValueSome size ->
 
         let sb = StringBuilder(size * 2)
@@ -577,13 +589,11 @@ type Render =
           if sb.Length >= size then
             let payload = sb.ToString()
             do! writer.WriteAsync(payload.AsMemory(), ct)
-            do! writer.FlushAsync(ct)
             sb.Clear() |> ignore
 
         if sb.Length > 0 then
           let payload = sb.ToString()
           do! writer.WriteAsync(payload.AsMemory(), ct)
-          do! writer.FlushAsync(ct)
 
       do! writer.FlushAsync(ct)
     }
