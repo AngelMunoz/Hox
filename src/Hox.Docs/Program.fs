@@ -13,11 +13,14 @@ open Hox.Rendering
 open Hox.Docs
 open Hox.Docs.Toc
 
+
 [<EntryPoint>]
 let Main argv =
   asyncEx {
     use cts = new CancellationTokenSource()
     let outputDir = Directory.CreateDirectory "./docs"
+    outputDir.Delete(true)
+    outputDir.Create()
     let sources = DirectoryInfo "./markdown"
 
     let isGhPages =
@@ -68,7 +71,10 @@ let Main argv =
                 )
 
               let path =
-                Path.Combine("docs", metadata.file.Replace(".md", ".html"))
+                Path.Combine(
+                  outputDir.Name,
+                  metadata.file.Replace(".md", ".html")
+                )
 
               use writer =
                 File.Open(
@@ -82,6 +88,8 @@ let Main argv =
               do! Render.toStream(layout, writer, cancellationToken = cts.Token)
           }
         )
+
+    let assetList = ResizeArray<Rendering.IRenderable>()
 
     AnsiConsole
       .Status()
@@ -97,23 +105,35 @@ let Main argv =
               Path.Combine(
                 outputDir.FullName,
                 "assets",
-                file.FullName.Replace(assetsDir, "").TrimStart
-                  Path.DirectorySeparatorChar
+                Path.GetRelativePath(assetsDir, file.FullName)
               )
+
 
             Path.GetDirectoryName finalPath
             |> nonNull
             |> Directory.CreateDirectory
             |> ignore
 
+            assetList.Add(TextPath finalPath)
             file.CopyTo(finalPath, overwrite = true) |> ignore
       )
+
 
     use nojekyll =
       File.CreateText(Path.Combine(outputDir.FullName, ".nojekyll"))
 
     nojekyll.Write String.Empty
     nojekyll.Flush()
+
+    let table =
+      let table = Table().NoBorder().AddColumn("Assets").HideHeaders()
+
+      for asset in assetList do
+        table.AddRow asset |> ignore
+
+      Panel(table).Header "Copied Assets"
+
+    AnsiConsole.Write table
     AnsiConsole.MarkupLine "[green]Documentation generated![/]"
     return 0
   }

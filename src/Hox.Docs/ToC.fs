@@ -67,7 +67,7 @@ type EntryMetadata with
     }
 
 let getMetadata tocPath = cancellableTask {
-  let content = File.OpenRead tocPath
+  use content = File.OpenRead tocPath
 
   match!
     Decoding.fromStream(
@@ -81,11 +81,9 @@ let getMetadata tocPath = cancellableTask {
 
 type ToC =
   static member GetContent(metadata) = async {
-    let! token = CancellableTask.getCancellationToken()
-
     let operations =
       metadata
-      |> Array.Parallel.map(fun entry -> async {
+      |> Array.map(fun entry -> async {
         let created = File.GetCreationTime($"markdown/{entry.file}").Date
         let updated = File.GetLastWriteTime($"markdown/{entry.file}").Date
 
@@ -106,8 +104,5 @@ type ToC =
         return entry, content
       })
 
-    if token.IsCancellationRequested then
-      return Array.empty
-    else
-      return! Async.Parallel operations
+    return! Async.Parallel operations
   }

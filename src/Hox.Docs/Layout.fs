@@ -130,7 +130,7 @@ type Layout =
            fragment []),
         h $"base[href={htmlBaseHref}]",
         h
-          "script[async=][src=https://ga.jspm.io/npm:es-module-shims@1.6.2/dist/es-module-shims.js][crossorigin=anonymouys]",
+          "script[async=][src=https://ga.jspm.io/npm:es-module-shims@1.6.2/dist/es-module-shims.js][crossorigin=anonymous]",
         Views.importMap
       ),
       h(
