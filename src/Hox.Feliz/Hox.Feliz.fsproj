@@ -16,5 +16,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Hox\Hox.fsproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Ionide.KeepAChangelog.Tasks" Version="0.3.3" PrivateAssets="all" />
+  </ItemGroup>
 
 </Project>
