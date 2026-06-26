@@ -1,0 +1,32 @@
+name: Library Build
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - src/**
+      - tests/**
+      - Directory.Build.props
+      - global.json
+  pull_request:
+    branches: [main]
+    paths:
+      - src/**
+      - tests/**
+      - Directory.Build.props
+      - global.json
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+      - run: dotnet restore
+      - run: dotnet build Hox.slnx --configuration Release --no-restore
+      - run: dotnet test Hox.slnx --no-restore
