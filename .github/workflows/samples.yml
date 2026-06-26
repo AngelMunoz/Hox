@@ -7,11 +7,15 @@ on:
     paths:
       - src/**
       - samples/**
+      - global.json
+      - Directory.Build.props
   pull_request:
     branches: [main]
     paths:
       - src/**
       - samples/**
+      - global.json
+      - Directory.Build.props
 
 jobs:
   build:

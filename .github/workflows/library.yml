@@ -29,4 +29,4 @@ jobs:
           dotnet-version: "10.0.x"
       - run: dotnet restore
       - run: dotnet build Hox.slnx --configuration Release --no-restore
-      - run: dotnet test Hox.slnx --no-restore
+      - run: dotnet test Hox.slnx --configuration Release --no-build --no-restore
