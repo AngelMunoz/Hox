@@ -79,6 +79,7 @@ type Layout =
         h $"meta[name=og:description][content={metadata.summary}]",
         h $"meta[property=og:title][content={metadata.title}]",
         h $"meta[property=og:type][content=website]",
+        h $"base[href={htmlBaseHref}]",
         h(
           "style",
           raw
@@ -128,9 +129,8 @@ type Layout =
            h "link[rel=stylesheet][href=assets/index.css]"
          else
            fragment []),
-        h $"base[href={htmlBaseHref}]",
         h
-          "script[async=][src=https://ga.jspm.io/npm:es-module-shims@1.6.2/dist/es-module-shims.js][crossorigin=anonymous]",
+          "script[async=][src=https://ga.jspm.io/npm:es-module-shims@2.8.1/dist/es-module-shims.js][crossorigin=anonymous]",
         Views.importMap
       ),
       h(
