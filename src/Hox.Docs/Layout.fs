@@ -12,9 +12,12 @@ module Views =
 
   let tableOfContents toc =
     let (categorized, uncategorized) =
-      toc |> List.skip 2 |> List.partition(fun entry -> entry.category <> None)
+      toc
+      |> Array.skip 2
+      |> Array.partition(fun entry -> entry.category <> None)
 
-    let categorized = List.groupBy (fun item -> item.category.Value) categorized
+    let categorized =
+      Array.groupBy (fun item -> item.category.Value) categorized
 
     h(
       "ul",
@@ -45,7 +48,7 @@ module Views =
       raw
         """{
   "imports": {
-    "hox": "/assets/script.js",
+    "hox": "assets/script.js",
     "highlight.js": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/index.js",
     "highlight.js/lib/core": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/core.js",
     "highlight.js/lib/languages/fsharp": "https://ga.jspm.io/npm:highlight.js@11.7.0/es/languages/fsharp.js",
@@ -61,7 +64,7 @@ type Layout =
 
   static member inline Default
     (
-      toc: EntryMetadata list,
+      toc: EntryMetadata array,
       metadata: EntryMetadata,
       htmlBaseHref: string,
       [<ParamArray>] content: Node array
@@ -119,16 +122,15 @@ type Layout =
   }
 }"""
         ),
-        h "link[rel=stylesheet][href=/assets/styles.css]",
-        h "link[rel=stylesheet][href=/assets/links.css]",
+        h "link[rel=stylesheet][href=assets/styles.css]",
+        h "link[rel=stylesheet][href=assets/links.css]",
         (if metadata.file = "index.md" then
-           h "link[rel=stylesheet][href=/assets/index.css]"
+           h "link[rel=stylesheet][href=assets/index.css]"
          else
            fragment []),
         h $"base[href={htmlBaseHref}]",
-        h(
-          "script[async=][src=https://ga.jspm.io/npm:es-module-shims@1.6.2/dist/es-module-shims.js][crossorigin=anonymouys]"
-        ),
+        h
+          "script[async=][src=https://ga.jspm.io/npm:es-module-shims@1.6.2/dist/es-module-shims.js][crossorigin=anonymous]",
         Views.importMap
       ),
       h(
@@ -137,10 +139,10 @@ type Layout =
           "nav",
           h(
             "ul",
-            h("li", h("a[href=/]", "Home")),
-            h("li", h("a[href=/about.html]", "About Hox")),
-            h("li", h("a[href=/guides/general-usage.html]", "Documentation")),
-            h("li", h("a[href=/reference/nodes.html]", "Reference"))
+            h("li", h("a[href=index.html]", "Home")),
+            h("li", h("a[href=about.html]", "About Hox")),
+            h("li", h("a[href=guides/general-usage.html]", "Documentation")),
+            h("li", h("a[href=reference/nodes.html]", "Reference"))
           )
         ),
         (if metadata.file = "index.md" then
@@ -148,16 +150,16 @@ type Layout =
          else
            h("aside", Views.tableOfContents toc)),
         main(
-          h "link[rel=stylesheet][href=/assets/main.css]",
-          h "link[rel=stylesheet][href=/assets/links.css]",
-          h "link[rel=stylesheet][href=/assets/index.css]",
-          h "link[rel=stylesheet][href=/assets/highlight.css]",
+          h "link[rel=stylesheet][href=assets/main.css]",
+          h "link[rel=stylesheet][href=assets/links.css]",
+          h "link[rel=stylesheet][href=assets/index.css]",
+          h "link[rel=stylesheet][href=assets/highlight.css]",
           fragment content
         ),
         footer(
           fragment(
-            h "link[rel=stylesheet][href=/assets/footer.css]",
-            h "link[rel=stylesheet][href=/assets/links.css]"
+            h "link[rel=stylesheet][href=assets/footer.css]",
+            h "link[rel=stylesheet][href=assets/links.css]"
           ),
           h(
             "p",
