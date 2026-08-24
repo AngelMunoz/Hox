@@ -142,8 +142,8 @@ module Elements =
     let children =
       AsyncSeqNode(
         taskSeq {
-          do! Task.Delay(5)
           yield Text "Hello, World!"
+          do! Async.Sleep 10
           yield Text "Hello, World!"
         }
       )
@@ -518,8 +518,8 @@ module AsyncSeqNodes =
       AsyncSeqNode(
         taskSeq {
           do! Task.Delay(5)
-          Text "Hello, World!"
-          Text "Hello, World1!"
+          yield Text "Hello, World!"
+          yield Text "Hello, World1!"
         }
       )
 
@@ -550,8 +550,8 @@ module AsyncSeqNodes =
         AsyncSeqNode(
           taskSeq {
             do! Task.Delay(5)
-            Text "Hello, World!"
-            Text "Hello, World1!"
+            yield Text "Hello, World!"
+            yield Text "Hello, World1!"
           }
         )
 
@@ -585,8 +585,8 @@ module AsyncSeqNodes =
         AsyncSeqNode(
           taskSeq {
             do! Task.Delay(5)
-            Text "Hello, World!"
-            Text "Hello, World1!"
+            yield Text "Hello, World!"
+            yield Text "Hello, World1!"
           }
         )
 
@@ -594,8 +594,8 @@ module AsyncSeqNodes =
         AsyncSeqNode(
           taskSeq {
             do! Task.Delay(5)
-            Text "Hello, World2!"
-            Text "Hello, World3!"
+            yield Text "Hello, World2!"
+            yield Text "Hello, World3!"
           }
         )
 
@@ -626,8 +626,8 @@ module AsyncSeqNodes =
         AsyncSeqNode(
           taskSeq {
             do! Task.Delay(5)
-            Text "Hello, World!"
-            Text "Hello, World1!"
+            yield Text "Hello, World!"
+            yield Text "Hello, World1!"
           }
         )
 
