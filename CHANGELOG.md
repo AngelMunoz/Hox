@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **Hox:** CSS selector parsing now uses XParsec instead of FParsec. Selector errors throw with a new, more detailed error format.
+- **Hox:** Duplicate ids in a selector now keep the first value instead of crashing, duplicate attributes are kept in order, and attributes render in the order they were written.
+
 ## [3.1.0] - 2026-01-03
 
 ### Fixed

@@ -428,3 +428,61 @@ let ``Can parse nested elements with ids, classes and attributes``() =
   Assert.Contains(struct ("class", "my-class-2"), pAttributes)
 
   Assert.Contains(struct ("data-foo", "bar-2"), pAttributes)
+
+[<Fact>]
+let ``Class stops before a child combinator on one line``() =
+  let actual = Parsers.selector "div.my-class > span"
+
+  match actual.attributes |> List.ofSeq with
+  | [ Attribute { name = "class"; value = "my-class" } ] -> ()
+  | attributes ->
+    Assert.Fail($"Expected class 'my-class' but got '%A{attributes}'")
+
+  match
+    actual.children
+    |> Seq.map (function
+      | Element { tag = tag } -> tag
+      | _ -> failwith "Expected an element")
+    |> List.ofSeq
+  with
+  | [ "span" ] -> ()
+  | children -> Assert.Fail($"Expected child 'span' but got '%A{children}'")
+
+[<Fact>]
+let ``Attributes are collected in source order``() =
+  let actual = Parsers.selector "div[b=2].a#x[c=3]"
+
+  match actual.attributes |> List.ofSeq with
+  | [ Attribute { name = "b"; value = "2" }
+      Attribute { name = "class"; value = "a" }
+      Attribute { name = "id"; value = "x" }
+      Attribute { name = "c"; value = "3" } ] -> ()
+  | attributes ->
+    Assert.Fail($"Expected source-order attributes but got '%A{attributes}'")
+
+[<Fact>]
+let ``Duplicate ids pick the first value``() =
+  let actual = Parsers.selector "div#a#b"
+
+  match actual.attributes |> List.ofSeq with
+  | [ Attribute { name = "id"; value = "a" } ] -> ()
+  | attributes ->
+    Assert.Fail($"Expected single id 'a' but got '%A{attributes}'")
+
+[<Fact>]
+let ``Duplicate attributes are kept in sequence``() =
+  let actual = Parsers.selector "div[data-x=1][data-x=2]"
+
+  match actual.attributes |> List.ofSeq with
+  | [ Attribute { name = "data-x"; value = "1" }
+      Attribute { name = "data-x"; value = "2" } ] -> ()
+  | attributes ->
+    Assert.Fail($"Expected data-x twice in order but got '%A{attributes}'")
+
+[<Fact>]
+let ``Empty selector is rejected``() =
+  Assert.Throws<System.Exception>(fun _ -> Parsers.selector "" |> ignore)
+
+[<Fact>]
+let ``Selector without a tag name is rejected``() =
+  Assert.Throws<System.Exception>(fun _ -> Parsers.selector "#app" |> ignore)

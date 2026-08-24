@@ -124,7 +124,7 @@ Where:
 - `element-name` is the name of the element, element names should follow the HTML spec to define tag names.
 - `#id` is specified with a `#` followed by the value of said id, if more than one id attribute is present only the first one will be picked up.
 - `.class` is specified with a `.` followed by the value of said class.
-- `[attribute=value]` is specified with a `[` followed by the name of the attribute, followed by a required `=` even for no-value atributes (like `checked`), after te `=` symbol anything will be taken as the string until a `]` is found, even break line characters.
+- `[attribute=value]` is specified with a `[` followed by the name of the attribute, followed by an `=` which can be omitted for no-value attributes (like `checked`), after the `=` symbol anything will be taken as the string until a `]` is found, even break line characters.
 - `> <element-definition>` child element definition
 
 You can specify attributes in any order or with spaces and break lines in between the attribute declarations, example:

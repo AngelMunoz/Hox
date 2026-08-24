@@ -19,9 +19,9 @@ In any case, this is a small library that hopes to push the web dev ecosystem in
 - [IcedTasks] - For the cancellable async work semantics added to tasks and many other async builders.
 - [Feliz.Engine] - For the Feliz API which is beloved by many F# developers.
 - [FSharp.Control.TaskSeq] - For allowing us to have `IAsyncEnumerable<T>` support.
-- [FParsec] - For the building blocks of the CSS selector parsing.
+- [XParsec] - For the building blocks of the CSS selector parsing.
 
 [IcedTasks]: https://github.com/TheAngryByrd/IcedTasks
 [Feliz.Engine]: https://github.com/alfonsogarciacaro/Feliz.Engine
 [FSharp.Control.TaskSeq]: https://github.com/fsprojects/FSharp.Control.TaskSeq
-[FParsec]: https://github.com/stephan-tolksdorf/fparsec
+[XParsec]: https://github.com/roboz0r/XParsec
