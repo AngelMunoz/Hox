@@ -26,7 +26,7 @@ General setup and usage instructions can be found in the [README.md](README.md) 
 - `samples/` contains sample servers in F#, C#, and VB.NET (not packable), built via `samples/Samples.sln`.
 - `markdown/` contains the documentation source content consumed by `Hox.Docs`.
 
-Multi-targeting: `Hox` and `Hox.Feliz` target `net8.0;net9.0`. `Hox.Docs` and the test project target `net10.0` (so builds require the .NET 10 SDK).
+Multi-targeting: `Hox` and `Hox.Feliz` target `net8.0;net9.0;net10.0`. `Hox.Docs` and the test project target `net10.0` (so builds require the .NET 10 SDK).
 
 ## Changelog Management
 
