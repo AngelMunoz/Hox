@@ -28,7 +28,7 @@ module Encoding =
   /// - when current grows beyond capacity, we rotate (previous <- current; current <- empty)
   ///
   /// This bounds growth to roughly 2 * capacity entries without needing a full LRU list.
-  let private createTwoGenStringCache(capacity: int) : StringCache =
+  let createTwoGenStringCache(capacity: int) : StringCache =
     let capacity = max 1 capacity
     let gate = obj()
 
@@ -67,7 +67,7 @@ module Encoding =
 
   // Default caches (closure-backed, thread-safe via ConcurrentDictionary)
   // We use a two-generation cache to avoid unbounded growth.
-  let private caches = {
+  let caches = {
     html = createTwoGenStringCache(2048)
     attr = createTwoGenStringCache(2048)
   }
@@ -148,7 +148,7 @@ type WorkItem =
 // Shared helpers (Builder + Chunked)
 // -------------------------
 
-let inline private pushElementWork
+let inline pushElementWork
   (stack: Stack<WorkItem>)
   (ct: CancellationToken)
   (el: Element)
@@ -165,7 +165,7 @@ let inline private pushElementWork
         )
       )
 
-let inline private pushFragmentWork
+let inline pushFragmentWork
   (stack: Stack<WorkItem>)
   (ct: CancellationToken)
   (frag: Deque<Node>)
@@ -173,7 +173,7 @@ let inline private pushFragmentWork
   if not frag.IsEmpty then
     stack.Push(RenderChildrenPrefetched(frag, 0, prefetchAsyncChildren frag ct))
 
-let inline private processChildrenPrefetchedWork
+let inline processChildrenPrefetchedWork
   (stack: Stack<WorkItem>)
   (ct: CancellationToken)
   (children: Deque<Node>)
@@ -195,7 +195,7 @@ let inline private processChildrenPrefetchedWork
         | false, _ -> stack.Push(RenderNode(children[index]))
   }
 
-let inline private processAwaitSeqWork
+let inline processAwaitSeqWork
   (stack: Stack<WorkItem>)
   (enumerator: IAsyncEnumerator<Node>)
   : ValueTask =
@@ -209,7 +209,7 @@ let inline private processAwaitSeqWork
       do! enumerator.DisposeAsync()
   }
 
-let inline private collectAttributes
+let inline collectAttributes
   (attrs: Deque<AttributeNode>)
   (ct: CancellationToken)
   : ValueTask<
@@ -287,7 +287,7 @@ let renderAttributesToBuilder
   }
 
 module Builder =
-  let inline private processElement
+  let inline processElement
     (sb: StringBuilder)
     (stack: Stack<WorkItem>)
     (ct: CancellationToken)
@@ -301,7 +301,7 @@ module Builder =
       sb.Append('>') |> ignore
     }
 
-  let inline private processNode
+  let inline processNode
     (sb: StringBuilder)
     (stack: Stack<WorkItem>)
     (ct: CancellationToken)
@@ -323,7 +323,7 @@ module Builder =
         stack.Push(AwaitSeq(asyncSeq.GetAsyncEnumerator(ct)))
     }
 
-  let inline private processWorkItem
+  let inline processWorkItem
     (sb: StringBuilder)
     (stack: Stack<WorkItem>)
     (ct: CancellationToken)
@@ -359,20 +359,20 @@ module Chunked =
   // Channel-backed chunked renderer to avoid taskSeq resumable state machines.
   // The producer is ValueTask-based to keep a fast synchronous path.
 
-  let inline private write
+  let inline write
     (writer: ChannelWriter<string>)
     (ct: CancellationToken)
     (chunk: string)
     : ValueTask =
     writer.WriteAsync(chunk, ct)
 
-  let inline private completeOk(writer: ChannelWriter<string>) =
+  let inline completeOk(writer: ChannelWriter<string>) =
     writer.TryComplete() |> ignore
 
-  let inline private completeError (writer: ChannelWriter<string>) (ex: exn) =
+  let inline completeError (writer: ChannelWriter<string>) (ex: exn) =
     writer.TryComplete(ex) |> ignore
 
-  let inline private emitAttributes
+  let inline emitAttributes
     (writer: ChannelWriter<string>)
     (ct: CancellationToken)
     (attrs: Deque<AttributeNode>)
@@ -399,7 +399,7 @@ module Chunked =
         do! write writer ct $" {n}=\"{v}\""
     }
 
-  let inline private emitElement
+  let inline emitElement
     (stack: Stack<WorkItem>)
     (writer: ChannelWriter<string>)
     (ct: CancellationToken)
@@ -412,7 +412,7 @@ module Chunked =
       pushElementWork stack ct el
     }
 
-  let inline private emitNode
+  let inline emitNode
     (stack: Stack<WorkItem>)
     (writer: ChannelWriter<string>)
     (ct: CancellationToken)
@@ -433,7 +433,7 @@ module Chunked =
         stack.Push(AwaitSeq(asyncSeq.GetAsyncEnumerator(ct)))
     }
 
-  let inline private stepWorkItem
+  let inline stepWorkItem
     (stack: Stack<WorkItem>)
     (writer: ChannelWriter<string>)
     (ct: CancellationToken)
@@ -448,7 +448,7 @@ module Chunked =
       | AwaitSeq enumerator -> do! processAwaitSeqWork stack enumerator
     }
 
-  let private produce
+  let produce
     (node: Node)
     (writer: ChannelWriter<string>)
     (ct: CancellationToken)
@@ -468,7 +468,7 @@ module Chunked =
         completeError writer ex
     }
 
-  type private ChannelStringEnumerator
+  type ChannelStringEnumerator
     (
       reader: ChannelReader<string>,
       ct: CancellationToken,
@@ -502,7 +502,7 @@ module Chunked =
         | ValueNone -> ()
       }
 
-  type private ChannelStringEnumerable
+  type ChannelStringEnumerable
     (reader: ChannelReader<string>, producerTask: Task voption) =
     interface IAsyncEnumerable<string> with
       member _.GetAsyncEnumerator(ct: CancellationToken) =
