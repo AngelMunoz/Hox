@@ -102,12 +102,14 @@ let renderTodos(http: HttpClient) = taskSeq {
   use! todos = http.GetStreamAsync("https://jsonplaceholder.typicode.com/todos")
 
   let! todos =
-    JsonSerializer.DeserializeAsync<{|
-      userId: int
-      id: int
-      title: string
-      completed: bool
-    |} list>(
+    JsonSerializer.DeserializeAsync<
+      {|
+        userId: int
+        id: int
+        title: string
+        completed: bool
+      |} list
+     >(
       todos
     )
 

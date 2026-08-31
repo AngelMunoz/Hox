@@ -95,7 +95,7 @@ module NodeOps =
           AsyncSeqNode(
             taskSeq {
               yield! target
-              value
+              yield value
             }
           )
       }
@@ -112,7 +112,7 @@ module NodeOps =
       AsyncSeqNode(
         taskSeq {
           yield! target
-          value
+          yield value
         }
       )
     | Fragment current, AsyncNode value ->
