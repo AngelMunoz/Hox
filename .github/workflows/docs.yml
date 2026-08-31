@@ -9,6 +9,7 @@ on:
       - markdown/**
       - src/Hox.Docs/**
       - src/Hox/**
+      - global.json
       - .github/workflows/docs.yml
 
 # We need some permissions to publish to Github Pages
@@ -25,7 +26,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 10.0.x
+          global-json-file: global.json
       - name: Generate the documentation
         run: dotnet run --project src/Hox.Docs -c Release -- --is-gh-pages
       - name: Upload documentation
