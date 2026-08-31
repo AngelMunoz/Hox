@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-08-30
+
 ### Added
 
 - **Hox:** net10.0 is now a supported target for `Hox` and `Hox.Feliz`.
